@@ -85,13 +85,13 @@ export function SidebarBody({
     <div
       className={cn(
         "flex h-full min-h-0 w-full flex-col",
-        collapsed ? "items-center gap-2" : "gap-3",
+        collapsed ? "items-center gap-5" : "gap-3",
       )}
     >
       <div
         className={cn(
           "flex items-center",
-          collapsed ? "w-8 flex-col gap-2" : "gap-2",
+          collapsed ? "w-8 flex-col gap-5" : "gap-2",
         )}
       >
         <NavLink
@@ -137,9 +137,17 @@ export function SidebarBody({
         variant="outline"
         aria-keyshortcuts="Meta+K Control+K"
         onClick={onSearch}
-        className={cn(collapsed ? "size-8 p-0" : "h-8 w-full justify-start px-2.5")}
+        className={cn(
+          collapsed
+            ? "grid size-8 place-items-center p-0 px-0"
+            : "h-8 w-full justify-start px-2.5",
+        )}
       >
-        <Search strokeWidth={1.75} data-icon="inline-start" />
+        <Search
+          className="size-4"
+          strokeWidth={1.75}
+          data-icon={collapsed ? undefined : "inline-start"}
+        />
         <span
           data-sidebar-label
           className={cn(
@@ -159,7 +167,7 @@ export function SidebarBody({
         data-sidebar-nav
         className={cn(
           "flex min-h-0 w-full flex-1 flex-col overflow-x-hidden overflow-y-auto",
-          collapsed ? "scrollbar-none items-center gap-1" : "gap-5",
+          collapsed ? "scrollbar-none items-center gap-5" : "gap-5",
         )}
       >
         {navigation.map((group) => (
@@ -167,7 +175,7 @@ export function SidebarBody({
             key={group.label}
             className={cn(
               "flex flex-col",
-              collapsed ? "items-center gap-1" : "gap-1",
+              collapsed ? "items-center gap-5" : "gap-1",
             )}
           >
             <p
@@ -179,7 +187,7 @@ export function SidebarBody({
             >
               {group.label}
             </p>
-            <ul className={cn("flex flex-col gap-1", collapsed && "items-center")}>
+            <ul className={cn("flex flex-col", collapsed ? "items-center gap-5" : "gap-1")}>
               {group.items.map((item) => (
                 <li key={item.to}>
                   <SidebarLink
@@ -196,7 +204,7 @@ export function SidebarBody({
 
       <Separator className={collapsed ? "w-8" : "w-full"} />
 
-      <div className={cn("flex flex-col", collapsed ? "items-center" : "gap-3")}>
+      <div className={cn("flex w-full flex-col", collapsed ? "items-center" : "gap-3")}>
         <div className={cn("grid w-full", collapsed ? "grid-rows-[0fr]" : "grid-rows-[1fr]")}>
           <div
             className="min-h-0 overflow-hidden"

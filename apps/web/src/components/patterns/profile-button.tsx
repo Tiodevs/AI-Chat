@@ -40,10 +40,16 @@ export function ProfileButton({
           variant="ghost"
           aria-label={pt.profile.menu}
           className={cn(
-            collapsed ? "size-8 p-0" : "h-8 w-full justify-start px-2.5",
+            collapsed
+              ? "grid size-8 place-items-center p-0 px-0"
+              : "h-8 w-full justify-start px-2.5",
           )}
         >
-          <UserRound strokeWidth={1.75} data-icon="inline-start" />
+          <UserRound
+            className="size-4"
+            strokeWidth={1.75}
+            data-icon={collapsed ? undefined : "inline-start"}
+          />
           <span data-sidebar-label className={cn("truncate", collapsed && "sr-only")}>
             {pt.profile.guest}
           </span>
