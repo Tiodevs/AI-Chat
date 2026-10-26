@@ -1,0 +1,62 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  api:
+    name: api
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10
+        with:
+          python-version: "3.12"
+          working-directory: apps/api
+      - name: Instalar dependências
+        working-directory: apps/api
+        run: uv sync --frozen
+      - name: Ruff
+        working-directory: apps/api
+        run: uv run ruff check
+      - name: mypy
+        working-directory: apps/api
+        run: uv run mypy
+      - name: Pytest
+        working-directory: apps/api
+        run: uv run pytest
+
+  web:
+    name: web
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: apps/web/pnpm-lock.yaml
+      - name: Instalar dependências
+        working-directory: apps/web
+        run: pnpm install --frozen-lockfile
+      - name: ESLint
+        working-directory: apps/web
+        run: pnpm exec eslint .
+      - name: Typecheck
+        working-directory: apps/web
+        run: pnpm exec tsc --noEmit -p tsconfig.app.json && pnpm exec tsc --noEmit -p tsconfig.node.json
+      - name: Vitest
+        working-directory: apps/web
+        run: pnpm test
+      - name: Build
+        working-directory: apps/web
+        run: pnpm build
+      - name: Build do Storybook
+        working-directory: apps/web
+        run: pnpm build-storybook
