@@ -1,0 +1,28 @@
+---
+description: Ao concluir uma tarefa, cria commits atômicos e envia ao remoto, escolhendo a branch ou perguntando se houver dúvida
+alwaysApply: true
+---
+
+# Commits e push ao final da tarefa
+
+Neste repositório, uma tarefa que alterou arquivos só termina depois do commit e do push. Não espere um pedido separado.
+
+## Commits
+
+- Um commit por intenção, no formato `tipo: descrição curta em português`.
+- Tipos: `feat`, `fix`, `docs`, `test`, `build`, `perf`, `style`, `refactor`.
+- Documentação usa `docs`. Código novo usa `feat`. Correção usa `fix`.
+- Não misture tipos no mesmo commit. Não inclua `.env`, credenciais nem `.cursor/settings.json`.
+- Sem `git config`, `--no-verify`, `--amend`, reset hard ou force push, salvo pedido explícito.
+
+## Branch
+
+- Continue na branch atual quando a mudança segue o assunto dos commits dela.
+- Crie uma branch nova quando a mudança for outro assunto. Nome: `tipo/assunto-curto`.
+- Se a branch certa não estiver clara, pergunte no chat antes de commitar e não encerre a tarefa até a resposta.
+
+## Push
+
+- Envie a branch que recebeu os commits.
+- Na `main`, push direto só quando a mudança continua o que a `main` já contém. Fora isso, use branch e pergunte se o destino for dúvida.
+- Se o push falhar por autenticação ou remoto ausente, diga o erro e pare. Não crie outro remoto por conta própria.
