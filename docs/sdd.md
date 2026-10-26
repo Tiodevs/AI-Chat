@@ -4,7 +4,7 @@
 |---|---|
 | Produto | Atrium, assistente público para visitantes do Harborlight General Hospital |
 | Repositório | IA-Chat |
-| Status | Rascunho 0.4, revisado, pronto para revisão final antes da implementação |
+| Status | Aprovado 1.0 |
 | Data | 2026-10-25 |
 | Público | Uma pessoa desenvolvedora aprendendo sistemas de IA para produção |
 | Idioma desta especificação | Português |
@@ -50,9 +50,9 @@ O hospital, as pessoas, os telefones e os documentos são inventados. A engenhar
 | Interface | Design system escuro derivado da imagem de referência, com Radix UI, Lucide, Tailwind e shadcn/ui. Animações com GSAP. Seções 14 a 16. |
 | Profundidade | Esta especificação tem detalhe suficiente para implementar. |
 
-### 2.1 Escolhas fechadas neste rascunho
+### 2.1 Escolhas confirmadas
 
-Estas escolhas não estavam no formulário de perguntas. Elas mantêm a primeira versão ensinável e segura. Mude-as antes da implementação se discordar.
+Estas escolhas não estavam no formulário de perguntas. Elas mantêm a primeira versão ensinável e segura. Foram confirmadas na revisão final, em 2026-10-25. Uma mudança posterior atualiza este documento na mesma mudança.
 
 | Escolha | Por que é o padrão |
 |---|---|
@@ -73,6 +73,7 @@ Estas escolhas não estavam no formulário de perguntas. Elas mantêm a primeira
 | O LangGraph executa o grafo do cadastro sem checkpointer. O serviço carrega e grava o estado no PostgreSQL. | O serviço continua dono da persistência e da transação. O LangGraph fica só com a orquestração. |
 | Prompts vivem no repositório e têm versão. A versão vai para cada mensagem e para cada rastro. | Uma mudança de prompt passa por revisão de código e pode ser comparada em avaliações. |
 | Uma réplica da API na versão 1. | Evita corrida em tarefas de fundo e facilita a coleta de métricas. A seção 6.5 trata a escala. |
+| LangSmith na região dos Estados Unidos. | Decisão D-2. As duas regiões são transferência internacional para a LGPD. Estados Unidos mantém a primeira versão simples. |
 
 ### 2.2 Rastreabilidade com o plano de ação
 
@@ -224,11 +225,14 @@ O documento completo fica dividido por assunto. A numeração das seções não 
 
 ## 26. Decisões em aberto
 
-D-1, D-3 e D-4 foram fechadas na seção 2.1: produto em português, dados só fictícios e sem domínio próprio.
+Não há decisões em aberto. Nenhuma decisão bloqueia as Etapas 1 a 4.
 
-| ID | Pergunta | Recomendação |
+| ID | Decisão | Onde ficou |
 |---|---|---|
-| D-2 | O LangSmith fica na região dos Estados Unidos ou da União Europeia? | Estados Unidos, por simplicidade. As duas regiões são transferência internacional para a LGPD. |
+| D-1 | Produto em português do Brasil | Seção 2.1 |
+| D-2 | LangSmith na região dos Estados Unidos | Seções 2.1, 11.7 e 18.4 |
+| D-3 | Dados só fictícios | Seção 2.1 |
+| D-4 | Sem domínio próprio | Seção 2.1 |
 
 ## 27. Glossário
 
@@ -256,3 +260,4 @@ D-1, D-3 e D-4 foram fechadas na seção 2.1: produto em português, dados só f
 | 0.2 | 2026-10-25 | Especificação traduzida para português |
 | 0.3 | 2026-10-25 | Revisão de arquitetura e coerência. Next.js trocado por React com Vite e rewrite da Vercel. Entrega contínua no GitHub Actions. Camada de domínio, unidade de trabalho e padrões explícitos. Railpack no lugar do Nixpacks e semente fora da inicialização. Contrato de embedding de um texto por pedido. Orçamento de tokens, circuit breaker, idempotência e cancelamento. Login limitado, verificação de `Origin` e `no-store`. LangSmith com políticas de rastro, feedback e avaliações. Prometheus, Grafana, painéis e alertas. Seção de LGPD. Design system derivado da imagem de referência. Plano de UI/UX. Movimento com GSAP. ADRs e decisões em aberto. |
 | 0.4 | 2026-10-25 | Produto em português. Cadastro e uso só com dados fictícios, mantendo o desenho de LGPD. Sem domínio próprio, com consulta periódica como reserva do fluxo. Especificação dividida por assunto. |
+| 1.0 | 2026-10-25 | Revisão final aprovada. Escolhas da seção 2.1 confirmadas. D-2 fechada: LangSmith na região dos Estados Unidos. |

@@ -150,7 +150,9 @@ A página de qualidade do admin usa agregados do banco, não o Prometheus, para 
 | `LANGSMITH_TRACING` | `false`, opcional `true` | `false` | `true` | `true` |
 | `LANGSMITH_PROJECT` | `atrium-dev` | sem uso | `atrium-dev` | `atrium-prod` |
 | `LANGSMITH_TRACING_SAMPLING_RATE` | `1.0` | sem uso | `1.0` | `1.0` na versão 1 |
-| `LANGSMITH_ENDPOINT` | Região padrão | sem uso | Região padrão | Região padrão |
+| `LANGSMITH_ENDPOINT` | Estados Unidos | sem uso | Estados Unidos | Estados Unidos |
+
+A região é a dos Estados Unidos, decisão D-2. `LANGSMITH_ENDPOINT` usa o endpoint padrão dessa região.
 
 A raiz de composição cria o cliente do LangSmith com um `anonymizer` que troca e-mails, telefones e sequências longas de dígitos por marcadores. O `LANGSMITH_HIDE_INPUTS` global não é usado, porque ele desliga o anonimizador.
 
