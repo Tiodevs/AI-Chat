@@ -1,0 +1,26 @@
+---
+description: Camadas da API do Atrium. Use ao criar ou alterar código em apps/api.
+globs: apps/api/**/*.py
+alwaysApply: false
+---
+
+# Camadas da API
+
+A direção da dependência está na seção 6.2 do SDD.
+
+- `app.domain` importa só a biblioteca padrão e o Pydantic. Erros de domínio nascem em `app.domain.errors`.
+- `app.controllers` interpreta HTTP, chama um serviço e mapeia o resultado. Não importa LangChain, LangGraph, LangSmith, SQLAlchemy nem `app.repositories`. Não monta o envelope de erro: deixa o erro de domínio subir até `app.core.errors`.
+- `app.schemas` tem os modelos Pydantic de pedido e resposta.
+- `app.services` não importa FastAPI, LangChain, LangGraph nem LangSmith.
+- `app.workflows` não importa FastAPI nem SQLAlchemy. Recebe portas pelo construtor.
+- `app.repositories` não importa LangChain, LangGraph, LangSmith nem FastAPI.
+- `app.models` não importa FastAPI nem LangChain.
+- Texto visível ao usuário fica em `app.prompts`, em português. Código, rotas e identificadores ficam em inglês.
+
+```python
+# Errado: o controlador importa o repositório.
+from app.repositories.documents import DocumentRepository
+
+# Certo: o controlador chama o serviço e deixa o erro de domínio subir.
+return await question_service.ask(command)
+```

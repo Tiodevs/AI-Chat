@@ -798,8 +798,8 @@ A IA atualiza esta tabela em cada PR.
 | Etapa | Nome | Status |
 |---|---|---|
 | 0.1 | Revisão final da especificação | Aprovada |
-| 1.1 | Esqueleto do repositório e governança | Pendente |
-| 1.2 | API mínima | Pendente |
+| 1.1 | Esqueleto do repositório e governança | Aprovada |
+| 1.2 | API mínima | Aprovada |
 | 1.3 | Shell do frontend e design system base | Pendente |
 | 1.4 | CI sem banco | Pendente |
 | 2.1 | Banco, migrações, unidade de trabalho e prontidão | Pendente |
