@@ -61,7 +61,7 @@ Algumas etapas precisam de contas e chaves que só você pode criar. A IA para e
 | `DATABASE_URL` pública do ambiente `development` no `apps/api/.env` | Etapa 2.1 | Seu `.env` local, nunca commitado |
 | Chave do Gemini para desenvolvimento, só com dados sintéticos | Etapa 3.2 (teste manual) | Google AI Studio |
 | Conta e chave do LangSmith, projeto `atrium-dev` | Etapa 4.4 | LangSmith |
-| Decisão D-2 sobre a região do LangSmith | Etapa 4.4 | Seção 26 do SDD |
+| Região do LangSmith, fechada na Etapa 0.1: Estados Unidos | Etapa 4.4 | Seção 2.1 do SDD |
 | Projeto Vercel com diretório raiz `apps/web` | Etapa 10.1 | Vercel |
 | GitHub Environments `development` e `production` com `RAILWAY_TOKEN`, `VERCEL_TOKEN`, `VERCEL_ORG_ID` e `VERCEL_PROJECT_ID`, e aprovação obrigatória em `production` | Etapa 10.1 | GitHub |
 | Projeto Google com faturamento ativo para a chave de produção | Etapa 10.2 | Google Cloud |
@@ -77,7 +77,7 @@ Cada etapa traz: objetivo, seções do SDD, entregas, critérios de aceite (CA) 
 
 #### Etapa 0.1 — Revisão final da especificação
 
-**Objetivo.** Fechar o SDD antes da primeira linha de código. O status atual é "Rascunho 0.4, pronto para revisão final".
+**Objetivo.** Fechar o SDD antes da primeira linha de código. O status na abertura da etapa era "Rascunho 0.4, pronto para revisão final".
 
 **Seções.** 2.1, 26 e 28.
 
@@ -446,7 +446,7 @@ Cada etapa traz: objetivo, seções do SDD, entregas, critérios de aceite (CA) 
 
 **Seções.** 11.11 (`lia.md`), 17 (`FeedbackSink`), 18.4 e 21.2.
 
-**Pré-requisito.** D-2 decidida e chave do LangSmith no `.env` local.
+**Pré-requisito.** Chave do LangSmith no `.env` local. A região é a dos Estados Unidos, fechada na Etapa 0.1.
 
 **Entregas.**
 - Cliente do LangSmith com o anonimizador. Políticas `full`, `masked` e `metadata_only` por passo.
@@ -797,7 +797,7 @@ A IA atualiza esta tabela em cada PR.
 
 | Etapa | Nome | Status |
 |---|---|---|
-| 0.1 | Revisão final da especificação | Pendente |
+| 0.1 | Revisão final da especificação | Em revisão |
 | 1.1 | Esqueleto do repositório e governança | Pendente |
 | 1.2 | API mínima | Pendente |
 | 1.3 | Shell do frontend e design system base | Pendente |
