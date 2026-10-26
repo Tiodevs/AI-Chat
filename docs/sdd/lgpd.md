@@ -102,7 +102,7 @@ O Marco Civil da Internet, art. 15, obriga provedores de aplicação constituíd
 
 ### 11.7 Transferência internacional
 
-Railway, Vercel, Google e LangChain tratam dados fora do Brasil. A transferência se apoia no art. 33, com as cláusulas contratuais dos provedores, conforme a Resolução CD/ANPD nº 19/2024. O Aviso de Privacidade lista cada provedor, o país e a finalidade. O LangSmith usa a região padrão dos Estados Unidos, salvo decisão em aberto D-2.
+Railway, Vercel, Google e LangChain tratam dados fora do Brasil. A transferência se apoia no art. 33, com as cláusulas contratuais dos provedores, conforme a Resolução CD/ANPD nº 19/2024. O Aviso de Privacidade lista cada provedor, o país e a finalidade. O LangSmith fica na região dos Estados Unidos, decisão D-2.
 
 ### 11.8 Segurança dos dados
 
