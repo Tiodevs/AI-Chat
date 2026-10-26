@@ -1,0 +1,26 @@
+---
+description: Definição de pronto do Atrium. Use ao implementar ou revisar uma etapa do plano de ação, abrir a PR da etapa ou declarar uma entrega pronta.
+alwaysApply: false
+---
+
+# Definição de pronto
+
+Além dos critérios da etapa em `docs/plano-de-acao.md`, uma etapa só termina quando os itens abaixo passam. Na PR, marque cada item aplicável com a evidência.
+
+- **DP-1.** A CI está verde na PR. Vale a partir da Etapa 1.4. Antes disso, os testes locais da etapa são a evidência.
+- **DP-2.** Os testes automáticos não chamam o Gemini nem o LangSmith (NFR-3). Use `FakeChatProvider`, `DeterministicEmbeddingProvider` e `NoopFeedbackSink`.
+- **DP-3.** O teste de arquitetura está verde (NFR-1). Vale a partir da Etapa 2.1.
+- **DP-4.** Nenhum commit inclui segredo, `.env` ou `.cursor/settings.json`.
+- **DP-5.** Texto visível ao usuário fica em português, em `apps/web/src/i18n/pt.ts` ou em `apps/api/app/prompts`. Código, rotas e identificadores ficam em inglês.
+- **DP-6.** Uma mudança de comportamento atualiza o SDD na mesma PR.
+- **DP-7.** Componente novo em `components/ui` ou `components/patterns` tem história no Storybook com os estados da seção 14.7 do SDD. Vale a partir da Etapa 1.3.
+- **DP-8.** Tela nova usa só tokens semânticos, respeita movimento reduzido e passa no axe. Vale a partir da primeira tela.
+- **DP-9.** A descrição da PR liga cada critério de aceite da etapa ao teste que o prova.
+
+Um item com etapa de início não se aplica antes dela. Não trate como falha o que a etapa ainda não criou.
+
+Esta regra é o texto canônico. Se ela e a seção 1.4 do plano divergirem, atualize as duas na mesma mudança.
+
+## Exemplo
+
+Um critério "login errado não revela se o e-mail existe" sem teste citado na PR descumpre o DP-9. A evidência é o nome do teste, como `tests/integration/test_login.py::test_unknown_email_same_message`.

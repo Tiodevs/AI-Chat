@@ -48,17 +48,7 @@ Nenhuma etapa começa antes da anterior ser aprovada, salvo quando você pedir e
 
 ### 1.4 Definição de pronto, válida para todas as etapas
 
-Além dos critérios próprios, toda etapa só é aprovada quando:
-
-- **DP-1.** A CI está verde na PR (a partir da Etapa 1.4, quando a CI passa a existir).
-- **DP-2.** Os testes automáticos da etapa não chamam o Gemini nem o LangSmith (NFR-3).
-- **DP-3.** O teste de arquitetura continua verde (a partir da Etapa 2.1, NFR-1).
-- **DP-4.** Nenhum segredo, `.env` ou `.cursor/settings.json` foi commitado.
-- **DP-5.** Todo texto visível ao usuário está em português, em `src/i18n/pt.ts` no frontend ou em `app/prompts` na API. Código, rotas e identificadores ficam em inglês.
-- **DP-6.** Se a etapa mudou um comportamento, o SDD foi atualizado na mesma PR (seção 20, regra 1).
-- **DP-7.** Componentes novos de `components/ui` e `components/patterns` têm história no Storybook com os estados da seção 14.7 (a partir da Etapa 1.3).
-- **DP-8.** Telas novas usam só tokens semânticos, respeitam movimento reduzido e passam no axe (a partir da primeira tela).
-- **DP-9.** A IA consegue mostrar, na PR, qual teste prova cada critério de aceite.
+A definição de pronto é a regra do projeto [`.cursor/rules/definicao-de-pronto.mdc`](../.cursor/rules/definicao-de-pronto.mdc). A IA a carrega ao implementar, revisar ou encerrar uma etapa. Os itens são DP-1 a DP-9: CI verde, testes sem modelo ao vivo, teste de arquitetura, ausência de segredos, textos em português, SDD atualizado, Storybook, tokens com movimento reduzido e axe, e cada critério ligado ao teste que o prova. O texto da regra prevalece. Uma mudança nela atualiza esta seção na mesma alteração.
 
 ## 2. Pré-requisitos que dependem de você
 
