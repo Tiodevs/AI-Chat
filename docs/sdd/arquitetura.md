@@ -150,7 +150,7 @@ apps/
       lib/
         api/           cliente tipado, tipos gerados do OpenAPI, query keys
         sse.ts         leitor de eventos enviados pelo servidor
-      i18n/            textos do produto
+      i18n/            textos do produto em pt.ts
       styles/          tokens.css, globals.css
     e2e/               Playwright
     .storybook/
@@ -253,6 +253,8 @@ Eventos enviados pelo servidor, nesta ordem:
 | `error` | `{ "code", "message" }` |
 
 A API envia um comentário SSE de manutenção a cada 15 segundos enquanto o gerador não produz tokens, para proxies não fecharem a conexão ociosa. A visão substitui o balão inteiro do assistente quando `replace` chega.
+
+Se o fluxo não entregar o primeiro evento, a visão passa a consultar `GET /v1/conversations/{id}` a cada segundo até a mensagem do assistente ter desfecho. O pedido no servidor continua até o fim. Essa reserva existe porque a versão 1 não tem domínio próprio e depende do rewrite da Vercel.
 
 Desfechos gravados na resposta: `answered`, `abstained`, `refused`, `off_topic`, `grounding_failed`, `cancelled`, `degraded`, `error`.
 
@@ -359,7 +361,7 @@ Os identificadores são UUIDs. Os timestamps são `timestamptz` em UTC. O e-mail
 
 **document_versions.** `document_id`, `version`, único em `(document_id, version)`, `filename`, `media_type`, `sha256`, `body_text`, `original_bytes`, `byte_size`, `ingestion_status` (`processing`, `ready`, `failed`), `error` anulável, `created_at`.
 
-**chunks.** `document_version_id`, `ordinal`, `heading`, `content`, `embedding vector(768)`, `tsv tsvector` gerado a partir de `heading` e `content` com a configuração English, `active` booleano.
+**chunks.** `document_version_id`, `ordinal`, `heading`, `content`, `embedding vector(768)`, `tsv tsvector` gerado a partir de `heading` e `content` com a configuração `portuguese`, `active` booleano.
 
 **data_subject_requests.** `user_id` anulável, `contact_email`, `request_type` (`access`, `correction`, `deletion`, `portability`, `consent_revocation`, `information_about_sharing`, `objection`, `other`), `description`, `status` (`open`, `in_progress`, `done`, `rejected`), `received_at`, `due_at`, `closed_at`, `resolution_note`.
 
@@ -387,6 +389,8 @@ O prefixo faz parte da chamada de embedding. Ele não é gravado como corpo do c
 | Sem título de seção | `title: {título do documento} \| text: {conteúdo}` |
 | Pergunta | `task: question answering \| query: {pergunta autônoma}` |
 
+Os prefixos `title:`, `text:` e `task: question answering | query:` são instruções do modelo e permanecem em inglês. O título e o conteúdo, dentro dessas chaves, ficam em português.
+
 O `gemini-embedding-2` renormaliza dimensões que não são a padrão, então os vetores de 768 dimensões são gravados como vieram. A distância de cosseno é o operador `<=>` do pgvector. A similaridade é `1 - distance`.
 
 `EMBEDDING_DIMENSIONS` precisa ser 768 na versão 1. A inicialização compara a configuração com o tipo da coluna, e `/ready` falha quando eles diferem. Mudar a dimensão é uma migração mais um re-embedding completo.
@@ -395,7 +399,7 @@ O `gemini-embedding-2` renormaliza dimensões que não são a padrão, então os
 
 1. Tomar os 20 chunks ativos mais próximos pela distância de cosseno.
 2. Descartar chunks cuja similaridade fica abaixo de `RETRIEVAL_MIN_SIMILARITY`.
-3. Tomar até 20 chunks ativos que casam com `websearch_to_tsquery('english', question)`, restritos aos que também passam no piso de similaridade.
+3. Tomar até 20 chunks ativos que casam com `websearch_to_tsquery('portuguese', question)`, restritos aos que também passam no piso de similaridade.
 4. Fundir as duas listas com reciprocal rank fusion, constante 60: `1 / (60 + rank)`, com ranks começando em 1. A fusão é uma função pura do domínio.
 5. Passar os 6 primeiros ao gerador.
 

@@ -280,16 +280,16 @@ Admin
   /admin/privacy        Pedidos de titular
 ```
 
-A navegação do visitante tem os grupos **Assistant** (New question e Conversations, para membros) e **Account** (Register ou Sign in, Account e Privacy). A do admin tem **Operations** (Overview, Documents e Quality) e **System** (Privacy requests). A paleta `⌘K` lista as mesmas entradas e, para membros, as conversas recentes.
+A navegação do visitante tem os grupos **Assistente** (Nova pergunta e Conversas, para membros) e **Conta** (Cadastrar ou Entrar, Conta e Privacidade). A do admin tem **Operação** (Visão geral, Documentos e Qualidade) e **Sistema** (Pedidos de privacidade). A paleta `⌘K` lista as mesmas entradas e, para membros, as conversas recentes. Os nomes de rota continuam em inglês.
 
 ### 15.5 Telas
 
-Cada tela descreve objetivo, composição e estados. Os textos citados são a cópia em inglês do produto.
+Cada tela descreve objetivo, composição e estados. Os textos citados são a cópia em português do produto.
 
 #### Início `/`
 
 - **Objetivo:** responder à primeira pergunta sem atrito.
-- **Composição:** título em `text-display` "How can we help you at Harborlight?", `Composer` em destaque e quatro sugestões em `ToggleGroup` de chips: Visiting hours, Parking, Emergency entrance e Cafeteria hours. `SafetyNotice` abaixo. Links discretos para Register e Sign in.
+- **Composição:** título em `text-display` "Como podemos ajudar no Harborlight?", `Composer` em destaque e quatro sugestões em `ToggleGroup` de chips: Horário de visita, Estacionamento, Entrada de emergência e Horário do refeitório. `SafetyNotice` abaixo. Links discretos para Cadastrar e Entrar.
 - **Estados:** sem estado vazio, porque a tela já é o ponto de partida. Com o orçamento estourado, o compositor fica desabilitado com o telefone da mesa.
 
 #### Conversa `/ask/:id?`
@@ -303,23 +303,24 @@ Cada tela descreve objetivo, composição e estados. Os textos citados são a c�
 | Aguardando o primeiro token | Três linhas de skeleton e o caret, com `aria-busy` |
 | Em fluxo | O texto chegando e o caret, com o botão Stop |
 | Respondido | Texto, fontes e ações de feedback |
-| Abstenção | Badge "Not in our published information" e o telefone da mesa |
-| Recusa médica | Alert com a orientação de emergência e a nota "For your privacy, we didn't keep this message." no lugar da mensagem |
-| Substituída | O rascunho dá lugar à resposta segura, com a nota "I couldn't verify that answer, so I replaced it." |
-| Interrompida | "Stopped." e o botão Retry |
-| Limite de taxa | "You've asked a lot of questions. Try again in N minutes." |
+| Abstenção | Badge "Não está nas informações publicadas" e o telefone da mesa |
+| Recusa médica | Alert com a orientação de emergência e a nota "Para proteger sua privacidade, não guardamos esta mensagem." no lugar da mensagem |
+| Substituída | O rascunho dá lugar à resposta segura, com a nota "Não consegui confirmar essa resposta, então a substituí." |
+| Interrompida | "Interrompida." e o botão Tentar de novo |
+| Limite de taxa | "Você fez muitas perguntas. Tente de novo em N minutos." |
 | Indisponível | A resposta fixa de indisponibilidade |
-| Erro | Mensagem amigável, Retry e `RequestIdCopy` |
+| Erro | Mensagem amigável, Tentar de novo e `RequestIdCopy` |
+| Fluxo interrompido | A visão consulta a conversa a cada segundo, como descrito na seção 7.1 |
 
 #### Cadastro por conversa `/register`
 
 - **Objetivo:** criar a conta conversando, sem perder o controle dos dados.
-- **Composição no desktop:** `RegistrationStepper` no topo. À esquerda, o chat. À direita, o `ProfileSummaryCard`, que se preenche à medida que a IA entende os campos. Cada campo tem um link "Why we ask" e pode ser editado ali mesmo. No celular, o cartão vira uma faixa recolhível acima do chat.
-- **Passo da senha:** o `PasswordCard` aparece no lugar do compositor, com a nota "Your password goes straight to our server. The AI never sees it."
-- **Passo de revisão:** o resumo completo com Edit em cada linha e o botão Looks right.
+- **Composição no desktop:** `RegistrationStepper` no topo. À esquerda, o chat. À direita, o `ProfileSummaryCard`, que se preenche à medida que a IA entende os campos. Cada campo tem um link "Por que pedimos" e pode ser editado ali mesmo. No celular, o cartão vira uma faixa recolhível acima do chat.
+- **Passo da senha:** o `PasswordCard` aparece no lugar do compositor, com a nota "Sua senha vai direto para o nosso servidor. A IA não a vê."
+- **Passo de revisão:** o resumo completo com Editar em cada linha e o botão Está certo.
 - **Passo de aceite:** `ConsentFieldSet` com os dois aceites obrigatórios e os dois opcionais. O opcional de personalização fica destacado e explica que tipo de visitante e motivo da visita podem indicar que a pessoa é paciente. Os opcionais começam desmarcados.
-- **Sempre visível:** o link "Use a form instead".
-- **Estados:** campo com erro aparece no cartão e é pedido de novo no chat. E-mail já cadastrado oferece Sign in. Com o Gemini indisponível, a tela leva ao formulário com os campos já entendidos.
+- **Sempre visível:** o link "Usar o formulário".
+- **Estados:** campo com erro aparece no cartão e é pedido de novo no chat. E-mail já cadastrado oferece Entrar. Com o Gemini indisponível, a tela leva ao formulário com os campos já entendidos.
 
 #### Cadastro por formulário `/register/form`
 
@@ -327,15 +328,15 @@ Os mesmos campos, aceites e regras, numa página só, com `FieldGroup`. Erros do
 
 #### Entrar `/sign-in`
 
-E-mail, senha e o link para cadastro. O erro é sempre "Email or password is incorrect."
+E-mail, senha e o link para cadastro. O erro é sempre "E-mail ou senha incorretos."
 
 #### Conta `/account`
 
-Abas **Profile**, **Conversations** e **Privacy**.
+Abas **Perfil**, **Conversas** e **Privacidade**.
 
-- **Profile:** edição dos campos, com os opcionais sensíveis só visíveis se a personalização estiver ativa.
-- **Conversations:** lista com data e primeira pergunta. Vazio: "No conversations yet."
-- **Privacy:** interruptores de consentimento com a data de cada aceite, Export my data, Delete my account com `AlertDialog` que exige digitar DELETE, e o link para o canal de pedidos.
+- **Perfil:** edição dos campos, com os opcionais sensíveis só visíveis se a personalização estiver ativa.
+- **Conversas:** lista com data e primeira pergunta. Vazio: "Nenhuma conversa ainda."
+- **Privacidade:** interruptores de consentimento com a data de cada aceite, Exportar meus dados, Excluir minha conta com `AlertDialog` que exige digitar EXCLUIR, e o link para o canal de pedidos.
 
 #### Privacidade `/privacy`
 
@@ -345,10 +346,10 @@ O Aviso de Privacidade em seções curtas e com âncoras, a lista de operadores 
 
 A tela que segue mais de perto a imagem de referência.
 
-- Linha de quatro `StatCard`: Questions, Answered rate, Not in sources rate e Helpful rate, nos últimos 7 dias, com `DeltaBadge` contra os 7 dias anteriores.
-- `TrendChartCard` "Questions over time" com cursor, tooltip e seletor de período.
-- `SegmentedStatusCard` "Outcomes" com abas Outcome, Intent e Feedback.
-- `GroupedBarCard` "Registration funnel" com chat contra formulário por etapa.
+- Linha de quatro `StatCard`: Perguntas, Taxa de respostas, Taxa de abstenção e Taxa de útil, nos últimos 7 dias, com `DeltaBadge` contra os 7 dias anteriores.
+- `TrendChartCard` "Perguntas ao longo do tempo" com cursor, tooltip e seletor de período.
+- `SegmentedStatusCard` "Desfechos" com abas Desfecho, Intenção e Feedback.
+- `GroupedBarCard` "Funil de cadastro" com chat contra formulário por etapa.
 - Card de orçamento diário de tokens com `Progress`, em `--warning` acima de 80%.
 
 #### Documentos `/admin/documents`
@@ -357,7 +358,7 @@ A tela que segue mais de perto a imagem de referência.
 
 #### Qualidade `/admin/quality`
 
-`DataTable` de conversas filtrável por desfecho, feedback e período, com identidade pseudonimizada. A linha abre um `Sheet` inspetor com as mensagens, a versão do prompt, o `request_id`, o link para o rastro no LangSmith e a ação Reveal identity, que pede um motivo.
+`DataTable` de conversas filtrável por desfecho, feedback e período, com identidade pseudonimizada. A linha abre um `Sheet` inspetor com as mensagens, a versão do prompt, o `request_id`, o link para o rastro no LangSmith e a ação Revelar identidade, que pede um motivo.
 
 #### Pedidos de titular `/admin/privacy`
 
@@ -378,12 +379,12 @@ A tela que segue mais de perto a imagem de referência.
 
 ### 15.7 Diretrizes de texto
 
-- Inglês simples, frases curtas, nível de leitura de ensino fundamental.
+- Português simples, frases curtas, nível de leitura de ensino fundamental.
 - Sempre um próximo passo.
-- Sem culpar a pessoa: "We couldn't verify that" e não "Your question is invalid".
-- Sem antropomorfizar: "Atrium can't" e não "I feel".
+- Sem culpar a pessoa: "Não conseguimos confirmar" em vez de "Sua pergunta é inválida".
+- Sem antropomorfizar: "O Atrium não pode" em vez de "Eu sinto".
 - Números e horários no formato do catálogo da seção 9.
-- Todo texto fica em `src/i18n/en.ts`.
+- Todo texto fica em `src/i18n/pt.ts`.
 
 ### 15.8 Acessibilidade
 

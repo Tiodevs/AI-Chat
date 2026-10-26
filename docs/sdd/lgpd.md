@@ -4,7 +4,7 @@ Parte da [especificação do Atrium](../sdd.md). A numeração das seções é a
 
 ## 11. LGPD
 
-Esta seção aplica a Lei nº 13.709/2018 ao Atrium. O hospital é fictício, mas qualquer pessoa real que se cadastre na implantação pública é titular de dados de verdade. Esta seção é desenho técnico, não parecer jurídico. A decisão em aberto D-3 pede revisão jurídica antes de abrir o cadastro ao público.
+Esta seção aplica a Lei nº 13.709/2018 ao Atrium. Na versão 1, contas, conversas e pedidos usam apenas dados fictícios, e não há titular real. O desenho mesmo assim é o de um sistema real: finalidade, minimização, direitos, retenção, auditoria e incidentes. Esta seção, com os documentos listados em 11.11, é o tratamento de LGPD da versão 1. Ela é desenho técnico, não parecer jurídico. Se pessoas reais passarem a se cadastrar, a revisão jurídica volta a ser necessária antes disso.
 
 ### 11.1 Papéis
 
@@ -50,7 +50,7 @@ O inventário completo vive em `docs/privacy/ropa.md`, cumprindo o art. 37. A ta
 
 Num hospital, a pessoa pode contar algo sobre a própria saúde mesmo sem ser perguntada. O desenho reduz esse risco em camadas:
 
-1. O compositor de mensagens mostra "Don't share health details. Atrium can't give medical advice." antes da primeira pergunta.
+1. O compositor de mensagens mostra "Não compartilhe dados de saúde. O Atrium não dá orientação médica." antes da primeira pergunta.
 2. Uma mensagem classificada como `medical_advice` tem o conteúdo substituído antes de ser gravada. O histórico mostra que a mensagem não foi guardada, e por quê.
 3. O passo de classificação é rastreado no LangSmith só com metadados. A pergunta original nunca chega ao LangSmith.
 4. O histórico enviado ao modelo é lido do banco, então nunca contém uma mensagem de saúde de um turno anterior.
@@ -131,12 +131,12 @@ O roteiro fica em `docs/privacy/incident-playbook.md`:
 
 | Documento | Caminho | Quando |
 |---|---|---|
-| Aviso de Privacidade, em inglês, versionado | `/privacy` no frontend | Antes do primeiro deploy público |
-| Termos de Uso | `/terms` no frontend | Antes do primeiro deploy público |
-| Inventário de tratamento | `docs/privacy/ropa.md` | Antes do primeiro deploy público |
-| Relatório de impacto, art. 38 | `docs/privacy/ripd.md` | Antes de abrir o cadastro, porque o contexto envolve possível dado de saúde |
-| Teste de legítimo interesse | `docs/privacy/lia.md` | Antes de ligar o LangSmith em produção |
-| Roteiro de incidentes | `docs/privacy/incident-playbook.md` | Antes do primeiro deploy público |
+| Aviso de Privacidade, em português, versionado | `/privacy` no frontend | Junto com a implementação |
+| Termos de Uso, em português | `/terms` no frontend | Junto com a implementação |
+| Inventário de tratamento | `docs/privacy/ropa.md` | Junto com a implementação |
+| Relatório de impacto, art. 38 | `docs/privacy/ripd.md` | Junto com a implementação, com dados fictícios |
+| Teste de legítimo interesse | `docs/privacy/lia.md` | Junto com a ligação do LangSmith |
+| Roteiro de incidentes | `docs/privacy/incident-playbook.md` | Junto com a implementação |
 
 A versão do Aviso e dos Termos é a constante `LEGAL_DOCUMENT_VERSION` da API. O frontend a lê em `GET /v1/legal/versions`. Uma nova versão exige novo aceite na próxima entrada do membro.
 

@@ -4,11 +4,11 @@
 |---|---|
 | Produto | Atrium, assistente público para visitantes do Harborlight General Hospital |
 | Repositório | IA-Chat |
-| Status | Rascunho 0.3, revisado, pronto para revisão final antes da implementação |
+| Status | Rascunho 0.4, revisado, pronto para revisão final antes da implementação |
 | Data | 2026-10-25 |
 | Público | Uma pessoa desenvolvedora aprendendo sistemas de IA para produção |
 | Idioma desta especificação | Português |
-| Idioma do produto | Inglês: interface, documentos do hospital, prompts e código (ver decisão em aberto D-1) |
+| Idioma do produto | Português do Brasil na interface, nos documentos e nas respostas. Código, rotas e identificadores em inglês |
 
 Este documento é a especificação de construção. A implementação segue o que está aqui. Quando uma mudança posterior contradisser este documento, o documento é atualizado na mesma mudança. Decisões estruturais ficam registradas como ADRs na seção 24.
 
@@ -57,7 +57,9 @@ Estas escolhas não estavam no formulário de perguntas. Elas mantêm a primeira
 | Escolha | Por que é o padrão |
 |---|---|
 | Nome do produto **Atrium**. Hospital **Harborlight General Hospital**, na cidade fictícia de **Port Meridian**. | O repositório pode continuar `IA-Chat`. O produto precisa de um nome estável para prompts, documentos e interface. |
-| Interface e documentos do hospital em inglês. | Código, prompts e textos do produto ficam na mesma língua nesta primeira versão. Os textos ficam centralizados para uma tradução futura. |
+| Interface, documentos do hospital, prompts visíveis e respostas em português do Brasil. | É a língua de quem usa o produto. Código, rotas, enums e os prefixos de embedding exigidos pelo Gemini continuam em inglês. |
+| Contas, conversas e pedidos usam só dados fictícios. | Não há titular real na versão 1. A seção 11 trata esses dados como um sistema real trataria, e esse desenho basta. |
+| Sem domínio próprio. | A origem de produção é a URL da Vercel. `WEB_ORIGIN` aponta para ela. |
 | Perguntas funcionam sem conta. O cadastro é opcional e guarda o histórico. | Uma página pública de hospital responde ao visitante antes de pedir que ele se cadastre. |
 | Admin é uma conta de operação criada por um script de implantação. O chat público não pode criar um admin. | A gestão de documentos precisa de um operador. Cadastro público de admin seria uma falha de privilégio. |
 | As transições de estado do cadastro são Python puro, na camada de domínio. O Gemini só extrai campos e formula a próxima pergunta. | Um modelo não decide que uma conta existe. |
@@ -222,12 +224,11 @@ O documento completo fica dividido por assunto. A numeração das seções não 
 
 ## 26. Decisões em aberto
 
+D-1, D-3 e D-4 foram fechadas na seção 2.1: produto em português, dados só fictícios e sem domínio próprio.
+
 | ID | Pergunta | Recomendação |
 |---|---|---|
-| D-1 | O produto fica em inglês ou passa a ser em português do Brasil? A LGPD e o público sugerem um contexto brasileiro. | Manter o inglês na versão 1 e deixar os textos centralizados. Decidir antes do teste de usabilidade, que deve usar a língua do público real. |
 | D-2 | O LangSmith fica na região dos Estados Unidos ou da União Europeia? | Estados Unidos, por simplicidade. As duas regiões são transferência internacional para a LGPD. |
-| D-3 | Pessoas reais vão poder se cadastrar na produção? | Sim, mas com o aviso de que é um projeto de estudo e com revisão jurídica antes de abrir o cadastro ao público. |
-| D-4 | Haverá um domínio próprio? | Recomendado. Ele permite a alternativa de subdomínio da seção 25 e um e-mail de privacidade com o mesmo nome. |
 
 ## 27. Glossário
 
@@ -254,3 +255,4 @@ O documento completo fica dividido por assunto. A numeração das seções não 
 | 0.1 | 2026-10-25 | Rascunho inicial a partir das decisões do projeto |
 | 0.2 | 2026-10-25 | Especificação traduzida para português |
 | 0.3 | 2026-10-25 | Revisão de arquitetura e coerência. Next.js trocado por React com Vite e rewrite da Vercel. Entrega contínua no GitHub Actions. Camada de domínio, unidade de trabalho e padrões explícitos. Railpack no lugar do Nixpacks e semente fora da inicialização. Contrato de embedding de um texto por pedido. Orçamento de tokens, circuit breaker, idempotência e cancelamento. Login limitado, verificação de `Origin` e `no-store`. LangSmith com políticas de rastro, feedback e avaliações. Prometheus, Grafana, painéis e alertas. Seção de LGPD. Design system derivado da imagem de referência. Plano de UI/UX. Movimento com GSAP. ADRs e decisões em aberto. |
+| 0.4 | 2026-10-25 | Produto em português. Cadastro e uso só com dados fictícios, mantendo o desenho de LGPD. Sem domínio próprio, com consulta periódica como reserva do fluxo. Especificação dividida por assunto. |

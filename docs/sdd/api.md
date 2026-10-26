@@ -10,7 +10,7 @@ O prefixo da API é `/v1`. O navegador chama `/backend/v1/...`. Os corpos são J
 {
   "error": {
     "code": "not_in_corpus",
-    "message": "I don't have that in Harborlight's published information.",
+    "message": "Não encontrei isso nas informações publicadas do Harborlight.",
     "request_id": "01J..."
   }
 }
