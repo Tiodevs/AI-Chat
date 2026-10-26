@@ -39,14 +39,12 @@ export function ProfileButton({
         <Button
           variant="ghost"
           aria-label={pt.profile.menu}
-          data-flip
           className={cn(
-            "w-full min-h-11 justify-start gap-3 px-3 md:min-h-8",
-            collapsed && "justify-center px-0",
+            collapsed ? "size-8 p-0" : "h-8 w-full justify-start px-2.5",
           )}
         >
           <UserRound strokeWidth={1.75} data-icon="inline-start" />
-          <span data-sidebar-label className="truncate text-body">
+          <span data-sidebar-label className={cn("truncate", collapsed && "sr-only")}>
             {pt.profile.guest}
           </span>
         </Button>

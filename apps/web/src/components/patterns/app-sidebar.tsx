@@ -10,9 +10,8 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet.tsx"
 import { pt } from "@/i18n/pt.ts"
-import { Flip, useGSAP } from "@/motion/gsap.ts"
+import { useGSAP } from "@/motion/gsap.ts"
 import { useMotion } from "@/motion/MotionProvider.tsx"
-import { motionTokens } from "@/motion/tokens.ts"
 import { presets } from "@/motion/presets.ts"
 import { useGsapPresence } from "@/motion/useGsapPresence.ts"
 import { cn } from "@/lib/utils.ts"
@@ -27,21 +26,8 @@ export function AppSidebar({
   onSearch: () => void
 }) {
   const rootRef = useRef<HTMLElement>(null)
-  const snapshot = useRef<ReturnType<typeof Flip.getState> | null>(null)
   const skipMotion = useRef(true)
   const { reduced } = useMotion()
-  const { contextSafe } = useGSAP({ scope: rootRef })
-
-  function toggle() {
-    const run = contextSafe(() => {
-      const root = document.getElementById("app-sidebar")
-      if (root && !reduced) {
-        snapshot.current = Flip.getState(root.querySelectorAll("[data-flip]"))
-      }
-      onToggleCollapsed()
-    })
-    run()
-  }
 
   useGSAP(
     () => {
@@ -53,21 +39,8 @@ export function AppSidebar({
       const first = skipMotion.current
       skipMotion.current = false
       presets.showSidebarLabels(labels, reduced || first, !collapsed)
-      const state = snapshot.current
-      snapshot.current = null
-      if (!state || reduced || first) {
-        return
-      }
-      Flip.from(state, {
-        duration: motionTokens.duration.base,
-        ease: motionTokens.ease.move,
-        absolute: true,
-        nested: true,
-        scale: false,
-        prune: true,
-      })
     },
-    { dependencies: [collapsed, reduced], scope: rootRef, revertOnUpdate: true },
+    { dependencies: [collapsed, reduced], scope: rootRef },
   )
 
   return (
@@ -76,14 +49,15 @@ export function AppSidebar({
       ref={rootRef}
       data-collapsed={collapsed ? "true" : "false"}
       className={cn(
-        "flex h-full w-60 shrink-0 flex-col overflow-hidden border-r border-border bg-shell p-3",
-        collapsed && "w-16",
+        "flex h-full shrink-0 flex-col overflow-hidden border-r border-border bg-shell py-3",
+        collapsed ? "w-16 items-center" : "w-60 px-3",
+        !reduced && "transition-[width] duration-300 ease-in-out",
       )}
     >
       <SidebarBody
         collapsed={collapsed}
         onSearch={onSearch}
-        onToggle={toggle}
+        onToggle={onToggleCollapsed}
         showCollapse
       />
     </aside>
@@ -100,7 +74,7 @@ export function MobileSidebar({
   onSearch: () => void
 }) {
   const panelRef = useRef<HTMLDivElement>(null)
-  const mounted = useGsapPresence(open, panelRef)
+  const mounted = useGsapPresence(open, panelRef, -24)
 
   return (
     <>
@@ -124,14 +98,15 @@ export function MobileSidebar({
         {mounted ? (
           <SheetContent
             id="mobile-sidebar"
+            ref={panelRef}
             forceMount
             side="left"
-            className="w-60 bg-shell p-3 data-[side=left]:w-60"
+            className="w-72 bg-shell p-3 data-[side=left]:w-72"
           >
             <SheetHeader className="sr-only">
               <SheetTitle>{pt.sidebar.label}</SheetTitle>
             </SheetHeader>
-            <div ref={panelRef} className="min-h-0 flex-1">
+            <div className="min-h-0 flex-1">
               <SidebarBody
                 collapsed={false}
                 onSearch={() => {

@@ -120,16 +120,12 @@
     outline: 2px solid var(--ring);
     outline-offset: 2px;
   }
+}
 
-  [data-collapsed="true"] [data-sidebar-label] {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip-path: inset(50%);
-    white-space: nowrap;
+@utility scrollbar-none {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
   }
 }
 
