@@ -1,3 +1,3 @@
 # app
 
-Roteador, provedores, layouts e error boundaries. Seção 13.2 do SDD.
+Roteador, provedores e a casca. Os error boundaries entram com as rotas protegidas. Seção 13.2 do SDD.
