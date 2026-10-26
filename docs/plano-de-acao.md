@@ -801,7 +801,7 @@ A IA atualiza esta tabela em cada PR.
 | 1.1 | Esqueleto do repositório e governança | Aprovada |
 | 1.2 | API mínima | Aprovada |
 | 1.3 | Shell do frontend e design system base | Em revisão |
-| 1.4 | CI sem banco | Pendente |
+| 1.4 | CI sem banco | Em revisão |
 | 2.1 | Banco, migrações, unidade de trabalho e prontidão | Pendente |
 | 2.2 | Autenticação, sessão e proteções HTTP | Pendente |
 | 3.1 | Corpus fictício e modelo de documentos | Pendente |
