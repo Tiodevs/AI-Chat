@@ -1,0 +1,29 @@
+---
+description: Movimento com GSAP no Atrium. Use ao animar interface em apps/web.
+globs: apps/web/**/*.{ts,tsx}
+alwaysApply: false
+---
+
+# GSAP
+
+As regras de implementação estão na seção 16.5 do SDD. Os tokens estão na seção 16.2.
+
+- Anime só `transform` e `opacity`. Nada de `width`, `height`, `top`, `left`, `margin` ou `padding`.
+- Use `useGSAP` com `scope` na ref do componente. Sem seletor sem escopo.
+- Animação criada em handler de evento passa por `contextSafe`.
+- Use `autoAlpha` em entradas e saídas, para o elemento invisível não bloquear clique.
+- Use `clearProps` no fim das entradas, para o CSS voltar a mandar.
+- `will-change: transform` só no elemento que está animando.
+- Prefira timeline a encadear `delay`.
+- Quem decide o movimento reduzido é o preset em `src/motion/presets.ts`. O componente não decide sozinho.
+- Teste de unidade não roda GSAP em tempo real. O teste força movimento reduzido.
+
+```tsx
+// Errado
+gsap.to(".card", { opacity: 0, delay: 0.2 });
+
+// Certo
+useGSAP(() => {
+  gsap.to(cardRef.current, { autoAlpha: 0 });
+}, { scope: rootRef });
+```

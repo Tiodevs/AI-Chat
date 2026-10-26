@@ -1,0 +1,27 @@
+---
+description: Design system do Atrium. Use ao criar ou alterar interface em apps/web.
+globs: apps/web/**/*.{tsx,css}
+alwaysApply: false
+---
+
+# Design system
+
+As regras de uso estão na seção 14.8 do SDD. Os tokens semânticos estão na seção 14.2.
+
+- Use os componentes do shadcn/ui antes de criar marcação própria.
+- Use tokens semânticos. Não use cor crua, como `bg-neutral-900`.
+- Formulários usam `FieldGroup` e `Field`, com `aria-invalid` no controle.
+- Diálogos e sheets têm título, mesmo que visualmente escondido.
+- Layout com `flex` e `gap`. Sem `space-x` e `space-y`.
+- Nada de texto em cinza abaixo de `--subtle-foreground`.
+- A versão 1 declara `color-scheme: dark`. O tema claro fica para depois.
+- Componente novo em `components/ui` ou `components/patterns` ganha história no Storybook com os estados da seção 14.7.
+- Uma mudança de token atualiza a seção 14.2 na mesma mudança.
+
+```tsx
+// Errado
+<button className="bg-neutral-900 text-gray-500">Entrar</button>
+
+// Certo
+<Button variant="default">Entrar</Button>
+```
