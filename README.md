@@ -16,4 +16,10 @@ A API roda direto na máquina. Docker não é necessário.
 4. Suba a API com `uv run uvicorn app.main:app --reload`.
 5. Abra `http://127.0.0.1:8000/health`. A resposta é 200 e traz o cabeçalho `x-request-id`.
 
-O frontend entra na Etapa 1.3. O banco da Railway entra na Etapa 2.1.
+O frontend fica em `apps/web`.
+
+1. Entre em `apps/web`.
+2. Instale as dependências com `pnpm install`.
+3. Suba a casca com `pnpm dev` e abra `http://localhost:5173`.
+
+O banco da Railway entra na Etapa 2.1.
