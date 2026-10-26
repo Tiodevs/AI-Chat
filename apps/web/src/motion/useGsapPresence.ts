@@ -1,4 +1,4 @@
-import { useState, type RefObject } from "react"
+import { useState } from "react"
 
 import { useGSAP } from "./gsap.ts"
 import { useMotion } from "./MotionProvider.tsx"
@@ -6,7 +6,8 @@ import { presets } from "./presets.ts"
 
 export function useGsapPresence(
   open: boolean,
-  ref: RefObject<HTMLDivElement | null>,
+  ref: { current: HTMLElement | null },
+  fromX = 0,
 ) {
   const { reduced } = useMotion()
   const [rendered, setRendered] = useState(open)
@@ -18,15 +19,24 @@ export function useGsapPresence(
       if (!node || !mounted) {
         return
       }
+      const finish = () => {
+        setRendered(false)
+      }
       if (open) {
-        presets.enterPresence(node, reduced)
+        if (fromX === 0) {
+          presets.enterPresence(node, reduced)
+        } else {
+          presets.enterFromSide(node, reduced, Math.abs(fromX))
+        }
         return
       }
-      presets.exitPresence(node, reduced, () => {
-        setRendered(false)
-      })
+      if (fromX === 0) {
+        presets.exitPresence(node, reduced, finish)
+      } else {
+        presets.exitToSide(node, reduced, finish, Math.abs(fromX))
+      }
     },
-    { dependencies: [open, mounted, reduced], scope: ref },
+    { dependencies: [open, mounted, reduced, fromX], scope: ref },
   )
 
   return mounted

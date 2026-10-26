@@ -72,6 +72,7 @@ export function showSidebarLabels(
     duration: motionTokens.duration.fast,
     ease: visible ? motionTokens.ease.enter : motionTokens.ease.exit,
     overwrite: "auto",
+    clearProps: visible ? "opacity,visibility" : undefined,
   })
 }
 
@@ -81,6 +82,19 @@ export function enterPresence(target: gsap.TweenTarget, reduced: boolean) {
     reduced,
     { autoAlpha: 0, scale: 0.98 },
     { autoAlpha: 1, scale: 1 },
+  )
+}
+
+export function enterFromSide(
+  target: gsap.TweenTarget,
+  reduced: boolean,
+  distance = 20,
+) {
+  enter(
+    target,
+    reduced,
+    { autoAlpha: 0, x: -Math.abs(distance) },
+    { autoAlpha: 1, x: 0 },
   )
 }
 
@@ -100,6 +114,30 @@ export function exitPresence(
   }
   gsap.to(target, {
     autoAlpha: 0,
+    duration: motionTokens.duration.fast,
+    ease: motionTokens.ease.exit,
+    onComplete,
+  })
+}
+
+export function exitToSide(
+  target: gsap.TweenTarget,
+  reduced: boolean,
+  onComplete?: () => void,
+  distance = 20,
+) {
+  if (!canAnimate(target)) {
+    onComplete?.()
+    return
+  }
+  if (reduced) {
+    gsap.set(target, { autoAlpha: 0, x: 0 })
+    onComplete?.()
+    return
+  }
+  gsap.to(target, {
+    autoAlpha: 0,
+    x: -Math.abs(distance),
     duration: motionTokens.duration.fast,
     ease: motionTokens.ease.exit,
     onComplete,
@@ -130,6 +168,8 @@ export const presets = {
   enterRoute,
   showSidebarLabels,
   enterPresence,
+  enterFromSide,
   exitPresence,
+  exitToSide,
   press,
 }

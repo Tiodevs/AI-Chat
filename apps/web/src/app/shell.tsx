@@ -41,7 +41,7 @@ function RouteTransition() {
         }
       })
     },
-    { dependencies: [pathname, reduced], scope: rootRef, revertOnUpdate: true },
+    { dependencies: [pathname, reduced], scope: rootRef },
   )
 
   return (

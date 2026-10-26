@@ -95,6 +95,14 @@ export function MotionProvider({ children }: { children: ReactNode }) {
 
   const setPreference = useCallback((preference: MotionPreference) => {
     localStorage.setItem(STORAGE_KEY, preference)
+    const systemReduced = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches
+    setMotion((current) => ({
+      ...current,
+      preference,
+      reduced: resolveReduced(preference, systemReduced),
+    }))
     gsap.matchMediaRefresh()
   }, [])
 
