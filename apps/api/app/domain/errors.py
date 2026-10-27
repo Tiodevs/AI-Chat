@@ -25,6 +25,12 @@ class Forbidden(DomainError):
     code: ClassVar[str] = "forbidden"
 
 
+class BadOrigin(DomainError):
+    """Origem diferente de WEB_ORIGIN. HTTP 403, código bad_origin. Seção 10.3."""
+
+    code: ClassVar[str] = "bad_origin"
+
+
 class Unauthenticated(DomainError):
     code: ClassVar[str] = "unauthenticated"
 
@@ -35,6 +41,10 @@ class ValidationFailed(DomainError):
 
 class RateLimited(DomainError):
     code: ClassVar[str] = "rate_limited"
+
+    def __init__(self, message: str, *, retry_after_seconds: int) -> None:
+        super().__init__(message)
+        self.retry_after_seconds = retry_after_seconds
 
 
 class BudgetExceeded(DomainError):
