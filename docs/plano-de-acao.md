@@ -802,7 +802,7 @@ A IA atualiza esta tabela em cada PR.
 | 1.2 | API mínima | Aprovada |
 | 1.3 | Shell do frontend e design system base | Em revisão |
 | 1.4 | CI sem banco | Em revisão |
-| 2.1 | Banco, migrações, unidade de trabalho e prontidão | Pendente |
+| 2.1 | Banco, migrações, unidade de trabalho e prontidão | Em revisão |
 | 2.2 | Autenticação, sessão e proteções HTTP | Pendente |
 | 3.1 | Corpus fictício e modelo de documentos | Pendente |
 | 3.2 | Embedding, ingestão e semente | Pendente |

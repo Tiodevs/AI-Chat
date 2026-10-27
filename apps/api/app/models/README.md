@@ -1,3 +1,3 @@
 # models
 
-Entidades SQLAlchemy. Sem tratador de pedido. Seção 6.2 do SDD. As tabelas entram na Etapa 2.1.
+Entidades SQLAlchemy. Sem tratador de pedido. Seções 6.2 e 8.1 do SDD.
