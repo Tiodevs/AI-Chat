@@ -1,4 +1,4 @@
-"""GeminiChatProvider: 20 s, nova tentativa em 429 e 503, circuito 5/60 s. Seção 17."""
+"""GeminiChatProvider: 40 s, nova tentativa em 429 e 503, circuito 5/60 s. Seção 17."""
 
 import asyncio
 import time

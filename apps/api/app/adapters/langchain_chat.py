@@ -7,7 +7,7 @@ from pydantic import BaseModel
 
 from app.ports.chat import Message, TokenUsage, Tool, ToolResult
 
-CHAT_TIMEOUT_SECONDS = 20.0
+CHAT_TIMEOUT_SECONDS = 40.0
 SDK_MAX_RETRIES = 0
 
 
