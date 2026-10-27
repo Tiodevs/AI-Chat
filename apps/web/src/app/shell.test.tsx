@@ -9,17 +9,20 @@ import { AppProviders } from "@/app/providers.tsx"
 import { pt } from "@/i18n/pt.ts"
 import { gsap } from "@/motion/gsap.ts"
 
-const pages = [
+const publicPages = [
   ["/", pt.pages.home],
   ["/ask", pt.pages.ask],
   ["/ask/visita", pt.pages.ask],
   ["/register", pt.pages.register],
   ["/register/form", pt.pages.registerForm],
   ["/sign-in", pt.pages.signIn],
-  ["/account", pt.pages.account],
   ["/privacy", pt.pages.privacy],
   ["/terms", pt.pages.terms],
   ["/legal/accept", pt.pages.legalAccept],
+] as const
+
+const protectedPages = [
+  ["/account", pt.pages.account],
   ["/admin", pt.pages.admin],
   ["/admin/documents", pt.pages.documents],
   ["/admin/quality", pt.pages.quality],
@@ -37,7 +40,7 @@ function renderAt(path: string) {
 }
 
 describe("casca", () => {
-  it.each(pages)("foca o título ao abrir %s", async (path, title) => {
+  it.each(publicPages)("foca o título ao abrir %s", async (path, title) => {
     const start = path === "/" ? "/sign-in" : "/"
     const { router } = renderAt(start)
     await screen.findByRole("heading", { level: 1 })
@@ -50,6 +53,28 @@ describe("casca", () => {
     })
     expect(document.title).toBe(`${title} · ${pt.appName}`)
   })
+
+  it.each(protectedPages)(
+    "sem sessão, %s volta para entrar e guarda o retorno",
+    async (path) => {
+      const { router } = renderAt("/")
+      await screen.findByRole("heading", { level: 1, name: pt.pages.home })
+      await act(async () => {
+        await router.navigate(path)
+      })
+      const heading = await screen.findByRole("heading", {
+        level: 1,
+        name: pt.pages.signIn,
+      })
+      await waitFor(() => {
+        expect(document.activeElement).toBe(heading)
+      })
+      expect(router.state.location.pathname).toBe("/sign-in")
+      expect(router.state.location.search).toBe(
+        `?returnTo=${encodeURIComponent(path)}`,
+      )
+    },
+  )
 
   it("abre o menu no celular", async () => {
     window.__media = {
@@ -90,8 +115,8 @@ describe("casca", () => {
   it("grava a preferência de movimento e atualiza o matchMedia", async () => {
     const user = userEvent.setup()
     const refresh = vi.spyOn(gsap, "matchMediaRefresh")
-    renderAt("/account")
-    await screen.findByRole("heading", { name: pt.pages.account })
+    renderAt("/")
+    await screen.findByRole("heading", { name: pt.pages.home })
     await user.click(screen.getByRole("button", { name: pt.profile.menu }))
     await user.click(
       screen.getByRole("menuitemradio", { name: pt.profile.motionReduce }),

@@ -1,6 +1,8 @@
 import { cleanup } from "@testing-library/react"
 import "@testing-library/jest-dom/vitest"
-import { afterEach, beforeEach } from "vitest"
+import { afterEach, beforeEach, vi } from "vitest"
+
+import { queryClient } from "@/app/query-client.ts"
 
 declare global {
   interface Window {
@@ -43,6 +45,8 @@ globalThis.ResizeObserver = class {
 
 afterEach(() => {
   cleanup()
+  queryClient.clear()
+  vi.unstubAllGlobals()
 })
 
 beforeEach(() => {
@@ -54,4 +58,21 @@ beforeEach(() => {
     "(min-width: 1024px)": true,
     "(max-width: 767px)": false,
   }
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async () => unauthenticated()),
+  )
 })
+
+function unauthenticated() {
+  return new Response(
+    JSON.stringify({
+      error: {
+        code: "unauthenticated",
+        message: "Entre para continuar.",
+        request_id: "01TEST",
+      },
+    }),
+    { status: 401, headers: { "content-type": "application/json" } },
+  )
+}
