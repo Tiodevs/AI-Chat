@@ -55,3 +55,7 @@ class BudgetExceeded(DomainError):
 
 class ProviderUnavailable(DomainError):
     code: ClassVar[str] = "provider_unavailable"
+
+
+class CircuitOpen(ProviderUnavailable):
+    """O circuito do modelo está aberto. O pipeline degrada sem chamar o gerador."""

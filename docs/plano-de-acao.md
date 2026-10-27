@@ -358,7 +358,7 @@ Cada etapa traz: objetivo, seções do SDD, entregas, critérios de aceite (CA) 
 **Seções.** 7.1 (passos 1 a 7 e orçamento), 10.1, 10.2, 17 (`ChatProvider`) e 8.1 (`token_usage_days`).
 
 **Entregas.**
-- Porta `ChatProvider`, `GeminiChatProvider` com tempo limite de 20 s, nova tentativa em 429 e 503, e circuit breaker (5 falhas, 60 s). `FakeChatProvider`.
+- Porta `ChatProvider`, `GeminiChatProvider` com tempo limite de 120 s, thinking budget 0, nova tentativa em 429 e 503, e circuit breaker (5 falhas, 60 s). `FakeChatProvider`.
 - `app/prompts/` com `PROMPT_VERSION` e o teste de hash.
 - `workflows/qa.py`: reescrever, portão, embedar, recuperar, abster-se, gerar e fundamentar.
 - `domain/grounding.py`: citação válida e telefone presente no contexto.
@@ -807,7 +807,7 @@ A IA atualiza esta tabela em cada PR.
 | 3.1 | Corpus fictício e modelo de documentos | Aprovada |
 | 3.2 | Embedding, ingestão e semente | Aprovada |
 | 3.3 | Busca híbrida | Aprovada |
-| 4.1 | Pipeline de perguntas, sem HTTP | Pendente |
+| 4.1 | Pipeline de perguntas, sem HTTP | Aprovada |
 | 4.2 | API de conversas com SSE | Pendente |
 | 4.3 | Telas de início e conversa | Pendente |
 | 4.4 | LangSmith e linha de base de avaliação | Pendente |

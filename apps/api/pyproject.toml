@@ -9,6 +9,7 @@ dependencies = [
   "asyncpg>=0.30",
   "fastapi>=0.115",
   "httpx>=0.28.1",
+  "langchain-google-genai>=4.4.2",
   "pydantic-settings>=2.6",
   "pypdf>=6.21.3",
   "python-ulid>=3.0",

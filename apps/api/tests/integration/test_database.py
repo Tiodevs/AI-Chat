@@ -89,6 +89,7 @@ EXPECTED_COLUMNS: dict[str, set[str]] = {
         "tsv",
         "active",
     },
+    "token_usage_days": {"day", "input_tokens", "output_tokens"},
 }
 
 EXPECTED_CONSTRAINTS: dict[str, set[str]] = {
@@ -120,6 +121,7 @@ EXPECTED_CONSTRAINTS: dict[str, set[str]] = {
         "document_versions_document_id_fkey",
     },
     "chunks": {"chunks_pkey", "chunks_document_version_id_fkey"},
+    "token_usage_days": {"token_usage_days_pkey"},
 }
 
 
@@ -185,7 +187,7 @@ async def _assert_schema(database_url: str) -> None:
             )
             assert extension == 1
             revision = await connection.scalar(text("SELECT version_num FROM alembic_version"))
-            assert revision == "0002_corpus"
+            assert revision == "0003_token_usage"
             await _assert_columns(connection)
             await _assert_constraints(connection)
         await _exercise_rows(engine)

@@ -36,7 +36,7 @@ O hospital, as pessoas, os telefones e os documentos são inventados. A engenhar
 | Frontend | React com TypeScript, construído com Vite, como aplicação de página única |
 | Fluxos de IA | LangChain para o pipeline de perguntas e LangGraph para o cadastro |
 | Acesso ao modelo | A aplicação depende de portas próprias de chat e de embedding. Gemini é o adaptador padrão. Os testes usam falsos. |
-| Modelo de chat | `gemini-3.8-flash`, substituível por `CHAT_MODEL` |
+| Modelo de chat | `gemini-2.5-flash`, substituível por `CHAT_MODEL`. O `gemini-3.8-flash` do plano gratuito esgota em 20 pedidos por dia. |
 | Modelo de embedding | `gemini-embedding-2` com 768 dimensões, substituível por `EMBEDDING_MODEL` |
 | RAG | PostgreSQL com pgvector, busca híbrida vetorial e por texto completo |
 | Testes | Pytest na API. Vitest, Testing Library e Playwright no frontend. |
@@ -198,7 +198,7 @@ Estas são metas de aprendizado, não um SLO com acionamento de plantão.
 | Tempo até o primeiro token em fluxo, API aquecida | p95 abaixo de 3 segundos |
 | Resposta pública concluída, API aquecida | p95 abaixo de 12 segundos |
 | Ingestão de um documento com menos de 20 páginas | abaixo de 60 segundos |
-| Tempo limite do gerador | 20 segundos e, em seguida, uma nova tentativa em HTTP 429 ou 503 |
+| Tempo limite do gerador | 120 segundos por chamada e, em seguida, uma nova tentativa em HTTP 429 ou 503. O thinking budget do chat fica em 0. |
 | Taxa de respostas `answered` no conjunto de avaliação | pelo menos 90% dos casos que esperam resposta |
 | LCP da página inicial, celular médio em 4G | abaixo de 2,5 segundos |
 | INP | abaixo de 200 ms |

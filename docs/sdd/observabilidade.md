@@ -28,11 +28,11 @@ class FeedbackSink(Protocol):
     async def record(self, run_id: UUID, key: str, score: float) -> None: ...
 ```
 
-`RunContext` carrega `run_id`, `request_id`, `prompt_version`, `trace_policy` (`full`, `masked` ou `metadata_only`) e as tags. Os adaptadores traduzem isso para a configuração de execução do LangChain.
+`RunContext` carrega `run_id`, `request_id`, `prompt_version`, `trace_policy` (`full`, `masked` ou `metadata_only`), as tags e a `temperature` da chamada. A classificação usa temperatura 0 e a resposta ao visitante usa 0,2. O adaptador soma `input_tokens` e `output_tokens` nesse mesmo objeto. Os adaptadores traduzem o contexto para a configuração de execução do LangChain.
 
 | Adaptador | Quando é usado |
 |---|---|
-| `GeminiChatProvider` | Envolve o `ChatGoogleGenerativeAI` do LangChain com `CHAT_MODEL`, tempo limite, nova tentativa e circuit breaker. |
+| `GeminiChatProvider` | Envolve o `ChatGoogleGenerativeAI` do LangChain com `CHAT_MODEL`, tempo limite de 120 s, thinking budget 0, nova tentativa em 429 e 503 com espera inicial de 20 s, e circuit breaker de 5 falhas e 60 s. `max_retries` do SDK fica em 0 para não repetir por cima desse circuito. O pensamento padrão do `gemini-3.8-flash` consome o prazo e a API devolve 504. |
 | `GeminiEmbeddingProvider` | Chama `embedContent` de `EMBEDDING_MODEL` com `outputDimensionality` igual a `EMBEDDING_DIMENSIONS`. Um texto por pedido HTTP, no máximo 4 simultâneos, com nova tentativa em 429. |
 | `LangSmithFeedbackSink` | Envia o feedback do visitante ao LangSmith. |
 | `FakeChatProvider` | Testes. Valores estruturados, chamadas de ferramenta e fluxos de token escritos no teste. |

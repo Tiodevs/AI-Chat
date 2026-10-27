@@ -128,7 +128,7 @@ apps/
       models/
       repositories/
       db/              session, unit_of_work
-      scripts/         seed, search, bootstrap_admin, retention, sync_eval_dataset, export_openapi
+      scripts/         seed, search, ask, bootstrap_admin, retention, sync_eval_dataset, export_openapi
     tests/
       unit/
       integration/
@@ -260,9 +260,10 @@ Desfechos gravados na resposta: `answered`, `abstained`, `refused`, `off_topic`,
 
 #### Orçamento e degradação
 
-- `LLM_DAILY_TOKEN_BUDGET` limita a soma de tokens de entrada e saída por dia UTC. O contador fica no PostgreSQL.
-- Acima de 80% do orçamento, um alerta dispara. Acima de 100%, perguntas recebem a resposta fixa de indisponibilidade com o telefone da mesa, desfecho `degraded`, e o cadastro por chat oferece só o formulário.
-- O circuit breaker do Gemini abre depois de 5 falhas seguidas e fica aberto por 60 segundos. Com o circuito aberto, o comportamento é o mesmo do orçamento estourado.
+- `LLM_DAILY_TOKEN_BUDGET` limita a soma de tokens de entrada e saída por dia UTC. O contador fica em `token_usage_days`. Zero desliga o teto, e o contador continua gravando quando há uso.
+- Acima de 80% do orçamento, a API registra o log `budget.warning`. O alerta do Prometheus entra na seção 18.3. A partir de 100%, inclusive quando o uso iguala o teto, perguntas recebem a resposta fixa de indisponibilidade com o telefone da mesa, desfecho `degraded`, e o cadastro por chat oferece só o formulário.
+- O circuit breaker do Gemini abre depois de 5 falhas seguidas e fica aberto por 60 segundos. Com o circuito aberto, o comportamento é o mesmo do orçamento estourado: desfecho `degraded`, sem chamar o gerador.
+- Uma falha do provedor com o circuito fechado grava desfecho `error` e mostra o mesmo texto de indisponibilidade. O gerador não é chamado se a falha acontece antes dele.
 
 ### 7.2 Cadastro
 

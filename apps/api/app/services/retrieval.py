@@ -27,13 +27,16 @@ class RetrievalService:
 
     async def search(self, question: str) -> list[RetrievedChunk]:
         vector = await self._embeddings.embed_query(query_embedding_text(question))
+        return await self.search_by_vector(question, vector)
+
+    async def search_by_vector(self, question: str, embedding: list[float]) -> list[RetrievedChunk]:
         async with open_session(self._database_url) as session, UnitOfWork(session):
             repository = RetrievalRepository(session)
-            nearest = await repository.nearest(vector, limit=VECTOR_CANDIDATES)
+            nearest = await repository.nearest(embedding, limit=VECTOR_CANDIDATES)
             vector_hits = [hit for hit in nearest if hit.similarity >= self._minimum_similarity]
             keyword_hits = await repository.keyword(
                 question,
-                vector,
+                embedding,
                 minimum=self._minimum_similarity,
                 limit=KEYWORD_CANDIDATES,
             )
