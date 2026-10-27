@@ -1,23 +1,24 @@
-"""GeminiChatProvider: 40 s, nova tentativa em 429 e 503, circuito 5/60 s. Seção 17."""
+"""GeminiChatProvider: 120 s, nova tentativa em 429 e 503, circuito 5/60 s. Seção 17."""
 
 import asyncio
 import time
 from collections.abc import AsyncIterator, Awaitable, Callable
 from typing import Protocol, TypeVar
 
+import structlog
 from pydantic import BaseModel
 
 from app.adapters.circuit_breaker import CircuitBreaker
 from app.adapters.clock import SystemClock
 from app.adapters.langchain_chat import CHAT_TIMEOUT_SECONDS
-from app.adapters.provider_status import retryable_status
+from app.adapters.provider_status import http_status, retryable_status
 from app.domain.errors import CircuitOpen, ProviderUnavailable
 from app.ports.chat import Message, ModelT, RunContext, TokenUsage, Tool, ToolResult
 from app.ports.clock import Clock
 from app.prompts.qa import CHAT_UNAVAILABLE, CIRCUIT_OPEN_MESSAGE
 
 CHAT_ATTEMPTS = 3
-CHAT_RETRY_DELAY_SECONDS = 0.5
+CHAT_RETRY_DELAY_SECONDS = 20.0
 T = TypeVar("T")
 
 
@@ -104,7 +105,7 @@ class GeminiChatProvider:
                     if text:
                         yield text
             except TimeoutError as exc:
-                self._breaker.record_failure()
+                self._record_provider_failure(exc)
                 raise ProviderUnavailable(CHAT_UNAVAILABLE) from exc
             except CircuitOpen:
                 raise
@@ -113,7 +114,7 @@ class GeminiChatProvider:
                     await self._sleep(delay)
                     delay *= 2
                     continue
-                self._breaker.record_failure()
+                self._record_provider_failure(exc)
                 raise ProviderUnavailable(CHAT_UNAVAILABLE) from exc
             else:
                 self._breaker.record_success()
@@ -148,7 +149,7 @@ class GeminiChatProvider:
                 async with asyncio.timeout(self._timeout):
                     result = await operation()
             except TimeoutError as exc:
-                self._breaker.record_failure()
+                self._record_provider_failure(exc)
                 raise ProviderUnavailable(CHAT_UNAVAILABLE) from exc
             except CircuitOpen:
                 raise
@@ -158,7 +159,7 @@ class GeminiChatProvider:
                     await self._sleep(delay)
                     delay *= 2
                     continue
-                self._breaker.record_failure()
+                self._record_provider_failure(exc)
                 raise ProviderUnavailable(CHAT_UNAVAILABLE) from exc
             else:
                 self._breaker.record_success()
@@ -169,6 +170,14 @@ class GeminiChatProvider:
     def _refuse_if_open(self) -> None:
         if not self._breaker.allow():
             raise CircuitOpen(CIRCUIT_OPEN_MESSAGE)
+
+    def _record_provider_failure(self, exc: BaseException) -> None:
+        self._breaker.record_failure()
+        structlog.get_logger("atrium").warning(
+            "chat.provider_failed",
+            error_type=type(exc).__name__,
+            status_code=http_status(exc),
+        )
 
 
 def _default_backend(*, api_key: str, model: str, timeout_seconds: float) -> ChatBackend:

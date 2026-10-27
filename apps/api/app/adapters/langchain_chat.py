@@ -7,8 +7,9 @@ from pydantic import BaseModel
 
 from app.ports.chat import Message, TokenUsage, Tool, ToolResult
 
-CHAT_TIMEOUT_SECONDS = 40.0
+CHAT_TIMEOUT_SECONDS = 120.0
 SDK_MAX_RETRIES = 0
+THINKING_BUDGET = 0
 
 
 class ChatResponseError(Exception):
@@ -81,6 +82,7 @@ def build_langchain_model(
         temperature=temperature,
         max_retries=SDK_MAX_RETRIES,
         vertexai=False,
+        thinking_budget=THINKING_BUDGET,
     )
 
 
