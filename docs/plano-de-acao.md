@@ -485,7 +485,7 @@ Cada etapa traz: objetivo, seções do SDD, entregas, critérios de aceite (CA) 
 - Saudação e frases modelo fixas em `app/prompts/registration.py`.
 - Todos os endpoints `/v1/registration/...` e `POST /v1/registration/form`.
 - Conclusão única: aceites, descarte dos campos sensíveis sem personalização, `role = member`, cookie, anexação das conversas de convidado e apagamento da transcrição.
-- `LEGAL_DOCUMENT_VERSION`.
+- Grava `LEGAL_DOCUMENT_VERSION`, constante criada na Etapa 2.2, nos consentimentos.
 
 **Critérios de aceite.**
 - CA-1. A saída da ferramenta com `role` ou consentimentos é rejeitada (FR-7, linha da 21.1).
@@ -803,7 +803,7 @@ A IA atualiza esta tabela em cada PR.
 | 1.3 | Shell do frontend e design system base | Em revisão |
 | 1.4 | CI sem banco | Em revisão |
 | 2.1 | Banco, migrações, unidade de trabalho e prontidão | Aprovada |
-| 2.2 | Autenticação, sessão e proteções HTTP | Pendente |
+| 2.2 | Autenticação, sessão e proteções HTTP | Em revisão |
 | 3.1 | Corpus fictício e modelo de documentos | Pendente |
 | 3.2 | Embedding, ingestão e semente | Pendente |
 | 3.3 | Busca híbrida | Pendente |
