@@ -198,7 +198,7 @@ Estas são metas de aprendizado, não um SLO com acionamento de plantão.
 | Tempo até o primeiro token em fluxo, API aquecida | p95 abaixo de 3 segundos |
 | Resposta pública concluída, API aquecida | p95 abaixo de 12 segundos |
 | Ingestão de um documento com menos de 20 páginas | abaixo de 60 segundos |
-| Tempo limite do gerador | 20 segundos e, em seguida, uma nova tentativa em HTTP 429 ou 503 |
+| Tempo limite do gerador | 40 segundos por chamada e, em seguida, uma nova tentativa em HTTP 429 ou 503 |
 | Taxa de respostas `answered` no conjunto de avaliação | pelo menos 90% dos casos que esperam resposta |
 | LCP da página inicial, celular médio em 4G | abaixo de 2,5 segundos |
 | INP | abaixo de 200 ms |

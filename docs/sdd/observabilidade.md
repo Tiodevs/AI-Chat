@@ -32,7 +32,7 @@ class FeedbackSink(Protocol):
 
 | Adaptador | Quando é usado |
 |---|---|
-| `GeminiChatProvider` | Envolve o `ChatGoogleGenerativeAI` do LangChain com `CHAT_MODEL`, tempo limite de 20 s, nova tentativa em 429 e 503, e circuit breaker de 5 falhas e 60 s. `max_retries` do SDK fica em 0 para não repetir por cima desse circuito. |
+| `GeminiChatProvider` | Envolve o `ChatGoogleGenerativeAI` do LangChain com `CHAT_MODEL`, tempo limite de 40 s, nova tentativa em 429 e 503, e circuit breaker de 5 falhas e 60 s. `max_retries` do SDK fica em 0 para não repetir por cima desse circuito. O prazo dobrou porque o `gemini-3.8-flash` estoura 20 s antes de classificar. |
 | `GeminiEmbeddingProvider` | Chama `embedContent` de `EMBEDDING_MODEL` com `outputDimensionality` igual a `EMBEDDING_DIMENSIONS`. Um texto por pedido HTTP, no máximo 4 simultâneos, com nova tentativa em 429. |
 | `LangSmithFeedbackSink` | Envia o feedback do visitante ao LangSmith. |
 | `FakeChatProvider` | Testes. Valores estruturados, chamadas de ferramenta e fluxos de token escritos no teste. |
