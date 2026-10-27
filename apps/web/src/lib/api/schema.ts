@@ -33,7 +33,7 @@ export interface paths {
         };
         /**
          * Ready
-         * @description Banco responde e a extensão vector está instalada.
+         * @description Banco responde, a extensão vector está instalada e a dimensão confere.
          */
         get: operations["ready_ready_get"];
         put?: never;

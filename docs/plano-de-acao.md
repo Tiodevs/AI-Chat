@@ -805,8 +805,8 @@ A IA atualiza esta tabela em cada PR.
 | 2.1 | Banco, migrações, unidade de trabalho e prontidão | Aprovada |
 | 2.2 | Autenticação, sessão e proteções HTTP | Aprovada |
 | 3.1 | Corpus fictício e modelo de documentos | Aprovada |
-| 3.2 | Embedding, ingestão e semente | Pendente |
-| 3.3 | Busca híbrida | Pendente |
+| 3.2 | Embedding, ingestão e semente | Em revisão |
+| 3.3 | Busca híbrida | Em revisão |
 | 4.1 | Pipeline de perguntas, sem HTTP | Pendente |
 | 4.2 | API de conversas com SSE | Pendente |
 | 4.3 | Telas de início e conversa | Pendente |

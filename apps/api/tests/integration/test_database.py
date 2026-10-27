@@ -136,6 +136,26 @@ def test_ready_returns_200_when_the_database_is_up(migrated_database: str) -> No
     assert response.headers["x-request-id"]
 
 
+def test_ready_fails_when_embedding_dimensions_diverge(
+    migrated_database: str,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    del migrated_database
+    monkeypatch.setenv("EMBEDDING_DIMENSIONS", "1536")
+    get_settings.cache_clear()
+    response = TestClient(create_app()).get("/ready")
+    assert response.status_code == 503
+    assert response.json() == {"status": "unavailable"}
+    events = [
+        json.loads(line)
+        for line in capsys.readouterr().out.splitlines()
+        if line.startswith("{")
+    ]
+    reasons = [event.get("reason") for event in events if event.get("event") == "readiness.failed"]
+    assert reasons == ["dimension_mismatch"]
+
+
 def test_ready_fails_without_the_vector_extension(
     migrated_database: str,
     capsys: pytest.CaptureFixture[str],

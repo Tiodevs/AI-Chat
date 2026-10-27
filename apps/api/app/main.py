@@ -1,3 +1,7 @@
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+
+import structlog
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -13,10 +17,24 @@ from app.core.logging import configure_logging
 from app.core.middleware import ApiGuardMiddleware, RequestIdMiddleware
 
 
+@asynccontextmanager
+async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
+    settings = get_settings()
+    if settings.database_url:
+        from app.adapters.clock import SystemClock
+        from app.services.ingestion import fail_stale_processing_versions
+
+        try:
+            await fail_stale_processing_versions(settings.database_url, SystemClock())
+        except Exception:
+            structlog.get_logger("atrium").warning("ingestion.stale_check_failed")
+    yield
+
+
 def create_app() -> FastAPI:
     settings = get_settings()
     configure_logging(settings.log_level)
-    app = FastAPI(title="Atrium", version=__version__)
+    app = FastAPI(title="Atrium", version=__version__, lifespan=lifespan)
     app.add_middleware(ApiGuardMiddleware, web_origin=settings.web_origin)
     app.add_middleware(
         CORSMiddleware,
