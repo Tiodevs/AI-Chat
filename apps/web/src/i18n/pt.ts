@@ -61,4 +61,31 @@ export const pt = {
     motionReduce: "Reduzir movimento",
     motionAllow: "Animar",
   },
+  signIn: {
+    lead: "Use o e-mail e a senha da sua conta.",
+    email: "E-mail",
+    password: "Senha",
+    submit: "Entrar",
+    pending: "Entrando…",
+    register: "Criar uma conta",
+    credentials: "E-mail ou senha incorretos.",
+    limitedOne: "Você fez muitas tentativas. Tente de novo em 1 minuto.",
+    limitedMany: "Você fez muitas tentativas. Tente de novo em {minutes} minutos.",
+    emailRequired: "Informe o e-mail.",
+    emailInvalid: "Informe um e-mail válido.",
+    passwordRequired: "Informe a senha.",
+  },
+  forbidden: {
+    title: "Acesso negado",
+    body: "Sua conta não pode abrir esta página.",
+    home: "Voltar ao início",
+  },
+  requestId: {
+    label: "Identificador do pedido",
+    copy: "Copiar identificador",
+    copied: "Identificador copiado",
+  },
+  error: {
+    body: "Tente de novo em alguns instantes.",
+  },
 } as const
