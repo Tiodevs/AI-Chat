@@ -128,7 +128,7 @@ apps/
       models/
       repositories/
       db/              session, unit_of_work
-      scripts/         seed, bootstrap_admin, retention, sync_eval_dataset, export_openapi
+      scripts/         seed, search, bootstrap_admin, retention, sync_eval_dataset, export_openapi
     tests/
       unit/
       integration/
