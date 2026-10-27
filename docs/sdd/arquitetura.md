@@ -189,7 +189,7 @@ A versão 1 roda uma réplica. Para mais de uma:
 
 ### 6.6 Contrato entre API e frontend
 
-O FastAPI gera o OpenAPI. `python -m app.scripts.export_openapi` grava `apps/web/src/lib/api/openapi.json`, e o `openapi-typescript` gera `schema.d.ts` a partir dele. O cliente usa `openapi-fetch` com esses tipos. A CI gera os dois arquivos de novo e falha se o resultado diferir do que está commitado.
+O FastAPI gera o OpenAPI. `python -m app.scripts.export_openapi` grava `apps/web/src/lib/api/openapi.json`, e o `openapi-typescript` gera `schema.ts` a partir dele. O arquivo é `.ts` para o frontend importá-lo com a extensão usada no resto do código. O cliente usa `openapi-fetch` com esses tipos. A CI gera os dois arquivos de novo e falha se o resultado diferir do que está commitado.
 
 ## 7. Comportamento em execução
 

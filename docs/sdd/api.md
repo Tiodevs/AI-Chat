@@ -16,7 +16,9 @@ O prefixo da API é `/v1`. O navegador chama `/backend/v1/...`. Os corpos são J
 }
 ```
 
-Erros de validação usam `validation_error` e HTTP 422. Falhas de autorização usam `forbidden` e HTTP 403. Sessões ausentes usam `unauthenticated` e HTTP 401. Origem inválida usa `bad_origin` e HTTP 403. Orçamento estourado usa `degraded` e HTTP 503.
+Erros de validação usam `validation_error` e HTTP 422. Falhas de autorização usam `forbidden` e HTTP 403. Sessões ausentes usam `unauthenticated` e HTTP 401. Origem inválida usa `bad_origin` e HTTP 403. Orçamento estourado usa `degraded` e HTTP 503. Um pedido limitado usa `rate_limited` e HTTP 429, e o objeto `error` inclui `retry_after_seconds`. Nos outros erros esse campo fica ausente.
+
+`POST /v1/auth/login` recebe `{ "email", "password" }` e, no sucesso, devolve o mesmo perfil de `GET /v1/me` e define `atrium_session`. O perfil não contém `password_hash`. `needs_legal_acceptance` é verdadeiro quando não há consentimento da `LEGAL_DOCUMENT_VERSION`. A tabela de consentimentos entra na Etapa 5.1; até lá o valor é verdadeiro. `POST /v1/auth/logout` responde 204 e revoga a sessão. `GET /v1/legal/versions` devolve `{ "terms", "privacy_notice" }`, os dois iguais à constante. A autorização de admin é provada por `GET /v1/admin/probe`, fora do contrato público, até as rotas de admin da tabela.
 
 | Método e caminho | Quem | Comportamento |
 |---|---|---|
