@@ -55,6 +55,40 @@ EXPECTED_COLUMNS: dict[str, set[str]] = {
         "reason",
         "created_at",
     },
+    "documents": {
+        "id",
+        "title",
+        "slug",
+        "status",
+        "active_version",
+        "created_by",
+        "created_at",
+        "updated_at",
+    },
+    "document_versions": {
+        "id",
+        "document_id",
+        "version",
+        "filename",
+        "media_type",
+        "sha256",
+        "body_text",
+        "original_bytes",
+        "byte_size",
+        "ingestion_status",
+        "error",
+        "created_at",
+    },
+    "chunks": {
+        "id",
+        "document_version_id",
+        "ordinal",
+        "heading",
+        "content",
+        "embedding",
+        "tsv",
+        "active",
+    },
 }
 
 EXPECTED_CONSTRAINTS: dict[str, set[str]] = {
@@ -72,6 +106,20 @@ EXPECTED_CONSTRAINTS: dict[str, set[str]] = {
     },
     "rate_limit_windows": {"rate_limit_windows_pkey"},
     "audit_events": {"audit_events_pkey", "audit_events_actor_user_id_fkey"},
+    "documents": {
+        "documents_pkey",
+        "documents_slug_key",
+        "documents_status",
+        "documents_created_by_fkey",
+        "documents_active_version_fkey",
+    },
+    "document_versions": {
+        "document_versions_pkey",
+        "document_versions_document_id_version_key",
+        "document_versions_ingestion_status",
+        "document_versions_document_id_fkey",
+    },
+    "chunks": {"chunks_pkey", "chunks_document_version_id_fkey"},
 }
 
 
@@ -105,7 +153,7 @@ def test_ready_fails_without_the_vector_extension(
         ]
         assert reasons == ["vector_missing"]
     finally:
-        asyncio.run(_set_vector_extension(migrated_database, present=True))
+        _restore_vector_and_corpus(migrated_database)
 
 
 async def _assert_schema(database_url: str) -> None:
@@ -117,7 +165,7 @@ async def _assert_schema(database_url: str) -> None:
             )
             assert extension == 1
             revision = await connection.scalar(text("SELECT version_num FROM alembic_version"))
-            assert revision == "0001_initial"
+            assert revision == "0002_corpus"
             await _assert_columns(connection)
             await _assert_constraints(connection)
         await _exercise_rows(engine)
@@ -245,11 +293,27 @@ async def _exercise_rows(engine: AsyncEngine) -> None:
 
 async def _set_vector_extension(database_url: str, *, present: bool) -> None:
     engine = create_async_engine(database_url)
+    # chunks.embedding depende do tipo. Sem CASCADE o drop falha.
     statement = (
-        "CREATE EXTENSION IF NOT EXISTS vector" if present else "DROP EXTENSION IF EXISTS vector"
+        "CREATE EXTENSION IF NOT EXISTS vector"
+        if present
+        else "DROP EXTENSION IF EXISTS vector CASCADE"
     )
     try:
         async with engine.begin() as connection:
             await connection.execute(text(statement))
     finally:
         await engine.dispose()
+
+
+def _restore_vector_and_corpus(database_url: str) -> None:
+    from alembic import command
+    from alembic.config import Config
+
+    from tests.integration.conftest import API_ROOT
+
+    asyncio.run(_set_vector_extension(database_url, present=True))
+    config = Config(str(API_ROOT / "alembic.ini"))
+    config.set_main_option("sqlalchemy.url", database_url.replace("%", "%%"))
+    command.downgrade(config, "0001_initial")
+    command.upgrade(config, "head")
