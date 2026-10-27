@@ -29,7 +29,7 @@ class _Note(BaseModel):
 
 def test_langchain_model_uses_a_one_hundred_twenty_second_timeout_and_no_sdk_retries() -> None:
     model = build_langchain_model(
-        model="gemini-3.8-flash",
+        model="gemini-2.5-flash",
         api_key="test-key",
         timeout_seconds=CHAT_TIMEOUT_SECONDS,
         temperature=0,
@@ -336,7 +336,7 @@ def _provider(
         sleep = immediate
     return GeminiChatProvider(
         api_key="test-key",
-        model="gemini-3.8-flash",
+        model="gemini-2.5-flash",
         clock=clock or _Clock(),
         sleep=sleep,  # type: ignore[arg-type]
         backend=backend,
