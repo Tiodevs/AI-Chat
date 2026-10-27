@@ -36,7 +36,7 @@ O hospital, as pessoas, os telefones e os documentos são inventados. A engenhar
 | Frontend | React com TypeScript, construído com Vite, como aplicação de página única |
 | Fluxos de IA | LangChain para o pipeline de perguntas e LangGraph para o cadastro |
 | Acesso ao modelo | A aplicação depende de portas próprias de chat e de embedding. Gemini é o adaptador padrão. Os testes usam falsos. |
-| Modelo de chat | `gemini-3.8-flash`, substituível por `CHAT_MODEL` |
+| Modelo de chat | `gemini-2.5-flash`, substituível por `CHAT_MODEL`. O `gemini-3.8-flash` do plano gratuito esgota em 20 pedidos por dia. |
 | Modelo de embedding | `gemini-embedding-2` com 768 dimensões, substituível por `EMBEDDING_MODEL` |
 | RAG | PostgreSQL com pgvector, busca híbrida vetorial e por texto completo |
 | Testes | Pytest na API. Vitest, Testing Library e Playwright no frontend. |

@@ -807,7 +807,7 @@ A IA atualiza esta tabela em cada PR.
 | 3.1 | Corpus fictício e modelo de documentos | Aprovada |
 | 3.2 | Embedding, ingestão e semente | Aprovada |
 | 3.3 | Busca híbrida | Aprovada |
-| 4.1 | Pipeline de perguntas, sem HTTP | Em revisão |
+| 4.1 | Pipeline de perguntas, sem HTTP | Aprovada |
 | 4.2 | API de conversas com SSE | Pendente |
 | 4.3 | Telas de início e conversa | Pendente |
 | 4.4 | LangSmith e linha de base de avaliação | Pendente |
