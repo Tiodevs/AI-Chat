@@ -5,6 +5,7 @@ from app.core.errors import status_for
 from app.domain.errors import (
     BadOrigin,
     BudgetExceeded,
+    CircuitOpen,
     Conflict,
     DomainError,
     Forbidden,
@@ -29,6 +30,7 @@ from app.main import create_app
         (RateLimited("x", retry_after_seconds=15), 429, "rate_limited"),
         (BudgetExceeded("x"), 503, "degraded"),
         (ProviderUnavailable("x"), 503, "provider_unavailable"),
+        (CircuitOpen("x"), 503, "provider_unavailable"),
     ],
 )
 def test_domain_error_status_and_code(error: DomainError, status: int, code: str) -> None:
