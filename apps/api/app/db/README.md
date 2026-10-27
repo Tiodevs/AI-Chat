@@ -1,3 +1,3 @@
 # db
 
-Sessão assíncrona e unidade de trabalho. Seção 6.2 do SDD. A implementação entra na Etapa 2.1.
+Sessão assíncrona e unidade de trabalho. A transação avisa no log quando passa de 2 segundos. Seção 6.4 do SDD.

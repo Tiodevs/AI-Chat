@@ -1,11 +1,15 @@
 import json
+import subprocess
 import sys
+from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
 
 from app.core.container import get_settings
 from app.main import create_app
+
+API_ROOT = Path(__file__).resolve().parents[2]
 
 
 def _client_with_database_url(monkeypatch: pytest.MonkeyPatch, database_url: str) -> TestClient:
@@ -21,8 +25,34 @@ def test_health_returns_200_without_a_valid_database_url(
     response = client.get("/health")
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
-    assert "asyncpg" not in sys.modules
-    assert "sqlalchemy" not in sys.modules
+
+
+def test_loading_the_app_for_health_does_not_import_the_database_driver() -> None:
+    script = """
+import os
+import sys
+
+os.environ["DATABASE_URL"] = "not-a-database"
+from fastapi.testclient import TestClient
+
+from app.core.container import get_settings
+from app.main import create_app
+
+get_settings.cache_clear()
+response = TestClient(create_app()).get("/health")
+if response.status_code != 200:
+    raise SystemExit(f"status {response.status_code}")
+if "sqlalchemy" in sys.modules or "asyncpg" in sys.modules:
+    raise SystemExit("database driver imported")
+"""
+    completed = subprocess.run(
+        [sys.executable, "-c", script],
+        cwd=API_ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert completed.returncode == 0, completed.stderr + completed.stdout
 
 
 def test_health_returns_200_when_database_url_is_absent(
