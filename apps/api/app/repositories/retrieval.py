@@ -1,29 +1,21 @@
 """Busca vetorial e por texto completo. Seções 8.2 e 8.4 do SDD."""
 
-from dataclasses import dataclass
 from typing import Any
 from uuid import UUID
 
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.domain.retrieval import RetrievedChunk
 from app.repositories.documents import vector_literal
+
+__all__ = ["RetrievalRepository", "RetrievedChunk"]
 
 _SEARCHABLE = """
 document.status = 'active'
 AND document.active_version = chunk.document_version_id
 AND chunk.active
 """
-
-
-@dataclass(frozen=True, slots=True)
-class RetrievedChunk:
-    chunk_id: UUID
-    document_slug: str
-    document_title: str
-    heading: str | None
-    content: str
-    similarity: float
 
 
 class RetrievalRepository:
