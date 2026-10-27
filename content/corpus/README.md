@@ -1,3 +1,3 @@
 # corpus
 
-Documentos fictícios do Harborlight, em português. Os doze arquivos entram na Etapa 3.1. Seção 9 do SDD.
+Os doze documentos fictícios do Harborlight General Hospital, em português. Os fatos vêm da seção 9 do SDD. Os testes recusam telefone ou faixa de horário que não esteja nesse catálogo.
