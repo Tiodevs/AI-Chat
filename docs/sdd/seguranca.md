@@ -16,6 +16,8 @@ Os textos abaixo são a cópia em português que o produto mostra.
 
 **Indisponibilidade.** "O Atrium está temporariamente indisponível. Você pode ligar para a mesa telefônica no (555) 014-2600."
 
+Esses quatro textos ficam em `app/prompts/qa.py`. `domain/outcomes.py` escolhe o desfecho, e o texto vem do prompt. Abstenção e falha de fundamentação compartilham o mesmo texto. O desfecho `error` reutiliza o texto de indisponibilidade.
+
 A interface mostra um aviso permanente: o Atrium é uma IA, responde a partir da informação publicada do hospital e não dá orientação médica.
 
 ### 10.2 Limites do modelo

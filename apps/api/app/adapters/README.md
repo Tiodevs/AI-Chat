@@ -1,3 +1,3 @@
 # adapters
 
-Implementações das portas: Gemini, LangSmith, relógio e hash de senha. Seção 17 do SDD.
+Implementações das portas: Gemini (chat e embedding), LangSmith, relógio e hash de senha. Seção 17 do SDD.
