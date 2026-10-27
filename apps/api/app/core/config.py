@@ -25,7 +25,7 @@ class Settings(BaseSettings):
     app_env: Literal["local", "test", "development", "production"] = "local"
     database_url: str = ""
     gemini_api_key: str = ""
-    chat_model: str = "gemini-3.8-flash"
+    chat_model: str = "gemini-2.5-flash"
     embedding_model: str = "gemini-embedding-2"
     embedding_dimensions: int = 768
     app_ai_adapter: Literal["gemini", "fake"] = "gemini"
