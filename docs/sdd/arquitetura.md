@@ -361,7 +361,7 @@ Os identificadores são UUIDs. Os timestamps são `timestamptz` em UTC. O e-mail
 
 **document_versions.** `document_id`, `version`, único em `(document_id, version)`, `filename`, `media_type`, `sha256`, `body_text`, `original_bytes`, `byte_size`, `ingestion_status` (`processing`, `ready`, `failed`), `error` anulável, `created_at`.
 
-**chunks.** `document_version_id`, `ordinal`, `heading`, `content`, `embedding vector(768)`, `tsv tsvector` gerado a partir de `heading` e `content` com a configuração `portuguese`, `active` booleano.
+**chunks.** `document_version_id`, `ordinal`, `heading` anulável, `content`, `embedding vector(768)`, `tsv tsvector` gerado sempre como `to_tsvector('portuguese', coalesce(heading, '') || ' ' || content)` armazenado, `active` booleano.
 
 **data_subject_requests.** `user_id` anulável, `contact_email`, `request_type` (`access`, `correction`, `deletion`, `portability`, `consent_revocation`, `information_about_sharing`, `objection`, `other`), `description`, `status` (`open`, `in_progress`, `done`, `rejected`), `received_at`, `due_at`, `closed_at`, `resolution_note`.
 

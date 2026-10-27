@@ -804,7 +804,7 @@ A IA atualiza esta tabela em cada PR.
 | 1.4 | CI sem banco | Em revisão |
 | 2.1 | Banco, migrações, unidade de trabalho e prontidão | Aprovada |
 | 2.2 | Autenticação, sessão e proteções HTTP | Aprovada |
-| 3.1 | Corpus fictício e modelo de documentos | Pendente |
+| 3.1 | Corpus fictício e modelo de documentos | Em revisão |
 | 3.2 | Embedding, ingestão e semente | Pendente |
 | 3.3 | Busca híbrida | Pendente |
 | 4.1 | Pipeline de perguntas, sem HTTP | Pendente |
