@@ -76,3 +76,35 @@ jobs:
       - name: Build do Storybook
         working-directory: apps/web
         run: pnpm build-storybook
+
+  contract:
+    name: contract
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.2
+        with:
+          python-version: "3.12"
+          working-directory: apps/api
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: apps/web/pnpm-lock.yaml
+      - name: Instalar a API
+        working-directory: apps/api
+        run: uv sync --frozen
+      - name: Instalar o frontend
+        working-directory: apps/web
+        run: pnpm install --frozen-lockfile
+      - name: Gerar o OpenAPI
+        working-directory: apps/api
+        run: uv run python -m app.scripts.export_openapi
+      - name: Gerar os tipos
+        working-directory: apps/web
+        run: pnpm openapi-types
+      - name: Conferir o contrato
+        run: git diff --exit-code -- apps/web/src/lib/api/openapi.json apps/web/src/lib/api/schema.ts
