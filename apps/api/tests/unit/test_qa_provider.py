@@ -27,21 +27,21 @@ class _Note(BaseModel):
     text: str = "ok"
 
 
-def test_langchain_model_uses_a_twenty_second_timeout_and_no_sdk_retries() -> None:
+def test_langchain_model_uses_a_forty_second_timeout_and_no_sdk_retries() -> None:
     model = build_langchain_model(
         model="gemini-3.8-flash",
         api_key="test-key",
         timeout_seconds=CHAT_TIMEOUT_SECONDS,
         temperature=0,
     )
-    assert model.timeout == 20
+    assert model.timeout == 40
     assert model.max_retries == 0
     assert model.temperature == 0
     assert model.vertexai is False
     copied = model.model_copy(update={"temperature": 0.2})
     assert copied.temperature == 0.2
     assert model.temperature == 0
-    assert CHAT_TIMEOUT_SECONDS == 20
+    assert CHAT_TIMEOUT_SECONDS == 40
 
 
 def test_message_text_reads_gemini_content_blocks() -> None:
