@@ -31,7 +31,7 @@
     "/ready": {
       "get": {
         "summary": "Ready",
-        "description": "Banco responde e a extensão vector está instalada.",
+        "description": "Banco responde, a extensão vector está instalada e a dimensão confere.",
         "operationId": "ready_ready_get",
         "responses": {
           "200": {
