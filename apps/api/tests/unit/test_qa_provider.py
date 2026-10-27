@@ -27,21 +27,23 @@ class _Note(BaseModel):
     text: str = "ok"
 
 
-def test_langchain_model_uses_a_forty_second_timeout_and_no_sdk_retries() -> None:
+def test_langchain_model_uses_a_one_hundred_twenty_second_timeout_and_no_sdk_retries() -> None:
     model = build_langchain_model(
         model="gemini-3.8-flash",
         api_key="test-key",
         timeout_seconds=CHAT_TIMEOUT_SECONDS,
         temperature=0,
     )
-    assert model.timeout == 40
+    assert model.timeout == 120
     assert model.max_retries == 0
     assert model.temperature == 0
+    assert model.thinking_budget == 0
     assert model.vertexai is False
     copied = model.model_copy(update={"temperature": 0.2})
     assert copied.temperature == 0.2
+    assert copied.thinking_budget == 0
     assert model.temperature == 0
-    assert CHAT_TIMEOUT_SECONDS == 40
+    assert CHAT_TIMEOUT_SECONDS == 120
 
 
 def test_message_text_reads_gemini_content_blocks() -> None:
@@ -68,7 +70,7 @@ def test_a_429_is_retried_and_a_500_is_not() -> None:
     result = asyncio.run(provider.complete_structured([], _Note, _context()))
     assert result.text == "ok"
     assert backend.calls == 2
-    assert slept == [0.5]
+    assert slept == [20.0]
     assert backend.temperatures == [0.0, 0.0]
 
     plain = _Backend(failures=1, status=500)
@@ -85,7 +87,7 @@ def test_a_503_is_retried() -> None:
         _provider(backend, sleep=_record(slept)).complete_structured([], _Note, _context())
     )
     assert backend.calls == 2
-    assert slept == [0.5]
+    assert slept == [20.0]
 
 
 def test_exhausted_retries_count_as_one_failure() -> None:
