@@ -4,7 +4,7 @@ import asyncio
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Literal
-from uuid import UUID
+from uuid import UUID, uuid4
 
 import pytest
 
@@ -25,6 +25,7 @@ from app.repositories.retrieval import RetrievedChunk
 from app.scripts.ask import format_ask_result, main
 from app.workflows.qa import (
     ConversationTurn,
+    QaEventSink,
     QaResult,
     QaWorkflow,
     QuestionClassification,
@@ -204,6 +205,53 @@ def test_ask_result_lists_outcome_citations_and_text() -> None:
     assert format_ask_result(refused).splitlines()[0:2] == ["refused", "nenhuma"]
 
 
+def test_workflow_streams_tokens_and_keeps_the_given_run_id() -> None:
+    class Sink:
+        def __init__(self) -> None:
+            self.intents: list[str] = []
+            self.tokens: list[str] = []
+
+        async def classified(self, intent: str) -> None:
+            self.intents.append(intent)
+
+        async def token(self, text: str) -> None:
+            self.tokens.append(text)
+
+    sink = Sink()
+    run_id = uuid4()
+    chat, embeddings, search = _parts(
+        _classification("Horário de visita", "public_info", 0.9),
+        hits=[_hit("11:00 às 20:00.")],
+        tokens=["11:00 ", "[1]."],
+    )
+    result = _run(chat, embeddings, search, "Qual é o horário?", events=sink, run_id=run_id)
+    assert result.run_id == run_id
+    assert result.outcome is Outcome.ANSWERED
+    assert sink.intents == ["public_info"]
+    assert sink.tokens == ["11:00 ", "[1]."]
+
+
+def test_medical_advice_is_classified_without_tokens() -> None:
+    class Sink:
+        def __init__(self) -> None:
+            self.intents: list[str] = []
+            self.tokens: list[str] = []
+
+        async def classified(self, intent: str) -> None:
+            self.intents.append(intent)
+
+        async def token(self, text: str) -> None:
+            self.tokens.append(text)
+
+    sink = Sink()
+    chat, embeddings, search = _parts(_classification("dor", "medical_advice", 0.9))
+    result = _run(chat, embeddings, search, "Estou com dor no peito", events=sink)
+    assert result.outcome is Outcome.REFUSED
+    assert sink.intents == ["medical_advice"]
+    assert sink.tokens == []
+    assert chat.stream_calls == []
+
+
 def test_ask_script_requires_gemini(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
@@ -244,6 +292,8 @@ def _run(
     history: Sequence[ConversationTurn] = (),
     visitor_type: str | None = None,
     minimum: float = 0.50,
+    events: QaEventSink | None = None,
+    run_id: UUID | None = None,
 ) -> QaResult:
     workflow = QaWorkflow(
         chat,
@@ -258,6 +308,8 @@ def _run(
             history=history,
             visitor_type=visitor_type,
             request_id="req-1",
+            run_id=run_id,
+            events=events,
         )
 
     return asyncio.run(execute())

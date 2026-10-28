@@ -90,6 +90,25 @@ EXPECTED_COLUMNS: dict[str, set[str]] = {
         "active",
     },
     "token_usage_days": {"day", "input_tokens", "output_tokens"},
+    "guest_keys": {"id", "token_hash", "created_at"},
+    "conversations": {"id", "user_id", "guest_key_id", "created_at"},
+    "messages": {
+        "id",
+        "conversation_id",
+        "client_message_id",
+        "role",
+        "content",
+        "citations",
+        "model",
+        "prompt_version",
+        "input_tokens",
+        "output_tokens",
+        "latency_ms",
+        "outcome",
+        "langsmith_run_id",
+        "created_at",
+    },
+    "feedback": {"message_id", "rating", "created_at"},
 }
 
 EXPECTED_CONSTRAINTS: dict[str, set[str]] = {
@@ -122,6 +141,22 @@ EXPECTED_CONSTRAINTS: dict[str, set[str]] = {
     },
     "chunks": {"chunks_pkey", "chunks_document_version_id_fkey"},
     "token_usage_days": {"token_usage_days_pkey"},
+    "guest_keys": {"guest_keys_pkey", "guest_keys_token_hash_key"},
+    "conversations": {
+        "conversations_pkey",
+        "conversations_owner",
+        "conversations_user_id_fkey",
+        "conversations_guest_key_id_fkey",
+    },
+    "messages": {
+        "messages_pkey",
+        "messages_conversation_id_client_message_id_key",
+        "messages_role",
+        "messages_outcome",
+        "messages_tokens",
+        "messages_conversation_id_fkey",
+    },
+    "feedback": {"feedback_pkey", "feedback_rating", "feedback_message_id_fkey"},
 }
 
 
@@ -187,7 +222,7 @@ async def _assert_schema(database_url: str) -> None:
             )
             assert extension == 1
             revision = await connection.scalar(text("SELECT version_num FROM alembic_version"))
-            assert revision == "0003_token_usage"
+            assert revision == "0004_conversations"
             await _assert_columns(connection)
             await _assert_constraints(connection)
         await _exercise_rows(engine)
@@ -310,6 +345,12 @@ async def _exercise_rows(engine: AsyncEngine) -> None:
                         "(email, password_hash, full_name, role, visitor_type) "
                         "VALUES ('typed@example.com', 'hash', 'Other', 'member', 'doctor')"
                     )
+                )
+        with pytest.raises(IntegrityError):
+            async with connection.begin():
+                await connection.execute(
+                    text("INSERT INTO conversations (created_at) VALUES (:created_at)"),
+                    {"created_at": datetime.now(UTC)},
                 )
 
 
