@@ -1,6 +1,7 @@
-import { PageHeading } from "@/app/page-heading.tsx"
-import { pt } from "@/i18n/pt.ts"
+import { RegistrationFormScreen } from "@/features/registration/registration-form-screen.tsx"
+import { useRegistrationForm } from "@/features/registration/useRegistrationForm.ts"
 
 export function Component() {
-  return <PageHeading title={pt.pages.registerForm} />
+  const form = useRegistrationForm()
+  return <RegistrationFormScreen {...form} />
 }

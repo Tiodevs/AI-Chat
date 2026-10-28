@@ -1,6 +1,7 @@
-import { PageHeading } from "@/app/page-heading.tsx"
-import { pt } from "@/i18n/pt.ts"
+import { RegistrationScreen } from "@/features/registration/registration-screen.tsx"
+import { useRegistrationChat } from "@/features/registration/useRegistrationChat.ts"
 
 export function Component() {
-  return <PageHeading title={pt.pages.register} />
+  const chat = useRegistrationChat()
+  return <RegistrationScreen {...chat} />
 }
