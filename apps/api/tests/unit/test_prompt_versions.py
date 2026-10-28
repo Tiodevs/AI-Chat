@@ -3,6 +3,7 @@
 import hashlib
 
 from app.domain.outcomes import Outcome
+from app.prompts.evals import versioned_eval_prompts
 from app.prompts.qa import (
     ABSTENTION,
     MEDICAL_ADVICE,
@@ -16,12 +17,14 @@ from app.prompts.qa import (
 _LOCKED_HASHES = {
     "qa-rewrite@2026-10-27.1": "d04cb4058b7319e772cf98a02bc9a63e3d1c7b95518fdb3b134871e65e70c5bf",
     "qa-generate@2026-10-27.1": "1a533c1e2534875ee07753b3b4c2cb759413d1af5334f0e9def67f75ae80bb33",
+    "groundedness@2026-10-27.1": "be3d0615be6e9d8dcbd9cfaf39d9514ba2c4eb5a70c158fb680d4ebbe80fcb13",
 }
 
 
 def test_prompt_hash_is_locked_to_its_version() -> None:
     found = {
-        version: hashlib.sha256(text.encode()).hexdigest() for version, text in versioned_prompts()
+        version: hashlib.sha256(text.encode()).hexdigest()
+        for version, text in (*versioned_prompts(), *versioned_eval_prompts())
     }
     assert found == _LOCKED_HASHES
 

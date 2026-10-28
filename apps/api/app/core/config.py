@@ -43,6 +43,7 @@ class Settings(BaseSettings):
     langsmith_api_key: str = ""
     langsmith_project: str = "atrium-dev"
     langsmith_endpoint: str = ""
+    langsmith_workspace_id: str = ""
     langsmith_tracing_sampling_rate: float = 1.0
 
     @field_validator("database_url", mode="before")

@@ -12,6 +12,8 @@ import structlog
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app import __version__
+from app.adapters.noop_feedback import NoopFeedbackSink
 from app.adapters.session_secret import new_session_secret
 from app.core.sse import (
     DISCONNECTED,
@@ -20,6 +22,7 @@ from app.core.sse import (
     SSE_KEEPALIVE_SECONDS,
     next_stream_item,
 )
+from app.core.trace import current_trace_id
 from app.db.session import open_session
 from app.db.unit_of_work import UnitOfWork
 from app.domain.auth import (
@@ -38,8 +41,10 @@ from app.domain.errors import (
     Unauthenticated,
     ValidationFailed,
 )
+from app.domain.feedback import USER_HELPFUL, user_helpful_score
 from app.domain.grounding import Citation
 from app.domain.outcomes import Outcome
+from app.domain.pseudonym import subject_pseudonym
 from app.domain.questions import (
     DIAGNOSTICS_IP_PURPOSE,
     DIAGNOSTICS_WINDOW,
@@ -55,8 +60,10 @@ from app.domain.questions import (
     owns_conversation,
     stored_user_content,
 )
+from app.domain.trace_policy import TraceMetadata
 from app.ports.budget import TokenBudget
 from app.ports.clock import Clock
+from app.ports.feedback import FeedbackSink
 from app.prompts.auth import UNAUTHENTICATED, VALIDATION
 from app.prompts.conversations import (
     CONVERSATION_NOT_FOUND,
@@ -101,6 +108,24 @@ class PreparedQuestion:
     budget_exceeded: bool
     request_id: str
     assistant_message_id: UUID
+    subject_id: UUID | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class FeedbackNotice:
+    run_id: UUID
+    score: float
+
+
+async def send_user_feedback(sink: FeedbackSink, notice: FeedbackNotice) -> None:
+    """Falha no LangSmith fica no log. O visitante já recebeu a resposta."""
+    try:
+        await sink.record(notice.run_id, USER_HELPFUL, notice.score)
+    except Exception as exc:
+        structlog.get_logger("atrium").warning(
+            "feedback.langsmith_failed",
+            error_type=type(exc).__name__,
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -119,6 +144,8 @@ class ConversationService:
         app_env: str,
         workflow: QaWorkflow,
         budget: TokenBudget,
+        pseudonym_key: str = "",
+        feedback_sink: FeedbackSink | None = None,
     ) -> None:
         self._database_url = database_url
         self._clock = clock
@@ -126,6 +153,8 @@ class ConversationService:
         self._app_env = app_env
         self._workflow = workflow
         self._budget = budget
+        self._pseudonym_key = pseudonym_key
+        self._feedback = feedback_sink or NoopFeedbackSink()
 
     async def create(
         self,
@@ -236,6 +265,7 @@ class ConversationService:
             budget_exceeded=await self._budget.exceeded(),
             request_id=request_id,
             assistant_message_id=uuid4(),
+            subject_id=actor.user_id or actor.guest_key_id,
         )
 
     def stream(
@@ -252,8 +282,9 @@ class ConversationService:
         *,
         session_secret: str | None,
         guest_secret: str | None,
-    ) -> None:
+    ) -> FeedbackNotice | None:
         actor = await self._actor(session_secret, guest_secret)
+        run_id: UUID | None = None
         try:
             async with open_session(self._database_url) as session, UnitOfWork(session):
                 repository = ConversationRepository(session)
@@ -266,8 +297,15 @@ class ConversationService:
                 if message.role != "assistant":
                     raise ValidationFailed(FEEDBACK_NOT_ASSISTANT)
                 await repository.insert_feedback(message_id, rating, self._clock.now())
+                run_id = message.langsmith_run_id
         except IntegrityError:
             raise Conflict(DUPLICATE_FEEDBACK) from None
+        if run_id is None:
+            return None
+        return FeedbackNotice(run_id=run_id, score=user_helpful_score(rating))
+
+    async def deliver_feedback(self, notice: FeedbackNotice) -> None:
+        await send_user_feedback(self._feedback, notice)
 
     async def prepare_diagnostics(self, client_ip: str) -> None:
         self._require_hmac()
@@ -380,6 +418,20 @@ class ConversationService:
             now=now,
             window_start=window,
         )
+
+    def _trace_metadata(self, prepared: PreparedQuestion) -> TraceMetadata:
+        return TraceMetadata(
+            environment=self._app_env,
+            app_version=__version__,
+            conversation_id=str(prepared.conversation_id),
+            subject=self._subject(prepared.subject_id),
+            trace_id=current_trace_id(),
+        )
+
+    def _subject(self, subject_id: UUID | None) -> str | None:
+        if subject_id is None or not self._pseudonym_key:
+            return None
+        return subject_pseudonym(subject_id, self._pseudonym_key)
 
     def _require_hmac(self) -> None:
         if not self._hmac_key:
@@ -503,6 +555,7 @@ class _AskStream:
                 request_id=self._prepared.request_id,
                 run_id=self._prepared.assistant_message_id,
                 events=_Sink(self),
+                trace_metadata=self._service._trace_metadata(self._prepared),
             )
         except asyncio.CancelledError:
             raise

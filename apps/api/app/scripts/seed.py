@@ -5,10 +5,12 @@ import sys
 from pathlib import Path
 
 from app.adapters.embedding_factory import build_embedding_provider
+from app.adapters.langsmith_tracing import tracer_for
 from app.adapters.text_extractor import FileTextExtractor
 from app.core.config import Settings
 from app.core.logging import configure_logging
 from app.domain.errors import DomainError
+from app.ports.tracing import NullTracer
 from app.prompts.auth import DATABASE_URL_MISSING
 from app.prompts.corpus import MISSING_EMBEDDING_KEY, seed_message
 from app.services.ingestion import IngestionService
@@ -38,6 +40,7 @@ async def _run(settings: Settings) -> SeedReport:
         settings.database_url,
         build_embedding_provider(settings),
         FileTextExtractor(),
+        tracer=tracer_for(settings) or NullTracer(),
     )
     service = SeedService(settings.database_url, ingestion, default_corpus_dir())
     return await service.run()

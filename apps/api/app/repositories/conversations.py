@@ -44,6 +44,7 @@ class MessageRecord:
     content: str
     citations: tuple[Citation, ...]
     outcome: str | None
+    langsmith_run_id: UUID | None
     created_at: datetime
 
 
@@ -202,6 +203,7 @@ def _message(row: Message) -> MessageRecord:
         content=row.content,
         citations=_citations_from_stored(row.citations),
         outcome=row.outcome,
+        langsmith_run_id=row.langsmith_run_id,
         created_at=row.created_at,
     )
 

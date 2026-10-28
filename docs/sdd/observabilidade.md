@@ -45,7 +45,7 @@ class FeedbackSink(Protocol):
 
 A configuração é lida uma vez com Pydantic Settings:
 
-`APP_ENV` (`local`, `test`, `development`, `production`), `DATABASE_URL`, `GEMINI_API_KEY`, `CHAT_MODEL`, `EMBEDDING_MODEL`, `EMBEDDING_DIMENSIONS`, `APP_AI_ADAPTER`, `WEB_ORIGIN`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `RETRIEVAL_MIN_SIMILARITY`, `LLM_DAILY_TOKEN_BUDGET`, `METRICS_TOKEN`, `RATE_LIMIT_HMAC_KEY`, `PSEUDONYM_KEY`, `PRIVACY_CONTACT_EMAIL`, `LOG_LEVEL`, `LANGSMITH_TRACING`, `LANGSMITH_API_KEY`, `LANGSMITH_PROJECT`, `LANGSMITH_ENDPOINT`, `LANGSMITH_TRACING_SAMPLING_RATE`.
+`APP_ENV` (`local`, `test`, `development`, `production`), `DATABASE_URL`, `GEMINI_API_KEY`, `CHAT_MODEL`, `EMBEDDING_MODEL`, `EMBEDDING_DIMENSIONS`, `APP_AI_ADAPTER`, `WEB_ORIGIN`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `RETRIEVAL_MIN_SIMILARITY`, `LLM_DAILY_TOKEN_BUDGET`, `METRICS_TOKEN`, `RATE_LIMIT_HMAC_KEY`, `PSEUDONYM_KEY`, `PRIVACY_CONTACT_EMAIL`, `LOG_LEVEL`, `LANGSMITH_TRACING`, `LANGSMITH_API_KEY`, `LANGSMITH_PROJECT`, `LANGSMITH_ENDPOINT`, `LANGSMITH_WORKSPACE_ID`, `LANGSMITH_TRACING_SAMPLING_RATE`. `LANGSMITH_WORKSPACE_ID` fica vazio para uma chave já limitada a um workspace. Uma chave de organização precisa dele.
 
 A `DATABASE_URL` da Railway usa o esquema `postgresql://`. A configuração a reescreve para `postgresql+asyncpg://`. A API usa sessões assíncronas do SQLAlchemy 2 e asyncpg.
 
@@ -154,7 +154,7 @@ A página de qualidade do admin usa agregados do banco, não o Prometheus, para 
 
 A região é a dos Estados Unidos, decisão D-2. `LANGSMITH_ENDPOINT` usa o endpoint padrão dessa região.
 
-A raiz de composição cria o cliente do LangSmith com um `anonymizer` que troca e-mails, telefones e sequências longas de dígitos por marcadores. O `LANGSMITH_HIDE_INPUTS` global não é usado, porque ele desliga o anonimizador.
+A raiz de composição cria o cliente do LangSmith com um `anonymizer` que troca e-mails por `[redacted-email]`, telefones por `[redacted-phone]` e sequências de seis ou mais dígitos por `[redacted-digits]`. UUID e hashes com letra ficam intactos. O nome não é marcador. O `LANGSMITH_HIDE_INPUTS` global não é usado, porque ele desliga o anonimizador. A chamada ao modelo corre com o rastreamento automático desligado, para o prompt cru não virar um run. O rastro explícito leva só o que a política permite, e o cliente aplica de novo o anonimizador ou o `hide_inputs`.
 
 **Política de rastro por passo.**
 

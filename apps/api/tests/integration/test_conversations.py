@@ -15,7 +15,7 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy import delete, select
 
 from app.adapters.fake_chat import FakeChatProvider
-from app.core.container import get_clock, get_qa_workflow, get_settings
+from app.core.container import get_clock, get_feedback_sink, get_qa_workflow, get_settings
 from app.db.session import open_session
 from app.db.unit_of_work import UnitOfWork
 from app.domain.auth import bucket_key, fixed_window_start, hash_session_secret
@@ -239,6 +239,44 @@ def test_history_sent_to_the_model_comes_from_the_database_without_health_text(
     follow_up = "\n".join(message.content for message in chat.structured_calls[-1][0])
     assert HEALTH_MESSAGE_MARKER in follow_up
     assert HEALTH not in follow_up
+
+
+def test_feedback_reaches_the_sink_for_the_assistant_run(
+    api: TestClient,
+    migrated_database: str,
+) -> None:
+    seen: list[tuple[UUID, str, float]] = []
+
+    class Sink:
+        async def record(self, run_id: UUID, key: str, score: float) -> None:
+            seen.append((run_id, key, score))
+
+    sink = Sink()
+    _fastapi(api).dependency_overrides[get_feedback_sink] = lambda: sink
+    created = _create(api)
+    conversation_id = UUID(created.json()["id"])
+    secret = _guest_secret(created)
+    _use(
+        api,
+        FakeChatProvider(
+            structured=_classification("Horário de visita", "public_info", 0.9),
+            tokens=["11:00 [1]."],
+        ),
+        [_hit()],
+    )
+    try:
+        _ask(api, conversation_id, VISITING)
+        stored = asyncio.run(_messages(migrated_database, conversation_id))
+        assistant = _assistant(stored)
+        response = api.post(
+            f"/v1/messages/{assistant.id}/feedback",
+            headers=_headers(),
+            json={"rating": -1},
+        )
+    finally:
+        asyncio.run(_delete_guest(migrated_database, secret))
+    assert response.status_code == 201
+    assert seen == [(assistant.id, "user_helpful", 0.0)]
 
 
 def test_second_feedback_is_rejected(api: TestClient, migrated_database: str) -> None:

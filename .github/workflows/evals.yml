@@ -1,0 +1,95 @@
+name: evals
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "apps/api/app/prompts/**"
+      - "apps/api/app/workflows/**"
+      - "content/corpus/**"
+      - "evals/**"
+      - ".github/workflows/evals.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "apps/api/app/prompts/**"
+      - "apps/api/app/workflows/**"
+      - "content/corpus/**"
+      - "evals/**"
+      - ".github/workflows/evals.yml"
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  eval:
+    name: eval
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: pgvector/pgvector:pg18
+        env:
+          POSTGRES_USER: atrium
+          POSTGRES_PASSWORD: atrium
+          POSTGRES_DB: atrium
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U atrium -d atrium -p 5432"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      APP_ENV: test
+      APP_AI_ADAPTER: gemini
+      DATABASE_URL: postgresql://atrium:atrium@127.0.0.1:5432/atrium
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      LANGSMITH_API_KEY: ${{ secrets.LANGSMITH_API_KEY }}
+      LANGSMITH_TRACING: "true"
+      LANGSMITH_PROJECT: atrium-dev
+      LANGSMITH_ENDPOINT: https://api.smith.langchain.com
+      LANGSMITH_WORKSPACE_ID: ${{ secrets.LANGSMITH_WORKSPACE_ID }}
+      LANGSMITH_TRACING_SAMPLING_RATE: "1.0"
+      ADMIN_EMAIL: admin@example.com
+      ADMIN_PASSWORD: atrium-eval-admin-password
+      RATE_LIMIT_HMAC_KEY: eval-hmac-key
+      PSEUDONYM_KEY: eval-pseudonym-key
+      WEB_ORIGIN: http://localhost:4173
+      EVAL_SUMMARY_PATH: ${{ github.workspace }}/eval-summary.md
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.2
+        with:
+          python-version: "3.12"
+          working-directory: apps/api
+      - name: Conferir chaves
+        run: |
+          test -n "$GEMINI_API_KEY" || { echo "GEMINI_API_KEY ausente"; exit 1; }
+          test -n "$LANGSMITH_API_KEY" || { echo "LANGSMITH_API_KEY ausente"; exit 1; }
+      - name: Instalar dependências
+        working-directory: apps/api
+        run: uv sync --frozen
+      - name: Migrar
+        working-directory: apps/api
+        run: uv run alembic upgrade head
+      - name: Admin e corpus
+        working-directory: apps/api
+        run: |
+          uv run python -m app.scripts.bootstrap_admin
+          uv run python -m app.scripts.seed
+      - name: Sincronizar o dataset
+        working-directory: apps/api
+        run: uv run python -m app.scripts.sync_eval_dataset
+      - name: Avaliar
+        working-directory: apps/api
+        run: uv run python -m app.scripts.run_evals
+      - name: Publicar o resumo
+        run: cat eval-summary.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Comentar na pull request
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh pr comment "${{ github.event.pull_request.number }}" --body-file eval-summary.md
