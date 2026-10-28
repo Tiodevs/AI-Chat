@@ -12,6 +12,7 @@ from app.adapters.fake_chat import FakeChatProvider
 from app.domain.embedding_text import query_embedding_text
 from app.domain.errors import CircuitOpen, ProviderUnavailable
 from app.domain.outcomes import Outcome, gate_outcome
+from app.domain.trace_policy import TraceEvent
 from app.prompts.qa import (
     ABSTENTION,
     GENERATE_PROMPT_VERSION,
@@ -41,6 +42,73 @@ def test_medical_advice_wins_over_low_confidence() -> None:
     assert gate_outcome("public_info", 0.59) is Outcome.OFF_TOPIC
     assert gate_outcome("public_info", 0.6) is None
     assert gate_outcome("public_info", float("nan")) is Outcome.OFF_TOPIC
+
+
+def test_medical_question_trace_keeps_only_the_outcome() -> None:
+    question = "Estou com dor no peito. Que medicamento devo tomar?"
+    chat, embeddings, search = _parts(
+        _classification(question, "medical_advice", 0.91),
+    )
+    tracer = _RecordingTracer()
+    run_id = uuid4()
+    result = _run(
+        chat,
+        embeddings,
+        search,
+        question,
+        tracer=tracer,
+        run_id=run_id,
+        history=(ConversationTurn(role="user", content="histórico clínico secreto"),),
+    )
+    assert result.outcome is Outcome.REFUSED
+    rendered = _trace_text(tracer.events)
+    assert question not in rendered
+    assert "histórico clínico secreto" not in rendered
+    assert "Não posso ajudar com sintomas" not in rendered
+    assert "medicamento" not in rendered
+    root = tracer.events[0]
+    assert root.name == "qa"
+    assert root.policy == "metadata_only"
+    assert root.run_id == run_id
+    assert root.inputs == {}
+    assert root.outputs == {}
+    assert root.metadata["outcome"] == "refused"
+    assert "intent" not in root.metadata
+    rewrite = tracer.events[1]
+    assert rewrite.name == "qa.rewrite"
+    assert rewrite.parent_run_id == run_id
+    assert rewrite.inputs == {}
+    assert rewrite.outputs == {}
+    assert rewrite.metadata["intent"] == "medical_advice"
+    assert "standalone_question" not in rewrite.metadata
+    assert question not in rewrite.metadata.values()
+
+
+def test_public_trace_keeps_the_rewrite_and_drops_the_original_question() -> None:
+    chat, embeddings, search = _parts(
+        _classification("Qual é o horário de visita no domingo?", "public_info", 0.9),
+        hits=[_hit("11:00 às 20:00.")],
+        tokens=["O horário é 11:00 [1]."],
+    )
+    tracer = _RecordingTracer()
+    result = _run(
+        chat,
+        embeddings,
+        search,
+        "E no domingo?",
+        tracer=tracer,
+        history=(ConversationTurn(role="user", content="Quero visitar alguém."),),
+    )
+    assert result.outcome is Outcome.ANSWERED
+    rendered = _trace_text(tracer.events)
+    assert "E no domingo?" not in rendered
+    assert "Quero visitar alguém." not in rendered
+    assert "Qual é o horário de visita no domingo?" in rendered
+    assert "11:00 às 20:00." in rendered
+    assert tracer.events[0].policy == "masked"
+    assert tracer.events[0].metadata["outcome"] == "answered"
+    assert tracer.events[1].name == "qa.rewrite"
+    assert tracer.events[1].policy == "metadata_only"
 
 
 def test_medical_advice_does_not_retrieve_or_generate() -> None:
@@ -294,12 +362,14 @@ def _run(
     minimum: float = 0.50,
     events: QaEventSink | None = None,
     run_id: UUID | None = None,
+    tracer: "_RecordingTracer | None" = None,
 ) -> QaResult:
     workflow = QaWorkflow(
         chat,
         embeddings,
         search,
         minimum_similarity=minimum,
+        tracer=tracer,
     )
 
     async def execute() -> QaResult:
@@ -336,6 +406,23 @@ def _hit(content: str = "11:00 às 20:00.", *, similarity: float = 0.8) -> Retri
         content=content,
         similarity=similarity,
     )
+
+
+class _RecordingTracer:
+    def __init__(self) -> None:
+        self.events: list[TraceEvent] = []
+
+    def record_many(self, events: Sequence[TraceEvent]) -> None:
+        self.events.extend(events)
+
+
+def _trace_text(events: Sequence[TraceEvent]) -> str:
+    chunks: list[str] = []
+    for event in events:
+        chunks.append(str(event.inputs))
+        chunks.append(str(event.outputs))
+        chunks.append(str(event.metadata))
+    return "\n".join(chunks)
 
 
 class _Embeddings:

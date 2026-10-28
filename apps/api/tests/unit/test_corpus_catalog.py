@@ -6,12 +6,13 @@ from pathlib import Path
 
 import pytest
 
+from app.domain.phones import phones_in
+
 ROOT = Path(__file__).resolve().parents[4]
 CATALOG_PATH = ROOT / "docs/sdd/corpus.md"
 CORPUS_PATH = ROOT / "content/corpus"
 EN_DASH = "\u2013"
 ROW = re.compile(r"^\| `([^`]+)` \| (.*) \|$")
-PHONE = re.compile(r"\(\s*\d{3}\s*\)\s*\d{3}-\d{4}|\b\d{3}-\d{3}-\d{4}\b|\b014-\d{4}\b")
 TIME_RANGE = re.compile(rf"(\d{{2}}:\d{{2}})\s*[{EN_DASH}\u2014-]\s*(\d{{2}}:\d{{2}})")
 EXPECTED_FILES = (
     "01-about.md",
@@ -107,18 +108,6 @@ def load_catalog(path: Path) -> Catalog:
         phones=frozenset(phones_in(text)),
         time_ranges=frozenset(time_ranges_in(text)),
     )
-
-
-def phones_in(text: str) -> set[str]:
-    return {canonical_phone(match.group(0)) for match in PHONE.finditer(text)}
-
-
-def canonical_phone(raw: str) -> str:
-    compact = re.sub(r"\s+", "", raw)
-    if re.fullmatch(r"014-\d{4}", compact):
-        return f"(555) {compact}"
-    digits = re.sub(r"\D", "", raw)
-    return f"({digits[0:3]}) {digits[3:6]}-{digits[6:10]}"
 
 
 def time_ranges_in(text: str) -> set[str]:
