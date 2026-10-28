@@ -109,6 +109,25 @@ EXPECTED_COLUMNS: dict[str, set[str]] = {
         "created_at",
     },
     "feedback": {"message_id", "rating", "created_at"},
+    "consent_records": {
+        "id",
+        "user_id",
+        "purpose",
+        "document_version",
+        "granted_at",
+        "revoked_at",
+        "source",
+    },
+    "registration_sessions": {
+        "id",
+        "status",
+        "path",
+        "fields",
+        "password_hash",
+        "transcript",
+        "user_id",
+        "expires_at",
+    },
 }
 
 EXPECTED_CONSTRAINTS: dict[str, set[str]] = {
@@ -118,6 +137,7 @@ EXPECTED_CONSTRAINTS: dict[str, set[str]] = {
         "users_email_lowercase",
         "users_role",
         "users_visitor_type",
+        "users_visit_reason",
     },
     "auth_sessions": {
         "auth_sessions_pkey",
@@ -157,6 +177,18 @@ EXPECTED_CONSTRAINTS: dict[str, set[str]] = {
         "messages_conversation_id_fkey",
     },
     "feedback": {"feedback_pkey", "feedback_rating", "feedback_message_id_fkey"},
+    "consent_records": {
+        "consent_records_pkey",
+        "consent_records_purpose",
+        "consent_records_source",
+        "consent_records_user_id_fkey",
+    },
+    "registration_sessions": {
+        "registration_sessions_pkey",
+        "registration_sessions_status",
+        "registration_sessions_path",
+        "registration_sessions_user_id_fkey",
+    },
 }
 
 
@@ -222,7 +254,7 @@ async def _assert_schema(database_url: str) -> None:
             )
             assert extension == 1
             revision = await connection.scalar(text("SELECT version_num FROM alembic_version"))
-            assert revision == "0004_conversations"
+            assert revision == "0005_registration"
             await _assert_columns(connection)
             await _assert_constraints(connection)
         await _exercise_rows(engine)

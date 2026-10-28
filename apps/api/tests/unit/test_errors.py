@@ -74,6 +74,23 @@ def test_duplicate_message_envelope_includes_the_existing_id() -> None:
     assert "retry_after_seconds" not in body
 
 
+def test_field_errors_appear_only_when_the_domain_sets_them() -> None:
+    app = create_app()
+
+    @app.get("/_test/fields")
+    async def fields() -> None:
+        raise ValidationFailed(
+            "Não foi possível concluir o cadastro.",
+            field_errors={"email": "Digite um e-mail válido."},
+        )
+
+    response = TestClient(app).get("/_test/fields")
+    body = response.json()["error"]
+    assert response.status_code == 422
+    assert body["field_errors"] == {"email": "Digite um e-mail válido."}
+    assert "retry_after_seconds" not in body
+
+
 def test_rate_limit_envelope_includes_retry_after_seconds() -> None:
     app = create_app()
 
