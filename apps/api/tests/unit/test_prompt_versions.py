@@ -19,11 +19,11 @@ _LOCKED_HASHES = {
     "qa-rewrite@2026-10-27.1": "d04cb4058b7319e772cf98a02bc9a63e3d1c7b95518fdb3b134871e65e70c5bf",
     "qa-generate@2026-10-27.1": "1a533c1e2534875ee07753b3b4c2cb759413d1af5334f0e9def67f75ae80bb33",
     "groundedness@2026-10-27.1": "be3d0615be6e9d8dcbd9cfaf39d9514ba2c4eb5a70c158fb680d4ebbe80fcb13",
-    "registration-extract@2026-10-28.1": (
-        "0698b48757e9b983dfc2e23f78282499527c4ec4ffa2c5a11812488163543ca5"
+    "registration-extract@2026-10-28.2": (
+        "03cd33e663ce500186035ebba129850be9262c43c2eb67b496ef46f8875bbf85"
     ),
-    "registration-phrase@2026-10-28.1": (
-        "c3929c866754d444f1a0c3c2e2ee7fae513584d46ec27edcf95746eb79f65efd"
+    "registration-phrase@2026-10-28.2": (
+        "2cdce6a66414e1741a6b4dd94536d3b2c451bc8b57ecf07a0a57ca6a695a455a"
     ),
 }
 

@@ -251,6 +251,67 @@ describe("telas do cadastro", () => {
     ).toHaveAttribute("href", "/sign-in")
   })
 
+  it("uma dúvida permanece no chat e recebe outra resposta", async () => {
+    const user = userEvent.setup()
+    const reply = "Use um e-mail que você abre todo dia. Qual é o seu e-mail?"
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) => {
+        const request =
+          input instanceof Request ? input : new Request(String(input))
+        const path = new URL(request.url).pathname
+        if (path.endsWith("/v1/legal/versions")) {
+          return json({ terms: version, privacy_notice: version }, 200)
+        }
+        if (request.method === "POST" && path.endsWith("/sessions")) {
+          return json(
+            session({
+              fields: { full_name: "Felipe Santos" },
+              nextStep: "email",
+              messages: [{ role: "assistant", text: "Qual é o seu e-mail?" }],
+            }),
+            201
+          )
+        }
+        if (path.endsWith("/messages")) {
+          return json(
+            session({
+              fields: { full_name: "Felipe Santos" },
+              nextStep: "email",
+              messages: [
+                { role: "assistant", text: "Qual é o seu e-mail?" },
+                { role: "user", text: "O que seria o melhor email?" },
+                { role: "assistant", text: reply },
+              ],
+            }),
+            200
+          )
+        }
+        return json(
+          {
+            error: {
+              code: "unauthenticated",
+              message: "Entre",
+              request_id: "01",
+            },
+          },
+          401
+        )
+      })
+    )
+    const { router } = renderAt("/register")
+    await user.type(
+      await screen.findByLabelText(pt.registration.messageLabel),
+      "O que seria o melhor email?"
+    )
+    await user.click(screen.getByRole("button", { name: pt.registration.send }))
+    expect(await screen.findAllByText(reply)).toHaveLength(2)
+    expect(router.state.location.pathname).toBe("/register")
+    expect(
+      screen.getByRole("link", { name: pt.registration.useForm })
+    ).toBeInTheDocument()
+  })
+
   it("com o modelo indisponível, o chat abre o formulário", async () => {
     const user = userEvent.setup()
     vi.stubGlobal(

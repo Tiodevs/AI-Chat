@@ -186,6 +186,50 @@ def test_tool_call_is_read_from_the_model_message() -> None:
     assert result.arguments == {"full_name": "Ana"}
 
 
+def test_a_reply_without_a_tool_call_keeps_the_text() -> None:
+    model = _TalkModel()
+    backend = LangChainChatBackend(model)
+    tool = Tool(name="set_fields", description="Grava campos.", parameters={"type": "object"})
+
+    async def run() -> ToolResult:
+        result, _usage = await backend.complete_with_tools(
+            [Message(role="user", content="O que seria o melhor email?")],
+            [tool],
+            0,
+        )
+        return result
+
+    result = asyncio.run(run())
+    assert result.name == ""
+    assert result.arguments == {}
+    assert result.text == "Use um e-mail que você abre com frequência."
+
+
+class _TalkModel:
+    temperature = 0.0
+
+    def model_copy(self, *, update: dict[str, float]) -> "_TalkModel":
+        copied = _TalkModel()
+        copied.temperature = update["temperature"]
+        return copied
+
+    def bind_tools(self, tools: list[dict[str, object]], **kwargs: object) -> "_TalkModel":
+        del tools, kwargs
+        return self
+
+    async def ainvoke(
+        self,
+        messages: list[tuple[str, str]],
+        **kwargs: object,
+    ) -> SimpleNamespace:
+        del messages, kwargs
+        return SimpleNamespace(
+            content="Use um e-mail que você abre com frequência.",
+            tool_calls=[],
+            usage_metadata={"input_tokens": 4, "output_tokens": 2},
+        )
+
+
 class _StatusError(Exception):
     def __init__(self, status_code: int) -> None:
         super().__init__(f"status {status_code}")
