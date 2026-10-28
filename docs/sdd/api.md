@@ -16,9 +16,9 @@ O prefixo da API é `/v1`. O navegador chama `/backend/v1/...`. Os corpos são J
 }
 ```
 
-Erros de validação usam `validation_error` e HTTP 422. Falhas de autorização usam `forbidden` e HTTP 403. Sessões ausentes usam `unauthenticated` e HTTP 401. Origem inválida usa `bad_origin` e HTTP 403. Orçamento estourado usa `degraded` e HTTP 503. Um pedido limitado usa `rate_limited` e HTTP 429, e o objeto `error` inclui `retry_after_seconds`. O 409 de uma mensagem repetida inclui `message_id`, o id da mensagem do visitante já gravada. Nos outros erros esses campos ficam ausentes.
+Erros de validação usam `validation_error` e HTTP 422. Falhas de autorização usam `forbidden` e HTTP 403. Sessões ausentes usam `unauthenticated` e HTTP 401. Origem inválida usa `bad_origin` e HTTP 403. Orçamento estourado usa `degraded` e HTTP 503. Um pedido limitado usa `rate_limited` e HTTP 429, e o objeto `error` inclui `retry_after_seconds`. O 409 de uma mensagem repetida inclui `message_id`, o id da mensagem do visitante já gravada. Erros de campo do cadastro incluem `field_errors`, um objeto de nome de campo para mensagem. Nos outros erros esses campos ficam ausentes.
 
-`POST /v1/auth/login` recebe `{ "email", "password" }` e, no sucesso, devolve o mesmo perfil de `GET /v1/me` e define `atrium_session`. O perfil não contém `password_hash`. `needs_legal_acceptance` é verdadeiro quando não há consentimento da `LEGAL_DOCUMENT_VERSION`. A tabela de consentimentos entra na Etapa 5.1; até lá o valor é verdadeiro. `POST /v1/auth/logout` responde 204 e revoga a sessão. `GET /v1/legal/versions` devolve `{ "terms", "privacy_notice" }`, os dois iguais à constante. A autorização de admin é provada por `GET /v1/admin/probe`, fora do contrato público, até as rotas de admin da tabela.
+`POST /v1/auth/login` recebe `{ "email", "password" }` e, no sucesso, devolve o mesmo perfil de `GET /v1/me` e define `atrium_session`. O perfil não contém `password_hash`. `needs_legal_acceptance` é verdadeiro quando não há consentimento vigente de `terms_and_privacy_notice` para a `LEGAL_DOCUMENT_VERSION`. `POST /v1/auth/logout` responde 204 e revoga a sessão. `GET /v1/legal/versions` devolve `{ "terms", "privacy_notice" }`, os dois iguais à constante. A autorização de admin é provada por `GET /v1/admin/probe`, fora do contrato público, até as rotas de admin da tabela.
 
 | Método e caminho | Quem | Comportamento |
 |---|---|---|
@@ -61,4 +61,6 @@ Erros de validação usam `validation_error` e HTTP 422. Falhas de autorização
 | `GET /metrics` | Bearer `METRICS_TOKEN` | Texto Prometheus. Desligada quando o token não está definido. |
 
 A saudação e as frases modelo do cadastro são cópia fixa em `app/prompts/registration.py`, então a primeira tela não depende do Gemini.
+
+`POST /v1/registration/sessions` responde 201. Os outros pedidos da sessão respondem 200 com `id`, `status`, `path`, `fields`, `field_errors`, `next_step`, `prompt`, `messages` e `expires_at`. `fields` traz `full_name`, `email`, `phone`, `visitor_type` e `visit_reason`. Cada item de `messages` é `{ role, text, created_at }` e não tem senha. O aceite e o formulário devolvem o perfil de `GET /v1/me` e definem `atrium_session`. O formulário aceita `session_id` opcional. No chat, um e-mail já usado volta em `field_errors` e não substitui o e-mail já entendido. No formulário, o mesmo caso responde 409. Conclusão sem os Termos, sem a versão vigente ou sem a maioridade responde 422 e não grava usuário. Um aceite repetido da mesma sessão devolve o mesmo usuário.
 
