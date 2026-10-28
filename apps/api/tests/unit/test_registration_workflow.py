@@ -4,10 +4,10 @@ import asyncio
 
 from app.adapters.fake_chat import FakeChatProvider
 from app.domain.errors import ProviderUnavailable
-from app.domain.registration import Status, Step, new_machine
+from app.domain.registration import FieldSet, Machine, Status, Step, new_machine
 from app.ports.chat import ToolResult
 from app.prompts.registration import prompt_for
-from app.workflows.registration import RegistrationWorkflow
+from app.workflows.registration import PhraseText, RegistrationWorkflow
 
 
 def test_registration_graph_has_no_checkpointer() -> None:
@@ -51,3 +51,30 @@ def test_registration_workflow_rejects_a_tool_payload_with_role() -> None:
     assert result.accepted_names == ()
     assert result.machine.next_step == Step.FULL_NAME
     assert result.prompt == prompt_for("full_name", correcting=False)
+
+
+def test_registration_question_without_a_field_stays_in_the_chat() -> None:
+    question = "O que seria o melhor email?"
+    reply = "Use um e-mail que você abre todo dia. Qual é o seu e-mail?"
+    chat = FakeChatProvider(
+        tool_result=ToolResult(name="", arguments={}, text=""),
+        structured=PhraseText(text=reply),
+    )
+    machine = Machine(
+        status=Status.COLLECTING_REQUIRED,
+        fields=FieldSet(full_name="Felipe Santos"),
+        password_set=False,
+        correcting=False,
+        field_errors=(),
+        next_step=Step.EMAIL,
+    )
+    result = asyncio.run(
+        RegistrationWorkflow(chat).turn(machine, question, request_id="req")
+    )
+    assert result.machine.fields.email is None
+    assert result.machine.fields.full_name == "Felipe Santos"
+    assert result.machine.next_step == Step.EMAIL
+    assert result.prompt == reply
+    sent = chat.structured_calls[0][0][-1].content
+    assert question in sent
+    assert "passo: email" in sent

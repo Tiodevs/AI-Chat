@@ -320,7 +320,7 @@ Cada tela descreve objetivo, composição e estados. Os textos citados são a c�
 - **Passo de revisão:** o resumo completo com Editar em cada linha e o botão Está certo.
 - **Passo de aceite:** `ConsentFieldSet` com os dois aceites obrigatórios e os dois opcionais. O opcional de personalização fica destacado e explica que tipo de visitante e motivo da visita podem indicar que a pessoa é paciente. Os opcionais começam desmarcados.
 - **Sempre visível:** o link "Usar o formulário".
-- **Estados:** campo com erro aparece no cartão e é pedido de novo no chat. E-mail já cadastrado oferece Entrar. Com o Gemini indisponível, a tela leva ao formulário com os campos já entendidos.
+- **Estados:** campo com erro aparece no cartão e é pedido de novo no chat. Uma dúvida que não traz o dado recebe uma resposta curta e o mesmo campo é pedido de novo. E-mail já cadastrado oferece Entrar. Com o Gemini indisponível, a tela leva ao formulário com os campos já entendidos.
 
 #### Cadastro por formulário `/register/form`
 

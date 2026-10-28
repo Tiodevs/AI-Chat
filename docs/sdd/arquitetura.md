@@ -299,7 +299,7 @@ O grafo do LangGraph tem três nós e não usa checkpointer. O serviço carrega 
 
 1. `extract` chama o Gemini com uma ferramenta, `set_fields`. O schema da ferramenta contém só `full_name`, `email`, `phone`, `visitor_type`, `visit_reason` e `skip_current`. Chaves extras são rejeitadas. `visitor_type` e `visit_reason` são enums.
 2. O serviço valida a carga com as mesmas regras do formulário, grava os campos aceitos e registra um e-mail já usado como erro de campo, sem sobrescrever o e-mail armazenado.
-3. `decide_next` é a função do domínio que escolhe o próximo passo. `phrase` pede ao Gemini uma pergunta curta para esse passo. Se essa chamada falha, o serviço usa a frase modelo do passo.
+3. `decide_next` é a função do domínio que escolhe o próximo passo. `phrase` pede ao Gemini uma resposta curta para esse passo, vendo a mensagem do visitante. Se a mensagem é uma dúvida e não traz um campo, o passo não muda: a frase responde e pede o dado de novo. Se essa chamada falha, o serviço usa a frase modelo do passo. A tela só leva ao formulário quando o provedor está indisponível.
 
 A resposta de cada turno traz `fields` com o que foi entendido, `field_errors`, `next_step` e `prompt`. A interface mostra os campos entendidos num cartão editável ao lado do chat.
 

@@ -271,6 +271,109 @@ export function replaceAnswer(
   )
 }
 
+const passwordEnterDistance = 12
+
+export function confirmField(target: gsap.TweenTarget, reduced: boolean) {
+  if (!canAnimate(target)) {
+    return
+  }
+  const root = target instanceof Element ? target : null
+  const highlight = root?.querySelector("[data-highlight]") ?? null
+  const icon = root?.querySelector("[data-confirm]") ?? null
+  if (reduced) {
+    if (highlight) {
+      gsap.set(highlight, { autoAlpha: 0 })
+    }
+    if (icon) {
+      gsap.set(icon, { autoAlpha: 1, scale: 1 })
+    }
+    if (!highlight && !icon) {
+      gsap.set(target, { autoAlpha: 1 })
+    }
+    return
+  }
+  const flash = highlight ?? target
+  const sequence = gsap.timeline()
+  sequence.fromTo(
+    flash,
+    { autoAlpha: 0 },
+    {
+      autoAlpha: 1,
+      duration: motionTokens.duration.fast,
+      ease: motionTokens.ease.enter,
+    }
+  )
+  sequence.to(flash, {
+    autoAlpha: 0,
+    duration: motionTokens.duration.base,
+    ease: motionTokens.ease.exit,
+    clearProps: "opacity,visibility",
+  })
+  if (icon) {
+    sequence.fromTo(
+      icon,
+      { scale: 0.6, autoAlpha: 0 },
+      {
+        scale: 1,
+        autoAlpha: 1,
+        duration: motionTokens.duration.base,
+        ease: motionTokens.ease.confirm,
+        clearProps: "transform,opacity,visibility",
+      },
+      0
+    )
+  }
+}
+
+export function moveStepper(
+  target: gsap.TweenTarget,
+  reduced: boolean,
+  scale = 1
+) {
+  if (!canAnimate(target)) {
+    return
+  }
+  if (reduced) {
+    gsap.set(target, { scaleX: scale, transformOrigin: "left center" })
+    return
+  }
+  gsap.to(target, {
+    scaleX: scale,
+    transformOrigin: "left center",
+    duration: motionTokens.duration.slow,
+    ease: motionTokens.ease.move,
+  })
+}
+
+export function enterPassword(
+  target: gsap.TweenTarget,
+  reduced: boolean,
+  onComplete?: () => void
+) {
+  if (!canAnimate(target)) {
+    onComplete?.()
+    return
+  }
+  if (reduced) {
+    gsap.set(target, { autoAlpha: 1, y: 0 })
+    onComplete?.()
+    return
+  }
+  gsap.set(target, { willChange: "transform" })
+  gsap.fromTo(
+    target,
+    { autoAlpha: 0, y: passwordEnterDistance },
+    {
+      autoAlpha: 1,
+      y: 0,
+      duration: motionTokens.duration.slow,
+      ease: motionTokens.ease.enter,
+      clearProps: "transform,opacity,visibility,will-change",
+      onComplete,
+    }
+  )
+}
+
 export function press(target: gsap.TweenTarget, reduced: boolean) {
   if (!canAnimate(target)) {
     return
@@ -303,5 +406,8 @@ export const presets = {
   pulseCaret,
   enterCitations,
   replaceAnswer,
+  confirmField,
+  moveStepper,
+  enterPassword,
   press,
 }

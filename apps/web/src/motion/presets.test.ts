@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
+import { motionTokens } from "./tokens.ts"
+
 const set = vi.fn()
 const to = vi.fn()
 const fromTo = vi.fn()
@@ -85,5 +87,78 @@ describe("presets com movimento reduzido", () => {
       preset(document.createElement("div"), false)
       expect(to.mock.calls.length + fromTo.mock.calls.length).toBeGreaterThan(0)
     }
+  })
+
+  it("M10 destaca o campo com timeline e fica direto quando o movimento está reduzido", () => {
+    const root = document.createElement("div")
+    const highlight = document.createElement("div")
+    const icon = document.createElement("div")
+    highlight.dataset.highlight = "true"
+    icon.dataset.confirm = "true"
+    root.append(highlight, icon)
+
+    presets.confirmField(root, true)
+    expect(set).toHaveBeenCalled()
+    expect(timeline).not.toHaveBeenCalled()
+
+    timeline.mockClear()
+    presets.confirmField(root, false)
+    expect(timeline).toHaveBeenCalled()
+    const sequence = timeline.mock.results.at(-1)?.value as {
+      fromTo: ReturnType<typeof vi.fn>
+    }
+    const iconCall = sequence.fromTo.mock.calls.find((call) => {
+      const from = call[1] as { scale?: number }
+      return from.scale === 0.6
+    })
+    expect(iconCall?.[2]).toMatchObject({
+      scale: 1,
+      ease: motionTokens.ease.confirm,
+    })
+  })
+
+  it("M11 move a barra com scaleX e fica direta quando o movimento está reduzido", () => {
+    const bar = document.createElement("div")
+    presets.moveStepper(bar, true, 0.5)
+    expect(set).toHaveBeenCalledWith(
+      bar,
+      expect.objectContaining({ scaleX: 0.5 })
+    )
+    expect(to).not.toHaveBeenCalled()
+
+    presets.moveStepper(bar, false, 0.75)
+    expect(to).toHaveBeenCalledWith(
+      bar,
+      expect.objectContaining({
+        scaleX: 0.75,
+        ease: motionTokens.ease.move,
+        duration: motionTokens.duration.slow,
+      })
+    )
+  })
+
+  it("M12 entrega o foco no fim, com e sem movimento reduzido", () => {
+    const card = document.createElement("div")
+    const reducedDone = vi.fn()
+    presets.enterPassword(card, true, reducedDone)
+    expect(set).toHaveBeenCalled()
+    expect(fromTo).not.toHaveBeenCalled()
+    expect(reducedDone).toHaveBeenCalledOnce()
+
+    const done = vi.fn()
+    presets.enterPassword(card, false, done)
+    expect(fromTo).toHaveBeenCalledWith(
+      card,
+      expect.objectContaining({ autoAlpha: 0, y: 12 }),
+      expect.objectContaining({
+        autoAlpha: 1,
+        y: 0,
+        duration: motionTokens.duration.slow,
+        onComplete: done,
+      })
+    )
+    const vars = fromTo.mock.calls.at(-1)?.[2] as { onComplete?: () => void }
+    vars.onComplete?.()
+    expect(done).toHaveBeenCalledOnce()
   })
 })

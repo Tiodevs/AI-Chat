@@ -17,7 +17,9 @@ export function requestIdFrom(error: unknown): string | null {
 
 export function retryAfterFrom(error: unknown): number | null {
   const body = errorBody(error)
-  return typeof body?.retry_after_seconds === "number" ? body.retry_after_seconds : null
+  return typeof body?.retry_after_seconds === "number"
+    ? body.retry_after_seconds
+    : null
 }
 
 export function messageFrom(error: unknown, fallback: string): string {
@@ -25,7 +27,27 @@ export function messageFrom(error: unknown, fallback: string): string {
   return typeof body?.message === "string" ? body.message : fallback
 }
 
-function errorBody(error: unknown): { message?: unknown; request_id?: unknown; retry_after_seconds?: unknown } | null {
+export function fieldErrorsFrom(error: unknown): Record<string, string> {
+  const body = errorBody(error)
+  const source = body?.field_errors
+  if (!source || typeof source !== "object") {
+    return {}
+  }
+  const errors: Record<string, string> = {}
+  for (const [field, message] of Object.entries(source)) {
+    if (typeof message === "string") {
+      errors[field] = message
+    }
+  }
+  return errors
+}
+
+function errorBody(error: unknown): {
+  message?: unknown
+  request_id?: unknown
+  retry_after_seconds?: unknown
+  field_errors?: unknown
+} | null {
   if (!error || typeof error !== "object" || !("error" in error)) {
     return null
   }
