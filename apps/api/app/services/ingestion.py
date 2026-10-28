@@ -1,7 +1,7 @@
 """Ingestão síncrona: extrair, dividir, embedar e publicar. Seção 7.3 do SDD."""
 
 from datetime import timedelta
-from uuid import UUID
+from uuid import UUID, uuid4
 
 import structlog
 
@@ -9,9 +9,11 @@ from app.db.session import open_session
 from app.db.unit_of_work import UnitOfWork
 from app.domain.chunking import split_markdown
 from app.domain.embedding_text import document_embedding_text
+from app.domain.trace_policy import ingestion_event
 from app.ports.clock import Clock
 from app.ports.embedding import EmbeddingProvider
 from app.ports.text_extractor import TextExtractor
+from app.ports.tracing import NullTracer, TraceRecorder
 from app.prompts.corpus import EMBED_FAILED, EMPTY_DOCUMENT, PROCESSING_TIMED_OUT
 from app.repositories.documents import DocumentRepository, NewChunk
 
@@ -24,10 +26,12 @@ class IngestionService:
         database_url: str,
         embeddings: EmbeddingProvider,
         extractor: TextExtractor,
+        tracer: TraceRecorder | None = None,
     ) -> None:
         self._database_url = database_url
         self._embeddings = embeddings
         self._extractor = extractor
+        self._tracer = tracer or NullTracer()
 
     async def ingest_new_version(
         self,
@@ -78,6 +82,18 @@ class IngestionService:
             _log("warning", "ingestion.failed", slug=slug, error_type="embedding")
             await self._fail(version_id, EMBED_FAILED, body)
             return "failed"
+        try:
+            self._tracer.record_many(
+                (
+                    ingestion_event(
+                        run_id=uuid4(),
+                        slug=slug,
+                        body=body,
+                    ),
+                )
+            )
+        except Exception:
+            _log("warning", "ingestion.trace_failed", slug=slug)
         _log("info", "ingestion.ready", slug=slug, chunks=len(chunks))
         return "embedded"
 

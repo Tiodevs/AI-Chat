@@ -6,7 +6,7 @@ from collections.abc import AsyncIterator
 from typing import Annotated, Any, Literal
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, Request
 from fastapi.responses import Response, StreamingResponse
 
 from app.core.client_ip import client_ip
@@ -192,15 +192,18 @@ async def create_feedback(
     message_id: UUID,
     body: FeedbackRequest,
     request: Request,
+    background: BackgroundTasks,
     service: Annotated[Any, Depends(get_conversation_service)],
 ) -> FeedbackResponse:
     """Marca uma resposta do assistente como útil ou não útil, uma vez."""
-    await service.submit_feedback(
+    notice = await service.submit_feedback(
         message_id,
         body.rating,
         session_secret=request.cookies.get(SESSION_COOKIE_NAME),
         guest_secret=request.cookies.get(GUEST_COOKIE_NAME),
     )
+    if notice is not None:
+        background.add_task(service.deliver_feedback, notice)
     return FeedbackResponse(message_id=message_id, rating=body.rating)
 
 

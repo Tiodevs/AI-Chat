@@ -12,6 +12,7 @@ from app.adapters.circuit_breaker import CircuitBreaker
 from app.adapters.clock import SystemClock
 from app.adapters.langchain_chat import CHAT_TIMEOUT_SECONDS
 from app.adapters.provider_status import http_status, retryable_status
+from app.adapters.tracing_scope import quiet_provider_tracing
 from app.domain.errors import CircuitOpen, ProviderUnavailable
 from app.ports.chat import Message, ModelT, RunContext, TokenUsage, Tool, ToolResult
 from app.ports.clock import Clock
@@ -95,6 +96,15 @@ class GeminiChatProvider:
         return self._stream(messages, run)
 
     async def _stream(self, messages: list[Message], run: RunContext) -> AsyncIterator[str]:
+        with quiet_provider_tracing():
+            async for text in self._stream_quietly(messages, run):
+                yield text
+
+    async def _stream_quietly(
+        self,
+        messages: list[Message],
+        run: RunContext,
+    ) -> AsyncIterator[str]:
         self._refuse_if_open()
         delay = CHAT_RETRY_DELAY_SECONDS
         for attempt in range(1, CHAT_ATTEMPTS + 1):
@@ -141,6 +151,10 @@ class GeminiChatProvider:
             yield text
 
     async def _attempt(self, operation: Callable[[], Awaitable[T]]) -> T:
+        with quiet_provider_tracing():
+            return await self._attempt_quietly(operation)
+
+    async def _attempt_quietly(self, operation: Callable[[], Awaitable[T]]) -> T:
         self._refuse_if_open()
         delay = CHAT_RETRY_DELAY_SECONDS
         last: BaseException | None = None

@@ -10,6 +10,7 @@ dependencies = [
   "fastapi>=0.115",
   "httpx>=0.28.1",
   "langchain-google-genai>=4.4.2",
+  "langsmith>=0.14.14",
   "pydantic-settings>=2.6",
   "pypdf>=6.21.3",
   "python-ulid>=3.0",

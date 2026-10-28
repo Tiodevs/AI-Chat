@@ -27,10 +27,18 @@ def get_clock() -> Clock:
     return SystemClock()
 
 
+def get_feedback_sink(settings: Annotated[Settings, Depends(get_settings)]) -> Any:
+    from app.adapters.langsmith_tracing import feedback_sink_for
+
+    return feedback_sink_for(settings)
+
+
 def get_qa_workflow(settings: Annotated[Settings, Depends(get_settings)]) -> Any:
     # Import tardio: subir a API para /health não carrega o SQLAlchemy.
     from app.adapters.chat_factory import build_chat_provider
     from app.adapters.embedding_factory import build_embedding_provider
+    from app.adapters.langsmith_tracing import tracer_for
+    from app.ports.tracing import NullTracer
     from app.services.retrieval import RetrievalService
     from app.workflows.qa import QaWorkflow
 
@@ -44,6 +52,7 @@ def get_qa_workflow(settings: Annotated[Settings, Depends(get_settings)]) -> Any
             minimum_similarity=settings.retrieval_min_similarity,
         ),
         minimum_similarity=settings.retrieval_min_similarity,
+        tracer=tracer_for(settings) or NullTracer(),
     )
 
 
@@ -51,6 +60,7 @@ def get_conversation_service(
     settings: Annotated[Settings, Depends(get_settings)],
     clock: Annotated[Clock, Depends(get_clock)],
     workflow: Annotated[Any, Depends(get_qa_workflow)],
+    feedback_sink: Annotated[Any, Depends(get_feedback_sink)],
 ) -> Any:
     from app.services.budget import PostgresTokenBudget
     from app.services.conversations import ConversationService
@@ -61,6 +71,8 @@ def get_conversation_service(
         hmac_key=settings.rate_limit_hmac_key,
         app_env=settings.app_env,
         workflow=workflow,
+        feedback_sink=feedback_sink,
+        pseudonym_key=settings.pseudonym_key,
         budget=PostgresTokenBudget(
             settings.database_url,
             clock,

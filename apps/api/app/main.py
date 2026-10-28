@@ -30,6 +30,9 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
         except Exception:
             structlog.get_logger("atrium").warning("ingestion.stale_check_failed")
     yield
+    from app.adapters.langsmith_tracing import wait_for_all_tracers
+
+    wait_for_all_tracers()
 
 
 def create_app() -> FastAPI:
