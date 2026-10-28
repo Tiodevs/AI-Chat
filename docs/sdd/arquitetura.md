@@ -228,7 +228,9 @@ sequenceDiagram
   Controller-->>View: text/event-stream
 ```
 
-O corpo do pedido é `{ "text": "...", "client_message_id": "<uuid>" }`. O par `(conversation_id, client_message_id)` é único. Um reenvio devolve HTTP 409 com o id da mensagem existente, e o frontend recarrega a conversa.
+O corpo do pedido é `{ "text": "...", "client_message_id": "<uuid>" }`. O par `(conversation_id, client_message_id)` é único. Um reenvio devolve HTTP 409 com o id da mensagem do visitante já gravada, no campo `message_id` do objeto `error`, e o frontend recarrega a conversa. O reenvio não chama o modelo.
+
+A classificação termina antes da primeira transação, para uma pergunta de orientação médica ser gravada já com o marcador `[health-related message not stored]`. Essa transação grava só a mensagem do visitante. A geração, quando existe, acontece com a transação fechada. A segunda transação grava a resposta. Nenhuma chamada ao modelo corre com transação aberta. O histórico enviado ao modelo é lido do banco nesse momento, então não contém o texto de uma pergunta médica anterior.
 
 Passos dentro de `QaWorkflow`:
 
@@ -252,7 +254,7 @@ Eventos enviados pelo servidor, nesta ordem:
 | `done` | `{ "outcome" }` |
 | `error` | `{ "code", "message" }` |
 
-A API envia um comentário SSE de manutenção a cada 15 segundos enquanto o gerador não produz tokens, para proxies não fecharem a conexão ociosa. A visão substitui o balão inteiro do assistente quando `replace` chega.
+A API envia o comentário SSE `: keepalive` a cada 15 segundos enquanto o gerador não produz tokens, para proxies não fecharem a conexão ociosa. A visão substitui o balão inteiro do assistente quando `replace` chega. Uma resposta fixa, sem rascunho transmitido, sai em um único evento `token` com o texto inteiro. O evento `error` entra no lugar de `done` quando o fluxo quebra depois do `meta`.
 
 Se o fluxo não entregar o primeiro evento, a visão passa a consultar `GET /v1/conversations/{id}` a cada segundo até a mensagem do assistente ter desfecho. O pedido no servidor continua até o fim. Essa reserva existe porque a versão 1 não tem domínio próprio e depende do rewrite da Vercel.
 
@@ -350,13 +352,13 @@ Os identificadores são UUIDs. Os timestamps são `timestamptz` em UTC. O e-mail
 
 **registration_sessions.** `status`, `path` (`chat` ou `form`), `fields` jsonb, `password_hash` anulável, `transcript` jsonb, `user_id` anulável, `expires_at`. Os itens da transcrição são `{role, text, created_at}`. O serializador não tem campo de senha. A transcrição é apagada na conclusão ou no abandono.
 
-**guest_keys.** `token_hash` e `created_at`, para conversas anônimas sobreviverem a uma atualização da página.
+**guest_keys.** `id`, `token_hash` e `created_at`, para conversas anônimas sobreviverem a uma atualização da página. O cookie guarda o segredo. O banco guarda só o SHA-256.
 
 **conversations.** `user_id` anulável, `guest_key_id` anulável, `created_at`. Pelo menos um dono é obrigatório.
 
 **messages.** `conversation_id`, `client_message_id` anulável, `role` (`user` ou `assistant`), `content`, `citations` jsonb, `model` anulável, `prompt_version` anulável, `input_tokens`, `output_tokens`, `latency_ms`, `outcome` anulável, `langsmith_run_id` anulável, `created_at`. Único em `(conversation_id, client_message_id)`.
 
-**feedback.** `message_id` único, `rating` de `-1` ou `1`, `created_at`.
+**feedback.** `message_id` chave primária, `rating` de `-1` ou `1`, `created_at`.
 
 **documents.** `title`, `slug` único, `status` (`active` ou `archived`), `active_version` anulável, `created_by`, timestamps.
 

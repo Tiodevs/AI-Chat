@@ -31,7 +31,7 @@ A interface mostra um aviso permanente: o Atrium é uma IA, responde a partir da
 
 ### 10.3 Sessão e transporte
 
-- O cookie de sessão é `atrium_session`. O de convidado é `atrium_guest`. Os dois são `HttpOnly`, `SameSite=Lax`, sem atributo `Domain`, e `Secure` fora do ambiente local.
+- O cookie de sessão é `atrium_session`. O de convidado é `atrium_guest`. Os dois são `HttpOnly`, `SameSite=Lax`, sem atributo `Domain`, e `Secure` fora do ambiente local. O cookie `atrium_guest` dura 30 dias, o mesmo prazo de retenção das conversas de convidado.
 - O navegador guarda os cookies na origem do frontend porque o rewrite é de mesma origem.
 - A sessão de autenticação dura 14 dias. As sessões de cadastro expiram em 24 horas.
 - Sair revoga a sessão.
@@ -53,6 +53,7 @@ Janelas fixas gravadas em `rate_limit_windows`.
 | Perguntas de convidado, por chave de convidado | 30 por hora |
 | Perguntas de convidado, por IP | 60 por hora |
 | Perguntas de membro, por usuário | 120 por hora |
+| Diagnóstico de fluxo, por IP | 60 por hora |
 | Pedidos de titular, por IP | 5 por dia |
 | Uploads de admin, por admin | 30 por hora |
 
