@@ -1,6 +1,7 @@
 """Erros de domínio. O tratador HTTP mora em app.core.errors. Seção 6.2 do SDD."""
 
 from typing import ClassVar
+from uuid import UUID
 
 
 class DomainError(Exception):
@@ -19,6 +20,14 @@ class NotFound(DomainError):
 
 class Conflict(DomainError):
     code: ClassVar[str] = "conflict"
+
+
+class DuplicateMessage(Conflict):
+    """Reenvio do mesmo client_message_id. O envelope inclui message_id. Seção 7.1."""
+
+    def __init__(self, message: str, *, message_id: UUID) -> None:
+        super().__init__(message)
+        self.message_id = message_id
 
 
 class Forbidden(DomainError):

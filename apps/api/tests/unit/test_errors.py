@@ -1,3 +1,5 @@
+from uuid import UUID
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -8,6 +10,7 @@ from app.domain.errors import (
     CircuitOpen,
     Conflict,
     DomainError,
+    DuplicateMessage,
     Forbidden,
     NotFound,
     ProviderUnavailable,
@@ -53,6 +56,22 @@ def test_domain_error_uses_the_section_12_envelope() -> None:
     assert body["error"]["code"] == "not_found"
     assert body["error"]["message"] == "Não encontrado."
     assert body["error"]["request_id"] == response.headers["x-request-id"]
+
+
+def test_duplicate_message_envelope_includes_the_existing_id() -> None:
+    app = create_app()
+    message_id = UUID("00000000-0000-4000-8000-000000000010")
+
+    @app.get("/_test/duplicate")
+    async def duplicate() -> None:
+        raise DuplicateMessage("Esta mensagem já foi enviada.", message_id=message_id)
+
+    response = TestClient(app).get("/_test/duplicate")
+    assert response.status_code == 409
+    body = response.json()["error"]
+    assert body["code"] == "conflict"
+    assert body["message_id"] == str(message_id)
+    assert "retry_after_seconds" not in body
 
 
 def test_rate_limit_envelope_includes_retry_after_seconds() -> None:

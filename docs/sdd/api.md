@@ -16,7 +16,7 @@ O prefixo da API é `/v1`. O navegador chama `/backend/v1/...`. Os corpos são J
 }
 ```
 
-Erros de validação usam `validation_error` e HTTP 422. Falhas de autorização usam `forbidden` e HTTP 403. Sessões ausentes usam `unauthenticated` e HTTP 401. Origem inválida usa `bad_origin` e HTTP 403. Orçamento estourado usa `degraded` e HTTP 503. Um pedido limitado usa `rate_limited` e HTTP 429, e o objeto `error` inclui `retry_after_seconds`. Nos outros erros esse campo fica ausente.
+Erros de validação usam `validation_error` e HTTP 422. Falhas de autorização usam `forbidden` e HTTP 403. Sessões ausentes usam `unauthenticated` e HTTP 401. Origem inválida usa `bad_origin` e HTTP 403. Orçamento estourado usa `degraded` e HTTP 503. Um pedido limitado usa `rate_limited` e HTTP 429, e o objeto `error` inclui `retry_after_seconds`. O 409 de uma mensagem repetida inclui `message_id`, o id da mensagem do visitante já gravada. Nos outros erros esses campos ficam ausentes.
 
 `POST /v1/auth/login` recebe `{ "email", "password" }` e, no sucesso, devolve o mesmo perfil de `GET /v1/me` e define `atrium_session`. O perfil não contém `password_hash`. `needs_legal_acceptance` é verdadeiro quando não há consentimento da `LEGAL_DOCUMENT_VERSION`. A tabela de consentimentos entra na Etapa 5.1; até lá o valor é verdadeiro. `POST /v1/auth/logout` responde 204 e revoga a sessão. `GET /v1/legal/versions` devolve `{ "terms", "privacy_notice" }`, os dois iguais à constante. A autorização de admin é provada por `GET /v1/admin/probe`, fora do contrato público, até as rotas de admin da tabela.
 
@@ -25,12 +25,12 @@ Erros de validação usam `validation_error` e HTTP 422. Falhas de autorização
 | `GET /health` | Qualquer um | O processo está no ar. Não toca no banco. |
 | `GET /ready` | Qualquer um | Banco responde, `vector` está instalada e a dimensão confere. |
 | `GET /v1/legal/versions` | Qualquer um | Versão vigente dos Termos e do Aviso |
-| `GET /v1/diagnostics/stream` | Qualquer um, limitado | Emite três eventos SSE com 1 segundo de intervalo. Serve para o teste de fumaça do fluxo pelo rewrite. |
-| `POST /v1/conversations` | Visitante | Cria uma conversa para a sessão ou para a chave de convidado. |
-| `GET /v1/conversations` | Membro | Lista as conversas do membro. |
-| `GET /v1/conversations/{id}` | Dono | Devolve mensagens e citações. |
+| `GET /v1/diagnostics/stream` | Qualquer um, limitado | Emite três eventos `tick`, com `{ "index": 1 }`, `{ "index": 2 }` e `{ "index": 3 }`, um por segundo. O limite é 60 por hora por IP. |
+| `POST /v1/conversations` | Visitante | Cria uma conversa para a sessão válida ou, sem sessão, para a chave de convidado. Devolve `{ "id", "created_at" }`. |
+| `GET /v1/conversations` | Membro ou admin | Lista as conversas desse usuário, da mais recente para a mais antiga: `{ "conversations": [ { "id", "created_at" } ] }`. |
+| `GET /v1/conversations/{id}` | Dono | Devolve `{ "id", "created_at", "messages" }`. Cada mensagem traz `id`, `role`, `content`, `client_message_id`, `citations`, `outcome` e `created_at`. |
 | `POST /v1/conversations/{id}/messages` | Dono | `{ "text", "client_message_id" }`, texto com até 1.000 caracteres. Responde `text/event-stream`. |
-| `POST /v1/messages/{id}/feedback` | Dono | `{ "rating": 1 }` ou `{ "rating": -1 }`. Uma vez por mensagem. |
+| `POST /v1/messages/{id}/feedback` | Dono | `{ "rating": 1 }` ou `{ "rating": -1 }`, só numa mensagem do assistente. Uma vez. Devolve `{ "message_id", "rating" }`. |
 | `POST /v1/registration/sessions` | Visitante | Começa um cadastro por chat e devolve a saudação. |
 | `GET /v1/registration/sessions/{id}` | Quem tem a sessão | Status, campos entendidos, erros e `next_step` |
 | `POST /v1/registration/sessions/{id}/messages` | Quem tem a sessão | Turno do chat |

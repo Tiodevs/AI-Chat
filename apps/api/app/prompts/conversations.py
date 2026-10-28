@@ -1,0 +1,11 @@
+"""Cópias da conversa. Texto visível ao visitante, em português."""
+
+DUPLICATE_MESSAGE = "Esta mensagem já foi enviada."
+DUPLICATE_FEEDBACK = "Esta resposta já foi avaliada."
+CONVERSATION_NOT_FOUND = "Não encontrei esta conversa."
+MESSAGE_NOT_FOUND = "Não encontrei esta mensagem."
+NOT_OWNER = "Você não tem acesso a esta conversa."
+RATE_LIMITED = "Muitas perguntas em pouco tempo. Espere um pouco e tente de novo."
+DIAGNOSTICS_RATE_LIMITED = "Muitas verificações em pouco tempo. Espere um pouco e tente de novo."
+FEEDBACK_NOT_ASSISTANT = "Só uma resposta do assistente pode ser avaliada."
+STREAM_FAILED = "Não foi possível concluir a resposta."

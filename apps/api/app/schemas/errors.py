@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from pydantic import BaseModel
 
 
@@ -6,6 +8,7 @@ class ErrorBody(BaseModel):
     message: str
     request_id: str
     retry_after_seconds: int | None = None
+    message_id: UUID | None = None
 
 
 class ErrorResponse(BaseModel):
