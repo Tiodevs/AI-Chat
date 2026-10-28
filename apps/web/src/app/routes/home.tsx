@@ -1,6 +1,14 @@
-import { PageHeading } from "@/app/page-heading.tsx"
-import { pt } from "@/i18n/pt.ts"
+import { HomeScreen } from "@/features/ask/home-screen.tsx"
+import { useAskConversation } from "@/features/ask/useAskConversation.ts"
 
 export function Component() {
-  return <PageHeading title={pt.pages.home} />
+  const ask = useAskConversation(undefined)
+  return (
+    <HomeScreen
+      pending={ask.pending}
+      error={ask.error}
+      budgetExceeded={ask.budgetExceeded}
+      onAsk={ask.ask}
+    />
+  )
 }

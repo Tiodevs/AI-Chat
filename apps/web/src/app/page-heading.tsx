@@ -2,7 +2,13 @@ import { useEffect } from "react"
 
 import { pt } from "@/i18n/pt.ts"
 
-export function PageHeading({ title }: { title: string }) {
+export function PageHeading({
+  title,
+  variant = "title",
+}: {
+  title: string
+  variant?: "title" | "display"
+}) {
   useEffect(() => {
     document.title = `${title} · ${pt.appName}`
   }, [title])
@@ -11,7 +17,11 @@ export function PageHeading({ title }: { title: string }) {
     <h1
       id="page-title"
       tabIndex={-1}
-      className="text-title text-foreground-strong"
+      className={
+        variant === "display"
+          ? "text-display text-foreground-strong"
+          : "text-title text-foreground-strong"
+      }
     >
       {title}
     </h1>

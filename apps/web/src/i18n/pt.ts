@@ -70,7 +70,8 @@ export const pt = {
     register: "Criar uma conta",
     credentials: "E-mail ou senha incorretos.",
     limitedOne: "Você fez muitas tentativas. Tente de novo em 1 minuto.",
-    limitedMany: "Você fez muitas tentativas. Tente de novo em {minutes} minutos.",
+    limitedMany:
+      "Você fez muitas tentativas. Tente de novo em {minutes} minutos.",
     emailRequired: "Informe o e-mail.",
     emailInvalid: "Informe um e-mail válido.",
     passwordRequired: "Informe a senha.",
@@ -87,5 +88,71 @@ export const pt = {
   },
   error: {
     body: "Tente de novo em alguns instantes.",
+  },
+  home: {
+    title: "Como podemos ajudar no Harborlight?",
+  },
+  safety: {
+    title: "O Atrium é uma inteligência artificial",
+    body: "As respostas vêm das informações publicadas do Harborlight General Hospital. Elas não substituem um atendimento e não são orientação médica.",
+  },
+  ask: {
+    suggestionsLabel: "Sugestões",
+    questionLabel: "Sua pergunta",
+    placeholder: "Pergunte sobre visita, caminhos ou horários",
+    send: "Enviar",
+    sending: "Enviando",
+    stop: "Parar",
+    healthHint:
+      "Não envie sintomas nem nomes de medicamentos. O Atrium não dá orientação médica.",
+    useful: "Útil",
+    notUseful: "Não útil",
+    copy: "Copiar resposta",
+    copied: "Resposta copiada",
+    retry: "Tentar de novo",
+    interrupted: "Interrompida.",
+    privacyNote: "Para proteger sua privacidade, não guardamos esta mensagem.",
+    replacedNote: "Não consegui confirmar essa resposta, então a substituí.",
+    sources: "Fontes",
+    showSources: "Mostrar fontes",
+    hideSources: "Ocultar fontes",
+    waiting: "Preparando a resposta",
+    limitedOne: "Você fez muitas perguntas. Tente de novo em 1 minuto.",
+    limitedMany:
+      "Você fez muitas perguntas. Tente de novo em {minutes} minutos.",
+    unavailable:
+      "O Atrium está temporariamente indisponível. Você pode ligar para a mesa telefônica no (555) 014-2600.",
+    couldNotFinish: "Não foi possível concluir a resposta.",
+    alreadyRated: "Esta resposta já foi avaliada.",
+    thread: "Mensagens da conversa",
+    outcomes: {
+      answered: "Respondida",
+      abstained: "Não está nas informações publicadas",
+      refused: "Orientação médica recusada",
+      replaced: "Substituída",
+      unavailable: "Indisponível",
+    },
+    suggestions: [
+      {
+        id: "visiting",
+        label: "Horário de visita",
+        question: "Qual é o horário de visita?",
+      },
+      {
+        id: "parking",
+        label: "Estacionamento",
+        question: "Onde posso estacionar?",
+      },
+      {
+        id: "emergency",
+        label: "Entrada de emergência",
+        question: "Onde fica a entrada de emergência?",
+      },
+      {
+        id: "cafeteria",
+        label: "Horário do refeitório",
+        question: "Qual é o horário do refeitório?",
+      },
+    ],
   },
 } as const
