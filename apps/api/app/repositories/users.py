@@ -1,7 +1,7 @@
 """Consultas de users. Seção 8.1 do SDD."""
 
 from datetime import datetime
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from sqlalchemy import delete, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -38,22 +38,28 @@ class UserRepository:
         full_name: str,
         role: str,
         now: datetime,
-    ) -> None:
+        phone: str | None = None,
+        visitor_type: str | None = None,
+        visit_reason: str | None = None,
+    ) -> UUID:
+        user_id = uuid4()
         self._session.add(
             User(
+                id=user_id,
                 email=email,
                 password_hash=password_hash,
                 full_name=full_name,
                 role=role,
-                phone=None,
-                visitor_type=None,
-                visit_reason=None,
+                phone=phone,
+                visitor_type=visitor_type,
+                visit_reason=visit_reason,
                 last_seen_at=now,
                 created_at=now,
                 updated_at=now,
             )
         )
         await self._session.flush()
+        return user_id
 
     async def delete_user(self, user_id: UUID) -> None:
         await self._session.execute(delete(User).where(User.id == user_id))

@@ -52,6 +52,7 @@ def error_payload(error: DomainError) -> ErrorResponse:
             request_id=current_request_id(),
             retry_after_seconds=retry_after_seconds,
             message_id=message_id,
+            field_errors=error.field_errors or None,
         )
     )
 

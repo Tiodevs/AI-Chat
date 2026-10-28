@@ -12,6 +12,7 @@ from app.controllers.conversations import router as conversations_router
 from app.controllers.health import router as health_router
 from app.controllers.legal import router as legal_router
 from app.controllers.readiness import router as readiness_router
+from app.controllers.registration import router as registration_router
 from app.core.container import get_settings
 from app.core.errors import register_exception_handlers
 from app.core.logging import configure_logging
@@ -53,6 +54,7 @@ def create_app() -> FastAPI:
     app.include_router(readiness_router)
     app.include_router(legal_router)
     app.include_router(auth_router)
+    app.include_router(registration_router)
     app.include_router(conversations_router)
     app.include_router(admin_probe_router)
     return app

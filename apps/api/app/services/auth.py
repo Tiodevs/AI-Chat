@@ -4,6 +4,8 @@ from dataclasses import dataclass
 from datetime import UTC, timedelta
 from uuid import UUID
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.adapters.session_secret import new_session_secret
 from app.db.session import open_session
 from app.db.unit_of_work import UnitOfWork
@@ -31,7 +33,7 @@ from app.domain.errors import (
     Unauthenticated,
     ValidationFailed,
 )
-from app.domain.legal import needs_legal_acceptance
+from app.domain.legal import LEGAL_DOCUMENT_VERSION, needs_legal_acceptance
 from app.domain.profile import Profile
 from app.models.user import User
 from app.ports.clock import Clock
@@ -49,6 +51,7 @@ from app.prompts.auth import (
 )
 from app.repositories.auth_sessions import AuthSessionRepository
 from app.repositories.bootstrap import BootstrapRepository
+from app.repositories.consents import ConsentRepository
 from app.repositories.rate_limits import RateLimitRepository
 from app.repositories.users import UserRepository
 
@@ -69,6 +72,7 @@ class _UserRecord:
     visit_reason: str | None
     role: str
     password_hash: str
+    terms_version: str | None
 
 
 class AuthService:
@@ -125,7 +129,7 @@ class AuthService:
             if not decision.limited:
                 user = await UserRepository(session).get_by_email(normalized)
                 if user is not None:
-                    record = _record(user)
+                    record = _record(user, await _terms_version(session, user.id))
 
         if decision.limited:
             raise RateLimited(
@@ -192,7 +196,7 @@ class AuthService:
             if found is not None:
                 user = await UserRepository(session).get_by_id(found.user_id)
                 if user is not None:
-                    record = _record(user)
+                    record = _record(user, await _terms_version(session, user.id))
         return record
 
 
@@ -242,7 +246,14 @@ def _require_admin_credentials(email: str, password: str) -> None:
         raise ValidationFailed(ADMIN_PASSWORD_LENGTH)
 
 
-def _record(user: User) -> _UserRecord:
+async def _terms_version(session: AsyncSession, user_id: UUID) -> str | None:
+    current = await ConsentRepository(session).has_current_terms(user_id, LEGAL_DOCUMENT_VERSION)
+    if current:
+        return LEGAL_DOCUMENT_VERSION
+    return None
+
+
+def _record(user: User, terms_version: str | None) -> _UserRecord:
     return _UserRecord(
         id=user.id,
         email=user.email,
@@ -252,6 +263,7 @@ def _record(user: User) -> _UserRecord:
         visit_reason=user.visit_reason,
         role=user.role,
         password_hash=user.password_hash,
+        terms_version=terms_version,
     )
 
 
@@ -264,6 +276,6 @@ def _profile(record: _UserRecord) -> Profile:
         visitor_type=record.visitor_type,
         visit_reason=record.visit_reason,
         role=record.role,
-        needs_legal_acceptance=needs_legal_acceptance(None),
+        needs_legal_acceptance=needs_legal_acceptance(record.terms_version),
     )
 
