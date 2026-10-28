@@ -27,6 +27,30 @@ def get_clock() -> Clock:
     return SystemClock()
 
 
+def get_registration_service(
+    settings: Annotated[Settings, Depends(get_settings)],
+    clock: Annotated[Clock, Depends(get_clock)],
+) -> Any:
+    from app.adapters.chat_factory import build_chat_provider
+    from app.adapters.langsmith_tracing import tracer_for
+    from app.adapters.password_hasher import get_password_hasher
+    from app.ports.tracing import NullTracer
+    from app.services.registration import RegistrationService
+    from app.workflows.registration import RegistrationWorkflow
+
+    return RegistrationService(
+        database_url=settings.database_url,
+        clock=clock,
+        hasher=get_password_hasher(),
+        hmac_key=settings.rate_limit_hmac_key,
+        app_env=settings.app_env,
+        workflow=RegistrationWorkflow(
+            build_chat_provider(settings),
+            tracer=tracer_for(settings) or NullTracer(),
+        ),
+    )
+
+
 def get_feedback_sink(settings: Annotated[Settings, Depends(get_settings)]) -> Any:
     from app.adapters.langsmith_tracing import feedback_sink_for
 

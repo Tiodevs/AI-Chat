@@ -44,11 +44,14 @@ class FakeChatProvider:
         *,
         structured: BaseModel | Exception | None = None,
         tokens: Sequence[str] | Exception | None = None,
+        tool_result: ToolResult | Exception | None = None,
     ) -> None:
         if structured is not None:
             self._structured = structured
         if tokens is not None:
             self._tokens = tokens
+        if tool_result is not None:
+            self._tool_result = tool_result
 
     async def complete_structured(
         self,

@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from uuid import UUID
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domain.grounding import Citation
@@ -93,6 +93,17 @@ class ConversationRepository:
             .order_by(Conversation.created_at.desc(), Conversation.id.desc())
         )
         return [_conversation(row) for row in rows]
+
+    async def attach_to_user(self, *, guest_key_id: UUID, user_id: UUID) -> None:
+        """A conversa de convidado passa a ser do membro. Seção 7.2."""
+        await self._session.execute(
+            update(Conversation)
+            .where(
+                Conversation.guest_key_id == guest_key_id,
+                Conversation.user_id.is_(None),
+            )
+            .values(user_id=user_id)
+        )
 
     async def get_conversation(self, conversation_id: UUID) -> ConversationRecord | None:
         row = await self._session.get(Conversation, conversation_id)

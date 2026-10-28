@@ -9,9 +9,10 @@ class DomainError(Exception):
 
     code: ClassVar[str] = "domain_error"
 
-    def __init__(self, message: str) -> None:
+    def __init__(self, message: str, *, field_errors: dict[str, str] | None = None) -> None:
         super().__init__(message)
         self.message = message
+        self.field_errors = field_errors
 
 
 class NotFound(DomainError):

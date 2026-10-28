@@ -6,6 +6,7 @@ from datetime import datetime
 from sqlalchemy import CheckConstraint, DateTime, Text, Uuid, text
 from sqlalchemy.orm import Mapped, mapped_column
 
+from app.domain.fields import VISIT_REASON_CHECK_SQL
 from app.models.base import Base
 
 
@@ -18,6 +19,7 @@ class User(Base):
             "visitor_type IS NULL OR visitor_type IN ('patient', 'visitor', 'caregiver')",
             name="users_visitor_type",
         ),
+        CheckConstraint(VISIT_REASON_CHECK_SQL, name="users_visit_reason"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(

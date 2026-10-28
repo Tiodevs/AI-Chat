@@ -9,6 +9,7 @@ class ErrorBody(BaseModel):
     request_id: str
     retry_after_seconds: int | None = None
     message_id: UUID | None = None
+    field_errors: dict[str, str] | None = None
 
 
 class ErrorResponse(BaseModel):
