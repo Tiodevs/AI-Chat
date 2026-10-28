@@ -153,13 +153,14 @@ class RegistrationWorkflow:
             prompt_version=EXTRACT_PROMPT_VERSION,
             temperature=EXTRACT_TEMPERATURE,
         )
+        user_text = state.get("user_text", "")
         result = await self._chat.complete_with_tools(
             [
                 Message(
                     role="system",
                     content=f"{EXTRACT_INSTRUCTIONS}\nPasso atual: {machine.next_step.value}.",
                 ),
-                Message(role="user", content=state.get("user_text", "")),
+                Message(role="user", content=user_text if isinstance(user_text, str) else ""),
             ],
             [_set_fields_tool()],
             run,
@@ -185,11 +186,16 @@ class RegistrationWorkflow:
         machine = _machine(state)
         fallback = prompt_for(machine.next_step.value, correcting=machine.correcting)
         run = _run(state, prompt_version=PHRASE_PROMPT_VERSION, temperature=PHRASE_TEMPERATURE)
+        user_text = state.get("user_text", "")
+        message = user_text.strip() if isinstance(user_text, str) else ""
         try:
             phrase = await self._chat.complete_structured(
                 [
                     Message(role="system", content=PHRASE_INSTRUCTIONS),
-                    Message(role="user", content=f"passo: {machine.next_step.value}"),
+                    Message(
+                        role="user",
+                        content=f"passo: {machine.next_step.value}\nmensagem: {message}",
+                    ),
                 ],
                 PhraseText,
                 run,

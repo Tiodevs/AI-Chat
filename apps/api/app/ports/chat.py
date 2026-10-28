@@ -29,6 +29,7 @@ class Tool:
 class ToolResult:
     name: str
     arguments: dict[str, object]
+    text: str = ""
 
 
 @dataclass(frozen=True, slots=True)

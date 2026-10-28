@@ -138,7 +138,7 @@ def _usage(message: object) -> TokenUsage:
 def _tool_result(message: object) -> ToolResult:
     calls = getattr(message, "tool_calls", None)
     if not isinstance(calls, list) or not calls:
-        raise ChatResponseError("tool")
+        return ToolResult(name="", arguments={}, text=message_text(message).strip())
     call = calls[0]
     if isinstance(call, dict):
         name = call.get("name")
