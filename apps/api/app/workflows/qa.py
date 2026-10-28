@@ -2,7 +2,7 @@
 
 from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Literal
+from typing import Literal, Protocol
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -67,10 +67,24 @@ class QaResult:
     run_id: UUID
 
 
-def degraded_result() -> QaResult:
+class QaEventSink(Protocol):
+    async def classified(self, intent: str) -> None: ...
+
+    async def token(self, text: str) -> None: ...
+
+
+def degraded_result(run_id: UUID | None = None) -> QaResult:
+    return _plain(Outcome.DEGRADED, run_id)
+
+
+def error_result(run_id: UUID | None = None) -> QaResult:
+    return _plain(Outcome.ERROR, run_id)
+
+
+def _plain(outcome: Outcome, run_id: UUID | None) -> QaResult:
     return QaResult(
-        outcome=Outcome.DEGRADED,
-        text=fixed_text(Outcome.DEGRADED),
+        outcome=outcome,
+        text=fixed_text(outcome),
         citations=(),
         input_tokens=0,
         output_tokens=0,
@@ -79,7 +93,7 @@ def degraded_result() -> QaResult:
         intent=None,
         confidence=None,
         standalone_question=None,
-        run_id=uuid4(),
+        run_id=run_id or uuid4(),
     )
 
 
@@ -104,10 +118,12 @@ class QaWorkflow:
         history: Sequence[ConversationTurn] = (),
         visitor_type: str | None = None,
         request_id: str,
+        run_id: UUID | None = None,
+        events: QaEventSink | None = None,
     ) -> QaResult:
-        run_id = uuid4()
+        active_run_id = uuid4() if run_id is None else run_id
         rewrite = _run_context(
-            run_id=run_id,
+            run_id=active_run_id,
             request_id=request_id,
             prompt_version=REWRITE_PROMPT_VERSION,
             trace_policy="metadata_only",
@@ -120,16 +136,19 @@ class QaWorkflow:
                 rewrite,
             )
         except CircuitOpen:
-            return _failed(Outcome.DEGRADED, run_id, _tokens(rewrite))
+            return _failed(Outcome.DEGRADED, active_run_id, _tokens(rewrite))
         except ProviderUnavailable:
-            return _failed(Outcome.ERROR, run_id, _tokens(rewrite))
+            return _failed(Outcome.ERROR, active_run_id, _tokens(rewrite))
+
+        if events is not None:
+            await events.classified(classification.intent)
 
         gated = gate_outcome(classification.intent, classification.confidence)
         standalone = classification.standalone_question.strip() or question
         if gated is not None:
             return _fixed(
                 gated,
-                run_id,
+                active_run_id,
                 _tokens(rewrite),
                 model=self._chat.model_name,
                 prompt_version=REWRITE_PROMPT_VERSION,
@@ -144,7 +163,7 @@ class QaWorkflow:
         except EmbeddingRequestError:
             return _failed(
                 Outcome.ERROR,
-                run_id,
+                active_run_id,
                 _tokens(rewrite),
                 model=self._chat.model_name,
                 prompt_version=REWRITE_PROMPT_VERSION,
@@ -157,7 +176,7 @@ class QaWorkflow:
         if not blocks:
             return _fixed(
                 Outcome.ABSTAINED,
-                run_id,
+                active_run_id,
                 _tokens(rewrite),
                 model=self._chat.model_name,
                 prompt_version=REWRITE_PROMPT_VERSION,
@@ -167,7 +186,7 @@ class QaWorkflow:
             )
 
         generate = _run_context(
-            run_id=run_id,
+            run_id=active_run_id,
             request_id=request_id,
             prompt_version=GENERATE_PROMPT_VERSION,
             trace_policy="masked",
@@ -179,11 +198,13 @@ class QaWorkflow:
                 _generate_messages(question, history, blocks),
                 generate,
             ):
+                if events is not None:
+                    await events.token(token)
                 parts.append(token)
         except CircuitOpen:
             return _failed(
                 Outcome.DEGRADED,
-                run_id,
+                active_run_id,
                 _tokens(rewrite, generate),
                 model=self._chat.model_name,
                 prompt_version=GENERATE_PROMPT_VERSION,
@@ -194,7 +215,7 @@ class QaWorkflow:
         except ProviderUnavailable:
             return _failed(
                 Outcome.ERROR,
-                run_id,
+                active_run_id,
                 _tokens(rewrite, generate),
                 model=self._chat.model_name,
                 prompt_version=GENERATE_PROMPT_VERSION,
@@ -208,7 +229,7 @@ class QaWorkflow:
         if not decision.grounded:
             return _fixed(
                 Outcome.GROUNDING_FAILED,
-                run_id,
+                active_run_id,
                 usage,
                 model=self._chat.model_name,
                 prompt_version=GENERATE_PROMPT_VERSION,
@@ -227,7 +248,7 @@ class QaWorkflow:
             intent=classification.intent,
             confidence=classification.confidence,
             standalone_question=standalone,
-            run_id=run_id,
+            run_id=active_run_id,
         )
 
 

@@ -17,6 +17,13 @@ class Outcome(StrEnum):
     ERROR = "error"
 
 
+OUTCOME_CHECK_SQL = (
+    "outcome IS NULL OR outcome IN ("
+    + ", ".join(f"'{item.value}'" for item in Outcome)
+    + ")"
+)
+
+
 def gate_outcome(intent: str, confidence: float) -> Outcome | None:
     """Recusa orientação médica. Fora de tema não chama o gerador.
 

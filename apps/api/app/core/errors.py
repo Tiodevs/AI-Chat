@@ -11,6 +11,7 @@ from app.domain.errors import (
     BudgetExceeded,
     Conflict,
     DomainError,
+    DuplicateMessage,
     Forbidden,
     NotFound,
     ProviderUnavailable,
@@ -43,12 +44,14 @@ def status_for(error: DomainError) -> int:
 
 def error_payload(error: DomainError) -> ErrorResponse:
     retry_after_seconds = error.retry_after_seconds if isinstance(error, RateLimited) else None
+    message_id = error.message_id if isinstance(error, DuplicateMessage) else None
     return ErrorResponse(
         error=ErrorBody(
             code=error.code,
             message=error.message,
             request_id=current_request_id(),
             retry_after_seconds=retry_after_seconds,
+            message_id=message_id,
         )
     )
 
@@ -58,7 +61,7 @@ async def domain_error_handler(_request: Request, exc: Exception) -> JSONRespons
         raise exc
     return JSONResponse(
         status_code=status_for(exc),
-        content=error_payload(exc).model_dump(exclude_none=True),
+        content=error_payload(exc).model_dump(exclude_none=True, mode="json"),
     )
 
 
@@ -72,7 +75,7 @@ async def validation_error_handler(_request: Request, exc: Exception) -> JSONRes
             request_id=current_request_id(),
         )
     )
-    return JSONResponse(status_code=422, content=payload.model_dump(exclude_none=True))
+    return JSONResponse(status_code=422, content=payload.model_dump(exclude_none=True, mode="json"))
 
 
 def register_exception_handlers(app: FastAPI) -> None:
