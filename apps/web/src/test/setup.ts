@@ -3,6 +3,7 @@ import "@testing-library/jest-dom/vitest"
 import { afterEach, beforeEach, vi } from "vitest"
 
 import { queryClient } from "@/app/query-client.ts"
+import { resetAskState } from "@/features/ask/store.ts"
 
 declare global {
   interface Window {
@@ -46,11 +47,13 @@ globalThis.ResizeObserver = class {
 afterEach(() => {
   cleanup()
   queryClient.clear()
+  resetAskState()
   vi.unstubAllGlobals()
 })
 
 beforeEach(() => {
   localStorage.clear()
+  sessionStorage.clear()
   document.documentElement.lang = "pt-BR"
   document.documentElement.dataset.motion = "reduce"
   window.__media = {
@@ -60,7 +63,7 @@ beforeEach(() => {
   }
   vi.stubGlobal(
     "fetch",
-    vi.fn(async () => unauthenticated()),
+    vi.fn(async () => unauthenticated())
   )
 })
 
@@ -73,6 +76,6 @@ function unauthenticated() {
         request_id: "01TEST",
       },
     }),
-    { status: 401, headers: { "content-type": "application/json" } },
+    { status: 401, headers: { "content-type": "application/json" } }
   )
 }

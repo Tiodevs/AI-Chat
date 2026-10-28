@@ -150,7 +150,7 @@ describe("entrar", () => {
     await user.type(screen.getByLabelText(pt.signIn.password), "correct-horse-1")
     await user.click(screen.getByRole("button", { name: pt.signIn.submit }))
     expect(
-      await screen.findByRole("heading", { level: 1, name: pt.pages.home }),
+      await screen.findByRole("heading", { level: 1, name: pt.home.title }),
     ).toBeInTheDocument()
     expect(router.state.location.pathname).toBe("/")
   })

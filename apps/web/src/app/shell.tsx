@@ -2,7 +2,10 @@ import { useEffect, useRef, useState } from "react"
 import { useLocation, useOutlet } from "react-router"
 
 import { focusPageTitle } from "@/app/page-heading.tsx"
-import { AppSidebar, MobileSidebar } from "@/components/patterns/app-sidebar.tsx"
+import {
+  AppSidebar,
+  MobileSidebar,
+} from "@/components/patterns/app-sidebar.tsx"
 import { SearchDialog } from "@/components/patterns/search-dialog.tsx"
 import { pt } from "@/i18n/pt.ts"
 import { useGSAP } from "@/motion/gsap.ts"
@@ -41,11 +44,11 @@ function RouteTransition() {
         }
       })
     },
-    { dependencies: [pathname, reduced], scope: rootRef },
+    { dependencies: [pathname, reduced], scope: rootRef }
   )
 
   return (
-    <div key={pathname} ref={rootRef}>
+    <div key={pathname} ref={rootRef} className="flex flex-1 flex-col">
       {outlet}
     </div>
   )
@@ -122,9 +125,9 @@ function PageMain() {
     <main
       id="conteudo"
       tabIndex={-1}
-      className="min-w-0 flex-1 overflow-y-auto p-4 md:p-5 lg:p-6"
+      className="min-h-0 min-w-0 flex-1 overflow-y-auto"
     >
-      <div className="mx-auto flex w-full max-w-7xl flex-col">
+      <div className="mx-auto flex min-h-full w-full max-w-7xl flex-col p-4 md:p-5 lg:p-6">
         <RouteTransition />
       </div>
     </main>

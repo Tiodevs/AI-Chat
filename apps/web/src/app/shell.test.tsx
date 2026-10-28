@@ -10,7 +10,7 @@ import { pt } from "@/i18n/pt.ts"
 import { gsap } from "@/motion/gsap.ts"
 
 const publicPages = [
-  ["/", pt.pages.home],
+  ["/", pt.home.title],
   ["/ask", pt.pages.ask],
   ["/ask/visita", pt.pages.ask],
   ["/register", pt.pages.register],
@@ -34,7 +34,7 @@ function renderAt(path: string) {
   const view = render(
     <AppProviders>
       <RouterProvider router={router} />
-    </AppProviders>,
+    </AppProviders>
   )
   return { router, ...view }
 }
@@ -47,7 +47,10 @@ describe("casca", () => {
     await act(async () => {
       await router.navigate(path)
     })
-    const heading = await screen.findByRole("heading", { level: 1, name: title })
+    const heading = await screen.findByRole("heading", {
+      level: 1,
+      name: title,
+    })
     await waitFor(() => {
       expect(document.activeElement).toBe(heading)
     })
@@ -58,7 +61,7 @@ describe("casca", () => {
     "sem sessão, %s volta para entrar e guarda o retorno",
     async (path) => {
       const { router } = renderAt("/")
-      await screen.findByRole("heading", { level: 1, name: pt.pages.home })
+      await screen.findByRole("heading", { level: 1, name: pt.home.title })
       await act(async () => {
         await router.navigate(path)
       })
@@ -71,9 +74,9 @@ describe("casca", () => {
       })
       expect(router.state.location.pathname).toBe("/sign-in")
       expect(router.state.location.search).toBe(
-        `?returnTo=${encodeURIComponent(path)}`,
+        `?returnTo=${encodeURIComponent(path)}`
       )
-    },
+    }
   )
 
   it("abre o menu no celular", async () => {
@@ -85,30 +88,32 @@ describe("casca", () => {
     const user = userEvent.setup()
     renderAt("/")
     await user.click(
-      await screen.findByRole("button", { name: pt.sidebar.openMenu }),
+      await screen.findByRole("button", { name: pt.sidebar.openMenu })
     )
     expect(await screen.findByRole("dialog")).toBeInTheDocument()
-    expect(screen.getByRole("link", { name: pt.nav.privacy })).toBeInTheDocument()
+    expect(
+      screen.getByRole("link", { name: pt.nav.privacy })
+    ).toBeInTheDocument()
   })
 
   it("mostra o link para pular ao conteúdo", async () => {
     renderAt("/")
     expect(
-      await screen.findByRole("link", { name: pt.skipToContent }),
+      await screen.findByRole("link", { name: pt.skipToContent })
     ).toHaveAttribute("href", "#conteudo")
   })
 
   it("recolhe a barra e abre uma rota pelo menu", async () => {
     const user = userEvent.setup()
     renderAt("/")
-    await screen.findByRole("heading", { name: pt.pages.home })
+    await screen.findByRole("heading", { name: pt.home.title })
     await user.click(screen.getByRole("button", { name: pt.sidebar.collapse }))
     expect(
-      screen.getByRole("button", { name: pt.sidebar.expand }),
+      screen.getByRole("button", { name: pt.sidebar.expand })
     ).toBeInTheDocument()
     await user.click(screen.getByRole("link", { name: pt.nav.privacy }))
     expect(
-      await screen.findByRole("heading", { name: pt.pages.privacy }),
+      await screen.findByRole("heading", { name: pt.pages.privacy })
     ).toHaveFocus()
   })
 
@@ -116,10 +121,10 @@ describe("casca", () => {
     const user = userEvent.setup()
     const refresh = vi.spyOn(gsap, "matchMediaRefresh")
     renderAt("/")
-    await screen.findByRole("heading", { name: pt.pages.home })
+    await screen.findByRole("heading", { name: pt.home.title })
     await user.click(screen.getByRole("button", { name: pt.profile.menu }))
     await user.click(
-      screen.getByRole("menuitemradio", { name: pt.profile.motionReduce }),
+      screen.getByRole("menuitemradio", { name: pt.profile.motionReduce })
     )
     expect(localStorage.getItem("atrium.motion-preference")).toBe("on")
     expect(refresh).toHaveBeenCalled()
@@ -127,10 +132,11 @@ describe("casca", () => {
 
   it("não tem violação grave ou crítica de acessibilidade", async () => {
     const { container } = renderAt("/")
-    await screen.findByRole("heading", { name: pt.pages.home })
+    await screen.findByRole("heading", { name: pt.home.title })
     const results = await axe.run(container, { resultTypes: ["violations"] })
     const serious = results.violations.filter(
-      (violation) => violation.impact === "serious" || violation.impact === "critical",
+      (violation) =>
+        violation.impact === "serious" || violation.impact === "critical"
     )
     expect(serious.map((violation) => violation.id)).toEqual([])
   })
