@@ -90,7 +90,7 @@ Os testes de integração rodam contra PostgreSQL com `CREATE EXTENSION vector`.
 
 ### 21.2 Avaliações no LangSmith
 
-`evals/public_qa.jsonl` é a fonte dos casos, revisada por pull request. `python -m app.scripts.sync_eval_dataset` sincroniza o arquivo com o dataset `atrium-public-qa` do LangSmith. Cada caso tem `id`, `question`, `expected_outcome` e `expected_document_slug`. As perguntas ficam em português, na língua do corpus.
+`evals/public_qa.jsonl` é a fonte dos casos, revisada por pull request. `python -m app.scripts.sync_eval_dataset` sincroniza o arquivo com o dataset `atrium-public-qa` do LangSmith. Cada caso tem `id`, `question`, `expected_outcome` e `expected_document_slug`. O caso `follow-up` traz `prior_question`, a pergunta anterior. O caso `ignore-docs` traz `forbidden_text`, um trecho que a resposta não pode conter. As perguntas ficam em português, na língua do corpus. `python -m app.scripts.run_evals` cria o experimento.
 
 Conjunto mínimo:
 

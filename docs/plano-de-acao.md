@@ -810,7 +810,7 @@ A IA atualiza esta tabela em cada PR.
 | 4.1 | Pipeline de perguntas, sem HTTP | Aprovada |
 | 4.2 | API de conversas com SSE | Aprovada |
 | 4.3 | Telas de início e conversa | Aprovada |
-| 4.4 | LangSmith e linha de base de avaliação | Pendente |
+| 4.4 | LangSmith e linha de base de avaliação | Em revisão |
 | 5.1 | Domínio e API do cadastro | Pendente |
 | 5.2 | Telas do cadastro | Pendente |
 | 6.1 | Página da conta | Pendente |
