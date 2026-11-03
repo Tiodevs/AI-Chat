@@ -1,7 +1,6 @@
 ---
-description: Camadas da API do Atrium. Use ao criar ou alterar código em apps/api.
-globs: apps/api/**/*.py
-alwaysApply: false
+paths:
+  - "apps/api/**/*.py"
 ---
 
 # Camadas da API

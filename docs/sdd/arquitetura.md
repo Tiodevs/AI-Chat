@@ -165,7 +165,7 @@ docs/
 ops/
   grafana/             painéis e alertas em JSON
   prometheus/          configuração de coleta
-.cursor/rules/         convenções de camadas, design system e GSAP para agentes
+.claude/rules/         convenções de camadas, design system e GSAP para agentes
 .github/workflows/
   ci.yml
   deploy.yml

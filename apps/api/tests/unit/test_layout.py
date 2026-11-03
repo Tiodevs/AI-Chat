@@ -45,7 +45,7 @@ EXPECTED_DIRECTORIES = (
     "docs/adr",
     "ops/grafana",
     "ops/prometheus",
-    ".cursor/rules",
+    ".claude/rules",
     ".github/workflows",
 )
 
@@ -79,11 +79,11 @@ def test_twelve_adrs_have_the_four_sections() -> None:
             assert heading in text, adr.name
 
 
-def test_cursor_rules_cite_their_sdd_sections() -> None:
-    rules = ROOT / ".cursor/rules"
-    assert "6.2" in (rules / "camadas.mdc").read_text(encoding="utf-8")
-    assert "14.8" in (rules / "design-system.mdc").read_text(encoding="utf-8")
-    assert "16.5" in (rules / "gsap.mdc").read_text(encoding="utf-8")
+def test_claude_rules_cite_their_sdd_sections() -> None:
+    rules = ROOT / ".claude/rules"
+    assert "6.2" in (rules / "camadas.md").read_text(encoding="utf-8")
+    assert "14.8" in (rules / "design-system.md").read_text(encoding="utf-8")
+    assert "16.5" in (rules / "gsap.md").read_text(encoding="utf-8")
 
 
 def test_env_example_lists_section_17_without_secrets() -> None:

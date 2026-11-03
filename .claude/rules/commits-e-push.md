@@ -1,8 +1,3 @@
----
-description: Ao concluir uma tarefa, cria commits atômicos e envia ao remoto, escolhendo a branch ou perguntando se houver dúvida
-alwaysApply: true
----
-
 # Commits e push ao final da tarefa
 
 Neste repositório, uma tarefa que alterou arquivos só termina depois do commit e do push. Não espere um pedido separado.
@@ -12,7 +7,7 @@ Neste repositório, uma tarefa que alterou arquivos só termina depois do commit
 - Um commit por intenção, no formato `tipo: descrição curta em português`.
 - Tipos: `feat`, `fix`, `docs`, `test`, `build`, `perf`, `style`, `refactor`.
 - Documentação usa `docs`. Código novo usa `feat`. Correção usa `fix`.
-- Não misture tipos no mesmo commit. Não inclua `.env`, credenciais nem `.cursor/settings.json`.
+- Não misture tipos no mesmo commit. Não inclua `.env`, credenciais nem `.claude/settings.local.json`.
 - Sem `git config`, `--no-verify`, `--amend`, reset hard ou force push, salvo pedido explícito.
 
 ## Branch

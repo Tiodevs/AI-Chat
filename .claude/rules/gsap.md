@@ -1,7 +1,7 @@
 ---
-description: Movimento com GSAP no Atrium. Use ao animar interface em apps/web.
-globs: apps/web/**/*.{ts,tsx}
-alwaysApply: false
+paths:
+  - "apps/web/**/*.ts"
+  - "apps/web/**/*.tsx"
 ---
 
 # GSAP

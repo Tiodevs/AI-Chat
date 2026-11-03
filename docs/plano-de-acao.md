@@ -48,7 +48,7 @@ Nenhuma etapa começa antes da anterior ser aprovada, salvo quando você pedir e
 
 ### 1.4 Definição de pronto, válida para todas as etapas
 
-A definição de pronto é a regra do projeto [`.cursor/rules/definicao-de-pronto.mdc`](../.cursor/rules/definicao-de-pronto.mdc). A IA a carrega ao implementar, revisar ou encerrar uma etapa. Os itens são DP-1 a DP-9: CI verde, testes sem modelo ao vivo, teste de arquitetura, ausência de segredos, textos em português, SDD atualizado, Storybook, tokens com movimento reduzido e axe, e cada critério ligado ao teste que o prova. O texto da regra prevalece. Uma mudança nela atualiza esta seção na mesma alteração.
+A definição de pronto é a skill do projeto [`.claude/skills/definicao-de-pronto`](../.claude/skills/definicao-de-pronto/SKILL.md). A IA a carrega ao implementar, revisar ou encerrar uma etapa. Os itens são DP-1 a DP-9: CI verde, testes sem modelo ao vivo, teste de arquitetura, ausência de segredos, textos em português, SDD atualizado, Storybook, tokens com movimento reduzido e axe, e cada critério ligado ao teste que o prova. O texto da skill prevalece. Uma mudança nela atualiza esta seção na mesma alteração.
 
 ## 2. Pré-requisitos que dependem de você
 
@@ -105,7 +105,7 @@ Cada etapa traz: objetivo, seções do SDD, entregas, critérios de aceite (CA) 
 **Entregas.**
 - Pastas da seção 6.3, com `README.md` curto onde a pasta ainda estiver vazia.
 - `docs/adr/001` a `012`, um arquivo por ADR, com contexto, decisão, consequências e alternativas.
-- `.cursor/rules/` com as convenções de camadas (6.2), design system (14.8) e GSAP (16.5).
+- `.claude/rules/` com as convenções de camadas (6.2), design system (14.8) e GSAP (16.5), e `CLAUDE.md` na raiz.
 - `apps/api/.env.example` com todas as variáveis da seção 17, sem valor secreto.
 - `.gitignore` para Python, Node, `.env` e artefatos de build.
 - `README.md` com a seção "Como rodar localmente" (preenchida nas próximas etapas).
@@ -113,7 +113,7 @@ Cada etapa traz: objetivo, seções do SDD, entregas, critérios de aceite (CA) 
 **Critérios de aceite.**
 - CA-1. A árvore de pastas confere com a seção 6.3.
 - CA-2. Existem 12 ADRs, cada um com as quatro partes, e o conteúdo bate com a tabela da seção 24.
-- CA-3. As regras do Cursor citam a seção do SDD de onde vêm.
+- CA-3. As regras do Claude Code citam a seção do SDD de onde vêm.
 - CA-4. `.env.example` lista todas as variáveis da seção 17 e nenhuma tem valor real.
 
 **Como testar.**

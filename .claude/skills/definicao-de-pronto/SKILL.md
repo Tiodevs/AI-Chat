@@ -1,6 +1,6 @@
 ---
-description: Definição de pronto do Atrium. Use ao implementar ou revisar uma etapa do plano de ação, abrir a PR da etapa ou declarar uma entrega pronta.
-alwaysApply: false
+name: definicao-de-pronto
+description: Definição de pronto do Atrium (DP-1 a DP-9). Use ao implementar ou revisar uma etapa do plano de ação, abrir a PR da etapa ou declarar uma entrega pronta.
 ---
 
 # Definição de pronto
@@ -10,7 +10,7 @@ Além dos critérios da etapa em `docs/plano-de-acao.md`, uma etapa só termina 
 - **DP-1.** A CI está verde na PR. Vale a partir da Etapa 1.4. Antes disso, os testes locais da etapa são a evidência.
 - **DP-2.** Os testes automáticos não chamam o Gemini nem o LangSmith (NFR-3). Use `FakeChatProvider`, `DeterministicEmbeddingProvider` e `NoopFeedbackSink`.
 - **DP-3.** O teste de arquitetura está verde (NFR-1). Vale a partir da Etapa 2.1.
-- **DP-4.** Nenhum commit inclui segredo, `.env` ou `.cursor/settings.json`.
+- **DP-4.** Nenhum commit inclui segredo, `.env` ou `.claude/settings.local.json`.
 - **DP-5.** Texto visível ao usuário fica em português, em `apps/web/src/i18n/pt.ts` ou em `apps/api/app/prompts`. Código, rotas e identificadores ficam em inglês.
 - **DP-6.** Uma mudança de comportamento atualiza o SDD na mesma PR.
 - **DP-7.** Componente novo em `components/ui` ou `components/patterns` tem história no Storybook com os estados da seção 14.7 do SDD. Vale a partir da Etapa 1.3.
