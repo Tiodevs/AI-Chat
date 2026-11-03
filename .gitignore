@@ -26,5 +26,6 @@ storybook-static/
 .env.local
 .env.*.local
 
-# Cursor local
-.cursor/settings.json
+# Claude Code local
+.claude/settings.local.json
+CLAUDE.local.md

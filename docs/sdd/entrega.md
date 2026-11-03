@@ -24,7 +24,7 @@ O projeto também serve para praticar desenvolvimento orientado por IA. As regra
 2. **Teste junto com o código.** Toda regra do domínio tem teste de unidade antes do merge.
 3. **Prompts são código.** Mudam por pull request, com versão nova e uma execução do workflow de avaliação.
 4. **Avaliação como portão de qualidade da IA.** Uma pull request que muda `app/prompts`, `app/workflows` ou o corpus mostra o resultado das avaliações no LangSmith comparado com a linha de base.
-5. **Regras do Cursor no repositório.** `.cursor/rules` guarda as convenções de camadas, design system e GSAP desta especificação, para um agente de código seguir o mesmo padrão.
+5. **Regras do Claude Code no repositório.** `.claude/rules` guarda as convenções de camadas, design system e GSAP desta especificação, para um agente de código seguir o mesmo padrão.
 6. **Revisão humana.** Código gerado por IA passa pela mesma revisão, pelos mesmos testes e pela mesma verificação de arquitetura.
 
 ## 21. Testes

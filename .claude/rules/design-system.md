@@ -1,7 +1,7 @@
 ---
-description: Design system do Atrium. Use ao criar ou alterar interface em apps/web.
-globs: apps/web/**/*.{tsx,css}
-alwaysApply: false
+paths:
+  - "apps/web/**/*.tsx"
+  - "apps/web/**/*.css"
 ---
 
 # Design system
