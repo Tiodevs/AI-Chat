@@ -38,6 +38,7 @@ class ConversationCreatedResponse(BaseModel):
 class ConversationSummaryResponse(BaseModel):
     id: UUID
     created_at: datetime
+    first_question: str | None
 
 
 class ConversationListResponse(BaseModel):

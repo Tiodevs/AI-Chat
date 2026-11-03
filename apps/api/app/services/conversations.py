@@ -186,15 +186,19 @@ class ConversationService:
             )
         return record, cookie
 
-    async def list_for_member(self, session_secret: str | None) -> list[ConversationRecord]:
+    async def list_for_member(
+        self, session_secret: str | None
+    ) -> list[tuple[ConversationRecord, str | None]]:
         if not session_secret:
             raise Unauthenticated(UNAUTHENTICATED)
         user_id = await self._lookup_user(session_secret)
         if user_id is None:
             raise Unauthenticated(UNAUTHENTICATED)
         async with open_session(self._database_url) as session, UnitOfWork(session):
-            records = await ConversationRepository(session).list_for_user(user_id)
-        return records
+            repository = ConversationRepository(session)
+            records = await repository.list_for_user(user_id)
+            questions = await repository.first_questions([record.id for record in records])
+        return [(record, questions.get(record.id)) for record in records]
 
     async def get(
         self,
