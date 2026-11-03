@@ -18,11 +18,11 @@ const publicPages = [
   ["/sign-in", pt.pages.signIn],
   ["/privacy", pt.pages.privacy],
   ["/terms", pt.pages.terms],
-  ["/legal/accept", pt.pages.legalAccept],
 ] as const
 
 const protectedPages = [
   ["/account", pt.pages.account],
+  ["/legal/accept", pt.pages.legalAccept],
   ["/admin", pt.pages.admin],
   ["/admin/documents", pt.pages.documents],
   ["/admin/quality", pt.pages.quality],

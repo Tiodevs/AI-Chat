@@ -29,7 +29,14 @@ export function useSignIn() {
         return
       }
       queryClient.setQueryData(meQuery.queryKey, result.data)
-      await navigate(safeReturnTo(params.get("returnTo")))
+      const returnTo = safeReturnTo(params.get("returnTo"))
+      if (result.data.needs_legal_acceptance) {
+        await navigate(
+          `/legal/accept?returnTo=${encodeURIComponent(returnTo)}`,
+        )
+        return
+      }
+      await navigate(returnTo)
     } catch {
       setError(pt.couldNotContinue)
     } finally {
