@@ -27,7 +27,7 @@ Erros de validação usam `validation_error` e HTTP 422. Falhas de autorização
 | `GET /v1/legal/versions` | Qualquer um | Versão vigente dos Termos e do Aviso |
 | `GET /v1/diagnostics/stream` | Qualquer um, limitado | Emite três eventos `tick`, com `{ "index": 1 }`, `{ "index": 2 }` e `{ "index": 3 }`, um por segundo. O limite é 60 por hora por IP. |
 | `POST /v1/conversations` | Visitante | Cria uma conversa para a sessão válida ou, sem sessão, para a chave de convidado. Devolve `{ "id", "created_at" }`. |
-| `GET /v1/conversations` | Membro ou admin | Lista as conversas desse usuário, da mais recente para a mais antiga: `{ "conversations": [ { "id", "created_at" } ] }`. |
+| `GET /v1/conversations` | Membro ou admin | Lista as conversas desse usuário, da mais recente para a mais antiga: `{ "conversations": [ { "id", "created_at", "first_question" } ] }`. `first_question` é a primeira pergunta gravada da conversa, ou `null`. A aba Conversas da conta a mostra. |
 | `GET /v1/conversations/{id}` | Dono | Devolve `{ "id", "created_at", "messages" }`. Cada mensagem traz `id`, `role`, `content`, `client_message_id`, `citations`, `outcome` e `created_at`. |
 | `POST /v1/conversations/{id}/messages` | Dono | `{ "text", "client_message_id" }`, texto com até 1.000 caracteres. Responde `text/event-stream`. |
 | `POST /v1/messages/{id}/feedback` | Dono | `{ "rating": 1 }` ou `{ "rating": -1 }`, só numa mensagem do assistente. Uma vez. Devolve `{ "message_id", "rating" }`. |
@@ -42,11 +42,11 @@ Erros de validação usam `validation_error` e HTTP 422. Falhas de autorização
 | `POST /v1/auth/login` | Visitante | E-mail e senha. Define o cookie. |
 | `POST /v1/auth/logout` | Membro ou admin | Revoga a sessão. |
 | `GET /v1/me` | Membro ou admin | Perfil e se há novo documento legal a aceitar |
-| `PATCH /v1/me` | Membro | Correção do perfil |
-| `GET /v1/me/export` | Membro | Exportação JSON da seção 11.5 |
-| `GET /v1/me/consents` | Membro | Consentimentos vigentes e histórico |
-| `PUT /v1/me/consents/{purpose}` | Membro | `{ "granted": true }` ou `{ "granted": false }`. Revogar a personalização apaga `visitor_type` e `visit_reason`. |
-| `DELETE /v1/me` | Membro | Exclui a conta. |
+| `PATCH /v1/me` | Membro ou admin | Correção do perfil. Só os campos enviados mudam: `full_name`, `phone`, `visitor_type` e `visit_reason`, com as regras da seção 8.5. `null` limpa um opcional. O e-mail não muda por aqui. `visitor_type` e `visit_reason` exigem a personalização ativa. Erros de campo voltam em `field_errors`. Devolve o mesmo perfil de `GET /v1/me`. |
+| `GET /v1/me/export` | Membro ou admin | Exportação JSON da seção 11.5, com `Content-Disposition: attachment`. Traz `exported_at`, `profile`, `consents` e `conversations` com mensagens, citações (índice, título e seção) e o feedback de cada mensagem. Não traz hashes, ids de chunk nem de rastro. |
+| `GET /v1/me/consents` | Membro ou admin | `{ "current", "history" }`. `current` tem um item por finalidade, com `granted`, a versão e a data. `history` tem todas as linhas, da mais nova para a mais antiga. |
+| `PUT /v1/me/consents/{purpose}` | Membro ou admin | `{ "granted": true }` ou `{ "granted": false }`. Vale para `profile_personalization` e `quality_improvement`. Conceder cria uma linha na versão vigente, com `source = account`. Revogar grava `revoked_at` e, na personalização, apaga `visitor_type` e `visit_reason` na mesma transação. `terms_and_privacy_notice` só aceita `true`, e é assim que o membro aceita a versão nova dos documentos. `age_18_plus` e finalidades desconhecidas respondem 422. Cada mudança grava `consent.change`. |
+| `DELETE /v1/me` | Membro ou admin | Exclui a conta e responde 204, apagando o cookie. Um admin recebe 403. |
 | `POST /v1/privacy/requests` | Qualquer um | `{ "contact_email", "request_type", "description" }` |
 | `GET /v1/admin/overview` | Admin | Indicadores do painel, com período e comparação com o período anterior |
 | `GET /v1/admin/documents` | Admin | Documentos, versão ativa e status de ingestão |

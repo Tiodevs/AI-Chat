@@ -368,7 +368,7 @@ Os identificadores são UUIDs. Os timestamps são `timestamptz` em UTC. O e-mail
 
 **data_subject_requests.** `user_id` anulável, `contact_email`, `request_type` (`access`, `correction`, `deletion`, `portability`, `consent_revocation`, `information_about_sharing`, `objection`, `other`), `description`, `status` (`open`, `in_progress`, `done`, `rejected`), `received_at`, `due_at`, `closed_at`, `resolution_note`.
 
-**audit_events.** `actor_user_id`, `action`, `target_type`, `target_id`, `reason` anulável, `created_at`. As ações incluem `document.upload`, `document.replace`, `document.archive`, `conversation.view`, `identity.reveal`, `dsr.update`, `account.delete` e `consent.change`.
+**audit_events.** `actor_user_id` (sem chave estrangeira, porque `account.delete` precisa sobreviver à exclusão do usuário), `action`, `target_type`, `target_id`, `reason` anulável, `created_at`. As ações incluem `document.upload`, `document.replace`, `document.archive`, `conversation.view`, `identity.reveal`, `dsr.update`, `account.delete` e `consent.change`.
 
 **token_usage_days.** `day` chave primária, `input_tokens`, `output_tokens`.
 
