@@ -53,6 +53,7 @@ def api(monkeypatch: pytest.MonkeyPatch, migrated_database: str) -> TestClient:
     monkeypatch.setenv("RATE_LIMIT_HMAC_KEY", HMAC_KEY)
     monkeypatch.setenv("WEB_ORIGIN", ORIGIN)
     monkeypatch.setenv("APP_ENV", "local")
+    monkeypatch.setenv("APP_AI_ADAPTER", "fake")
     get_settings.cache_clear()
     application = create_app()
     application.dependency_overrides[get_clock] = FrozenClock
