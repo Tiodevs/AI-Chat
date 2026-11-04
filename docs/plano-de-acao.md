@@ -814,7 +814,7 @@ A IA atualiza esta tabela em cada PR.
 | 5.1 | Domínio e API do cadastro | Aprovada |
 | 5.2 | Telas do cadastro | Aprovada |
 | 6.1 | Página da conta | Em revisão |
-| 6.2 | Canal do titular, retenção e documentos de privacidade | Pendente |
+| 6.2 | Canal do titular, retenção e documentos de privacidade | Em revisão |
 | 7.1 | Gestão de documentos | Pendente |
 | 7.2 | Visão geral e qualidade | Pendente |
 | 7.3 | Fila de pedidos de titular | Pendente |
