@@ -17,7 +17,7 @@ Serviço `grafana` do ambiente `production`, com raiz em `ops/grafana` e um volu
 |---|---|
 | `dashboards/*.json` | Os quatro painéis: saúde da API, qualidade de IA, cadastro e privacidade |
 | `provisioning/datasources/prometheus.yaml` | Fonte de dados `prometheus` (uid fixo, usado pelos painéis e alertas) |
-| `provisioning/dashboards/atrium.yaml` | Carrega os painéis de `/var/lib/grafana/dashboards` |
+| `provisioning/dashboards/atrium.yaml` | Carrega os painéis de `/etc/grafana/dashboards` |
 | `provisioning/alerting/alerting.json` | Os oito alertas, o contato por e-mail e a política de notificação |
 
 Os arquivos YAML contêm JSON, que o YAML aceita; o Grafana só lê datasources e provedores com a extensão `.yaml`.

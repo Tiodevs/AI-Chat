@@ -1,5 +1,5 @@
 # Coleta da API pela rede privada da Railway a cada 30 s. Seção 18.3 do SDD.
-# As variáveis ${...} são expandidas com --enable-feature=expand-environment-variables.
+# As variáveis ${...} são trocadas por entrypoint.sh antes de o Prometheus iniciar.
 global:
   scrape_interval: 30s
   evaluation_interval: 30s

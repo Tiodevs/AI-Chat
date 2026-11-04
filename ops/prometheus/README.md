@@ -12,13 +12,13 @@ Serviço `prometheus` do ambiente `production`, com raiz em `ops/prometheus` e u
 
 A API escuta em `::`, para aceitar a rede privada. A coleta de produção é verificada na Etapa 10.2.
 
+## Variáveis
+
+O Prometheus não expande variáveis no arquivo de configuração. `entrypoint.sh` troca `${API_HOST}`, `${API_PORT}` e `${METRICS_TOKEN}` por `sed` antes de iniciar, e o serviço não sobe se alguma estiver vazia.
+
 ## Conferir localmente
 
-```bash
-docker run --rm -v "$PWD:/c" --entrypoint promtool prom/prometheus:v3.5.0 check config /c/prometheus.yml
-```
-
-`promtool` recusa o arquivo se `${...}` não estiver expandido; exporte `API_HOST`, `API_PORT` e `METRICS_TOKEN` antes, ou confie na checagem da subida do serviço.
+A raiz do repositório tem um `docker-compose.yml` que sobe o Prometheus junto com a API, o banco e o Grafana. Os alvos aparecem em `http://localhost:9090/targets`.
 
 ## Nomes das séries
 

@@ -9,7 +9,7 @@
       "disableDeletion": true,
       "allowUiUpdates": false,
       "options": {
-        "path": "/var/lib/grafana/dashboards"
+        "path": "/etc/grafana/dashboards"
       }
     }
   ]
