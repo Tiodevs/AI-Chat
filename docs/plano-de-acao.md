@@ -819,7 +819,7 @@ A IA atualiza esta tabela em cada PR.
 | 7.2 | Visão geral e qualidade | Pendente |
 | 7.3 | Fila de pedidos de titular | Pendente |
 | 8.1 | Rastros de sistema e métricas | Em revisão |
-| 8.2 | Painéis, alertas e fila de anotação | Pendente |
+| 8.2 | Painéis, alertas e fila de anotação | Em revisão |
 | 9.1 | Acessibilidade, movimento e desempenho | Pendente |
 | 9.2 | Teste de usabilidade | Pendente |
 | 10.1 | Pipeline de deploy e ambiente de development | Pendente |

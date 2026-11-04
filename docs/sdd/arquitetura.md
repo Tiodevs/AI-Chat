@@ -368,6 +368,8 @@ Os identificadores são UUIDs. Os timestamps são `timestamptz` em UTC. O e-mail
 
 **data_subject_requests.** `user_id` anulável, que vira nulo quando a conta é excluída, porque o pedido é guardado 2 anos depois de fechado, `contact_email`, `request_type` (`access`, `correction`, `deletion`, `portability`, `consent_revocation`, `information_about_sharing`, `objection`, `other`), `description`, `status` (`open`, `in_progress`, `done`, `rejected`), `received_at`, `due_at`, `closed_at`, `resolution_note`.
 
+**retention_runs.** `rule`, `deleted_count`, `ran_at`. Uma linha por regra a cada execução do `retention-job`, gravada na mesma transação que apaga. Não guarda dado pessoal e serve às métricas `atrium_retention_*` da seção 18.3, porque o job roda em outro processo que a coleta não alcança.
+
 **audit_events.** `actor_user_id` (sem chave estrangeira, porque `account.delete` precisa sobreviver à exclusão do usuário), `action`, `target_type`, `target_id`, `reason` anulável, `created_at`. As ações incluem `document.upload`, `document.replace`, `document.archive`, `conversation.view`, `identity.reveal`, `dsr.update`, `account.delete` e `consent.change`.
 
 **token_usage_days.** `day` chave primária, `input_tokens`, `output_tokens`.

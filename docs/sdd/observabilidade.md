@@ -113,7 +113,7 @@ A API expõe Prometheus em `GET /metrics`, protegida por `METRICS_TOKEN` no cabe
 | `atrium_dsr_open` | gauge | `overdue` |
 | `atrium_retention_deleted` | counter | `rule` |
 
-`route` é o modelo do caminho, nunca o id cru. Eventos de cadastro: `started`, `extracted`, `optional_skipped`, `password_set`, `completed`, `abandoned`.
+`atrium_dsr_open`, `atrium_retention_deleted` e `atrium_retention_last_run_timestamp_seconds` não são contadas no processo da API: o `GET /metrics` lê `data_subject_requests` e `retention_runs` do banco a cada coleta. Se o banco falhar, a coleta mantém o último valor e registra `metrics.database_refresh_failed`. O `prometheus_client` acrescenta `_total` aos contadores, então as consultas usam `atrium_http_requests_total` e equivalentes. `route` é o modelo do caminho, nunca o id cru. Eventos de cadastro: `started`, `extracted`, `optional_skipped`, `password_set`, `completed`, `abandoned`.
 
 Painéis no Grafana, versionados como JSON em `ops/grafana/`:
 
@@ -136,6 +136,8 @@ Alertas, com contato por e-mail para quem opera:
 | Ingestão | Qualquer versão `failed` na última hora |
 | Pedido de titular atrasado | `atrium_dsr_open{overdue="true"}` acima de 0 |
 | Retenção parada | Nenhuma execução de `retention-job` em 26 horas |
+
+Os painéis, a fonte de dados e os alertas ficam em `ops/grafana/`, e a coleta em `ops/prometheus/`. O alerta de retenção parada dispara também quando a série não existe. O contato é o e-mail de `ALERT_EMAIL`, enviado pelo SMTP configurado no serviço do Grafana. A fila do LangSmith está em `docs/langsmith-fila-de-anotacao.md`.
 
 A página de qualidade do admin usa agregados do banco, não o Prometheus, para funcionar mesmo sem o Grafana.
 
