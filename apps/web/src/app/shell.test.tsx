@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from "@testing-library/react"
+import { act, render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import axe from "axe-core"
 import { createMemoryRouter, RouterProvider } from "react-router"
@@ -28,6 +28,34 @@ const protectedPages = [
   ["/admin/quality", pt.pages.quality],
   ["/admin/privacy", pt.pages.privacyRequests],
 ] as const
+
+const member = {
+  id: "00000000-0000-4000-8000-0000000000a1",
+  email: "ana@example.com",
+  full_name: "Ana Costa",
+  phone: null,
+  visitor_type: null,
+  visit_reason: null,
+  role: "member",
+  needs_legal_acceptance: false,
+}
+
+function signIn() {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (input: RequestInfo | URL) => {
+      const request =
+        input instanceof Request ? input : new Request(String(input))
+      if (new URL(request.url).pathname.endsWith("/v1/me")) {
+        return new Response(JSON.stringify(member), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        })
+      }
+      return new Response(null, { status: 404 })
+    })
+  )
+}
 
 function renderAt(path: string) {
   const router = createMemoryRouter(routes, { initialEntries: [path] })
@@ -79,7 +107,63 @@ describe("casca", () => {
     }
   )
 
+  it("sem sessão, mostra entrar e cadastros no lugar da barra lateral", async () => {
+    renderAt("/")
+    const nav = await screen.findByRole("navigation", {
+      name: pt.sidebar.guestMenu,
+    })
+    expect(
+      within(nav).getByRole("link", { name: pt.nav.signIn })
+    ).toHaveAttribute("href", "/sign-in")
+    expect(
+      within(nav).getByRole("link", { name: pt.nav.registerForm })
+    ).toHaveAttribute("href", "/register/form")
+    expect(
+      within(nav).getByRole("link", { name: pt.nav.registerWithAi })
+    ).toHaveAttribute("href", "/register")
+    expect(
+      screen.queryByRole("navigation", { name: pt.sidebar.label })
+    ).not.toBeInTheDocument()
+  })
+
+  it("sem sessão no celular, o menu traz entrar e cadastros", async () => {
+    window.__media = {
+      "(prefers-reduced-motion: reduce)": true,
+      "(min-width: 1024px)": false,
+      "(max-width: 767px)": true,
+    }
+    const user = userEvent.setup()
+    renderAt("/")
+    await user.click(
+      await screen.findByRole("button", { name: pt.sidebar.guestMenu })
+    )
+    expect(
+      await screen.findByRole("menuitem", { name: pt.nav.registerWithAi })
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole("button", { name: pt.sidebar.openMenu })
+    ).not.toBeInTheDocument()
+  })
+
+  it("com sessão de membro, a barra lateral não mostra cadastro nem operação", async () => {
+    signIn()
+    renderAt("/")
+    const nav = await screen.findByRole("navigation", {
+      name: pt.sidebar.label,
+    })
+    expect(
+      within(nav).queryByRole("link", { name: pt.nav.signIn })
+    ).not.toBeInTheDocument()
+    expect(
+      within(nav).queryByRole("link", { name: pt.nav.overview })
+    ).not.toBeInTheDocument()
+    expect(
+      within(nav).getByRole("link", { name: pt.nav.privacy })
+    ).toBeInTheDocument()
+  })
+
   it("abre o menu no celular", async () => {
+    signIn()
     window.__media = {
       "(prefers-reduced-motion: reduce)": true,
       "(min-width: 1024px)": false,
@@ -104,9 +188,10 @@ describe("casca", () => {
   })
 
   it("recolhe a barra e abre uma rota pelo menu", async () => {
+    signIn()
     const user = userEvent.setup()
     renderAt("/")
-    await screen.findByRole("heading", { name: pt.home.title })
+    await screen.findByRole("navigation", { name: pt.sidebar.label })
     await user.click(screen.getByRole("button", { name: pt.sidebar.collapse }))
     expect(
       screen.getByRole("button", { name: pt.sidebar.expand })
@@ -120,8 +205,9 @@ describe("casca", () => {
   it("grava a preferência de movimento e atualiza o matchMedia", async () => {
     const user = userEvent.setup()
     const refresh = vi.spyOn(gsap, "matchMediaRefresh")
+    signIn()
     renderAt("/")
-    await screen.findByRole("heading", { name: pt.home.title })
+    await screen.findByRole("navigation", { name: pt.sidebar.label })
     await user.click(screen.getByRole("button", { name: pt.profile.menu }))
     await user.click(
       screen.getByRole("menuitemradio", { name: pt.profile.motionReduce })

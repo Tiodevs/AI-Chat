@@ -10,6 +10,7 @@ import {
   MessageSquarePlus,
   MessagesSquare,
   Shield,
+  Sparkles,
   UserPlus,
   UserRound,
   type LucideIcon,
@@ -94,6 +95,49 @@ export const navigation: NavGroup[] = [
   },
 ]
 
-export function flattenNavigation() {
-  return navigation.flatMap((group) => group.items)
+/** Quem está vendo o app. `guest` é o visitante sem sessão. SDD 14.5. */
+export type Viewer = "guest" | "member" | "admin"
+
+const guestOnly = new Set<string>(["/register", "/register/form", "/sign-in"])
+const adminGroups = new Set<string>([pt.nav.operations, pt.nav.system])
+
+export function viewerOf(role: string | null | undefined): Viewer {
+  if (role === "admin") {
+    return "admin"
+  }
+  return role ? "member" : "guest"
 }
+
+/** Grupos que fazem sentido para quem vê: sem cadastro e entrada para quem já entrou, operação só para admin. */
+export function navigationFor(viewer: Viewer): NavGroup[] {
+  return navigation
+    .filter((group) => viewer === "admin" || !adminGroups.has(group.label))
+    .map((group) => ({
+      ...group,
+      items: group.items.filter(
+        (item) => viewer === "guest" || !guestOnly.has(item.to)
+      ),
+    }))
+    .filter((group) => group.items.length > 0)
+}
+
+export function flattenNavigation(viewer: Viewer) {
+  return navigationFor(viewer).flatMap((group) => group.items)
+}
+
+/** Ações do cabeçalho de quem ainda não entrou. */
+export const guestActions = [
+  { label: pt.nav.signIn, to: "/sign-in", icon: LogIn, variant: "ghost" },
+  {
+    label: pt.nav.registerForm,
+    to: "/register/form",
+    icon: ClipboardList,
+    variant: "outline",
+  },
+  {
+    label: pt.nav.registerWithAi,
+    to: "/register",
+    icon: Sparkles,
+    variant: "default",
+  },
+] as const
