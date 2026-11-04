@@ -45,6 +45,7 @@ class Settings(BaseSettings):
     langsmith_endpoint: str = ""
     langsmith_workspace_id: str = ""
     langsmith_tracing_sampling_rate: float = 1.0
+    langsmith_run_url_template: str = ""
 
     @field_validator("database_url", mode="before")
     @classmethod

@@ -263,3 +263,4 @@ Não há decisões em aberto. Nenhuma decisão bloqueia as Etapas 1 a 4.
 | 1.0 | 2026-10-25 | Revisão final aprovada. Escolhas da seção 2.1 confirmadas. D-2 fechada: LangSmith na região dos Estados Unidos. |
 | 1.1 | 2026-10-27 | Contrato da API de conversas: cookie de convidado por 30 dias, 409 com `message_id`, eventos `tick` do diagnóstico, resposta fixa em um `token` e classificação antes da gravação da mensagem. |
 | 1.2 | 2026-11-04 | Gestão de documentos do admin: contrato das rotas, ação Tentar de novo com `document.retry`, tipo pela extensão conferido no conteúdo, 409 durante o processamento e ingestão em tarefa de fundo. |
+| 1.3 | 2026-11-04 | Visão geral e qualidade do admin: contrato das rotas, `messages.request_id`, `LANGSMITH_RUN_URL_TEMPLATE`, intenção derivada do desfecho e funil pela validade da sessão. |

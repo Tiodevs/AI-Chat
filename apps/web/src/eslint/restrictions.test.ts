@@ -9,7 +9,8 @@ async function lint(code: string, filePath: string) {
   return results[0]
 }
 
-describe("limites de camada do frontend", () => {
+// O primeiro lint carrega o ESLint a frio; com a suíte inteira em paralelo, passa de 5 s.
+describe("limites de camada do frontend", { timeout: 20_000 }, () => {
   it("falha quando um componente chama fetch", async () => {
     const result = await lint(
       'export function Example() { return <button onClick={() => fetch("/backend/health")} /> }\n',

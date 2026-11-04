@@ -560,6 +560,86 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/admin/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Admin Overview
+         * @description Indicadores do período contra o período anterior, tendência, desfechos, funil e orçamento.
+         */
+        get: operations["adminOverview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/quality": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Admin Quality
+         * @description Contagens por desfecho e feedback e as conversas recentes, pseudonimizadas.
+         */
+        get: operations["adminQuality"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/conversations/{conversation_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Admin Conversation
+         * @description Conversa pseudonimizada com os links de rastro. Grava `conversation.view`.
+         */
+        get: operations["adminConversation"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/conversations/{conversation_id}/reveal": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reveal Identity
+         * @description Devolve a identidade do membro. Exige motivo e grava `identity.reveal`.
+         */
+        post: operations["revealIdentity"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -604,6 +684,15 @@ export interface components {
             file: string;
             /** Title */
             title?: string | null;
+        };
+        /** BudgetResponse */
+        BudgetResponse: {
+            /** Used Tokens */
+            used_tokens: number;
+            /** Daily Budget */
+            daily_budget: number;
+            /** Ratio */
+            ratio: number;
         };
         /** CitationResponse */
         CitationResponse: {
@@ -674,7 +763,7 @@ export interface components {
         /** ConversationListResponse */
         ConversationListResponse: {
             /** Conversations */
-            conversations: components["schemas"]["ConversationSummaryResponse"][];
+            conversations: components["schemas"]["app__schemas__conversations__ConversationSummaryResponse"][];
         };
         /** ConversationResponse */
         ConversationResponse: {
@@ -690,21 +779,6 @@ export interface components {
             created_at: string;
             /** Messages */
             messages: components["schemas"]["MessageResponse"][];
-        };
-        /** ConversationSummaryResponse */
-        ConversationSummaryResponse: {
-            /**
-             * Id
-             * Format: uuid
-             */
-            id: string;
-            /**
-             * Created At
-             * Format: date-time
-             */
-            created_at: string;
-            /** First Question */
-            first_question: string | null;
         };
         /** DocumentListResponse */
         DocumentListResponse: {
@@ -931,6 +1005,99 @@ export interface components {
              */
             quality_improvement: boolean;
         };
+        /** FunnelRowResponse */
+        FunnelRowResponse: {
+            /**
+             * Step
+             * @enum {string}
+             */
+            step: "started" | "password_set" | "completed";
+            /** Chat */
+            chat: number;
+            /** Form */
+            form: number;
+        };
+        /** IdentityResponse */
+        IdentityResponse: {
+            /**
+             * Conversation Id
+             * Format: uuid
+             */
+            conversation_id: string;
+            /** Full Name */
+            full_name: string;
+            /** Email */
+            email: string;
+        };
+        /** InspectionResponse */
+        InspectionResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Subject Kind
+             * @enum {string}
+             */
+            subject_kind: "guest" | "member";
+            /** Pseudonym */
+            pseudonym: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Messages */
+            messages: components["schemas"]["InspectorMessageResponse"][];
+        };
+        /** InspectorCitationResponse */
+        InspectorCitationResponse: {
+            /** Index */
+            index: number;
+            /** Document Title */
+            document_title: string;
+            /** Heading */
+            heading: string | null;
+        };
+        /** InspectorMessageResponse */
+        InspectorMessageResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Role
+             * @enum {string}
+             */
+            role: "user" | "assistant";
+            /** Content */
+            content: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Outcome */
+            outcome: string | null;
+            /** Prompt Version */
+            prompt_version: string | null;
+            /** Model */
+            model: string | null;
+            /** Request Id */
+            request_id: string | null;
+            /** Latency Ms */
+            latency_ms: number | null;
+            /** Run Id */
+            run_id: string | null;
+            /** Trace Url */
+            trace_url: string | null;
+            /** Citations */
+            citations: components["schemas"]["InspectorCitationResponse"][];
+            /** Rating */
+            rating: number | null;
+        };
         /** LegalVersionsResponse */
         LegalVersionsResponse: {
             /** Terms */
@@ -972,6 +1139,44 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+        };
+        /** MetricResponse */
+        MetricResponse: {
+            /** Current */
+            current: number | null;
+            /** Previous */
+            previous: number | null;
+        };
+        /** OverviewResponse */
+        OverviewResponse: {
+            /** Period Days */
+            period_days: number;
+            /**
+             * Generated At
+             * Format: date-time
+             */
+            generated_at: string;
+            questions: components["schemas"]["MetricResponse"];
+            answer_rate: components["schemas"]["MetricResponse"];
+            abstention_rate: components["schemas"]["MetricResponse"];
+            helpful_rate: components["schemas"]["MetricResponse"];
+            /** Trend */
+            trend: components["schemas"]["TrendPointResponse"][];
+            /** Outcomes */
+            outcomes: {
+                [key: string]: number;
+            };
+            /** Intents */
+            intents: {
+                [key: string]: number;
+            };
+            /** Feedback */
+            feedback: {
+                [key: string]: number;
+            };
+            /** Funnel */
+            funnel: components["schemas"]["FunnelRowResponse"][];
+            budget: components["schemas"]["BudgetResponse"];
         };
         /**
          * PasswordRequest
@@ -1048,6 +1253,21 @@ export interface components {
             /** Needs Legal Acceptance */
             needs_legal_acceptance: boolean;
         };
+        /** QualityResponse */
+        QualityResponse: {
+            /** Period Days */
+            period_days: number;
+            /** Outcomes */
+            outcomes: {
+                [key: string]: number;
+            };
+            /** Feedback */
+            feedback: {
+                [key: string]: number;
+            };
+            /** Conversations */
+            conversations: components["schemas"]["app__schemas__insights__ConversationSummaryResponse"][];
+        };
         /** RegistrationFieldsResponse */
         RegistrationFieldsResponse: {
             /** Full Name */
@@ -1097,6 +1317,11 @@ export interface components {
              */
             expires_at: string;
         };
+        /** RevealRequest */
+        RevealRequest: {
+            /** Reason */
+            reason: string;
+        };
         /** ReviewRequest */
         ReviewRequest: {
             /** Accept */
@@ -1119,6 +1344,66 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+        };
+        /** TrendPointResponse */
+        TrendPointResponse: {
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Questions */
+            questions: number;
+            /** Answered */
+            answered: number;
+        };
+        /** ConversationSummaryResponse */
+        app__schemas__conversations__ConversationSummaryResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** First Question */
+            first_question: string | null;
+        };
+        /** ConversationSummaryResponse */
+        app__schemas__insights__ConversationSummaryResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Subject Kind
+             * @enum {string}
+             */
+            subject_kind: "guest" | "member";
+            /** Pseudonym */
+            pseudonym: string;
+            /**
+             * Started At
+             * Format: date-time
+             */
+            started_at: string;
+            /**
+             * Last Activity At
+             * Format: date-time
+             */
+            last_activity_at: string;
+            /** Questions */
+            questions: number;
+            /** Last Outcome */
+            last_outcome: string | null;
+            /** Helpful */
+            helpful: number;
+            /** Not Helpful */
+            not_helpful: number;
         };
     };
     responses: never;
@@ -3188,6 +3473,280 @@ export interface operations {
             };
             /** @description Too Many Requests */
             429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    adminOverview: {
+        parameters: {
+            query?: {
+                period_days?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OverviewResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    adminQuality: {
+        parameters: {
+            query?: {
+                period_days?: number;
+                outcome?: string | null;
+                feedback?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QualityResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    adminConversation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                conversation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InspectionResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    revealIdentity: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                conversation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RevealRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IdentityResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };

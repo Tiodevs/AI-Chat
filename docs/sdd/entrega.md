@@ -48,6 +48,8 @@ O job padrão usa `FakeChatProvider`, `DeterministicEmbeddingProvider` e `NoopFe
 | Uma versão nova com falha deixa os chunks anteriores pesquisáveis | FR-11 |
 | Durante a substituição, a busca devolve a versão anterior | FR-11 |
 | Cada ação de documento grava o evento de auditoria | Seção 8.1 |
+| Abrir uma conversa grava `conversation.view` e revelar sem motivo falha sem gravar | FR-15 |
+| O inspetor não lista nem abre conversa de membro sem consentimento de melhoria | Seção 11.8 |
 | Arquivar tira um chunk dos resultados | FR-12 |
 | Semear duas vezes embeda uma vez, e duas semeaduras simultâneas não duplicam | FR-13, seção 6.4 |
 | O adaptador de embedding envia um pedido por texto | Seção 17 |

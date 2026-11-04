@@ -166,6 +166,7 @@ class ConversationRepository:
         outcome: str | None,
         langsmith_run_id: UUID | None,
         created_at: datetime,
+        request_id: str | None = None,
     ) -> None:
         self._session.add(
             Message(
@@ -182,6 +183,7 @@ class ConversationRepository:
                 latency_ms=latency_ms,
                 outcome=outcome,
                 langsmith_run_id=langsmith_run_id,
+                request_id=request_id,
                 created_at=created_at,
             )
         )

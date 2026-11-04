@@ -358,7 +358,7 @@ Os identificadores são UUIDs. Os timestamps são `timestamptz` em UTC. O e-mail
 
 **conversations.** `user_id` anulável, `guest_key_id` anulável, `created_at`. Pelo menos um dono é obrigatório.
 
-**messages.** `conversation_id`, `client_message_id` anulável, `role` (`user` ou `assistant`), `content`, `citations` jsonb, `model` anulável, `prompt_version` anulável, `input_tokens`, `output_tokens`, `latency_ms`, `outcome` anulável, `langsmith_run_id` anulável, `created_at`. Único em `(conversation_id, client_message_id)`.
+**messages.** `conversation_id`, `client_message_id` anulável, `role` (`user` ou `assistant`), `content`, `citations` jsonb, `model` anulável, `prompt_version` anulável, `input_tokens`, `output_tokens`, `latency_ms`, `outcome` anulável, `langsmith_run_id` anulável, `request_id` anulável, `created_at`. `request_id` é o do pedido que gravou a mensagem, para o inspetor de qualidade. Único em `(conversation_id, client_message_id)`.
 
 **feedback.** `message_id` chave primária, `rating` de `-1` ou `1`, `created_at`.
 
