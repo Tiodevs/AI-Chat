@@ -1,6 +1,7 @@
 """Mensagens do corpus para quem opera a implantação."""
 
 EMPTY_DOCUMENT = "O documento não tem texto."
+EXTRACT_FAILED = "Não foi possível ler o texto do arquivo."
 EMBED_FAILED = "Não foi possível embedar o documento."
 PROCESSING_TIMED_OUT = "A ingestão passou de 15 minutos."
 NONE_EMBEDDED = "Nenhum documento foi embedado."

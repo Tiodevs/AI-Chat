@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app import __version__
 from app.controllers.account import router as account_router
+from app.controllers.admin_documents import router as admin_documents_router
 from app.controllers.admin_probe import router as admin_probe_router
 from app.controllers.auth import router as auth_router
 from app.controllers.conversations import router as conversations_router
@@ -63,6 +64,7 @@ def create_app() -> FastAPI:
     app.include_router(registration_router)
     app.include_router(conversations_router)
     app.include_router(admin_probe_router)
+    app.include_router(admin_documents_router)
     return app
 
 

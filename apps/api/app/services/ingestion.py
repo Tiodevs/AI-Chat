@@ -16,7 +16,12 @@ from app.ports.clock import Clock
 from app.ports.embedding import EmbeddingProvider
 from app.ports.text_extractor import TextExtractor
 from app.ports.tracing import NullTracer, TraceRecorder
-from app.prompts.corpus import EMBED_FAILED, EMPTY_DOCUMENT, PROCESSING_TIMED_OUT
+from app.prompts.corpus import (
+    EMBED_FAILED,
+    EMPTY_DOCUMENT,
+    EXTRACT_FAILED,
+    PROCESSING_TIMED_OUT,
+)
 from app.repositories.documents import DocumentRepository, NewChunk
 
 STALE_PROCESSING_AFTER = timedelta(minutes=15)
@@ -55,10 +60,34 @@ class IngestionService:
             data=data,
             created_by=created_by,
         )
+        return await self.process_version(
+            version_id=version_id,
+            slug=slug,
+            title=title,
+            media_type=media_type,
+            data=data,
+        )
+
+    async def process_version(
+        self,
+        *,
+        version_id: UUID,
+        slug: str,
+        title: str,
+        media_type: str,
+        data: bytes,
+    ) -> str:
+        """Passos 2 a 6 da seção 7.3 para uma versão já gravada em processing."""
         body = ""
         try:
             with traced_span("ingestion.extract", media_type=media_type, byte_size=len(data)):
                 body = await self._extractor.extract(data, media_type)
+        except Exception:
+            _log("warning", "ingestion.failed", slug=slug, error_type="extract")
+            await self._fail(version_id, EXTRACT_FAILED, body)
+            INGESTION_VERSIONS.labels(status="failed").inc()
+            return "failed"
+        try:
             drafts = split_markdown(body)
             if not body.strip() or not drafts:
                 await self._fail(version_id, EMPTY_DOCUMENT, body)
