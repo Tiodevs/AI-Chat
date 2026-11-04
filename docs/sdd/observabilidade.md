@@ -90,11 +90,11 @@ Spans próprios, filhos do span do pedido:
 | `ingestion.publish` | `document_id`, `version` |
 | `retention.run` | `rule`, `deleted_count` |
 
-Os atributos usam ids, contagens, enums e durações, nunca texto de pergunta ou de documento. Um span com falha registra o tipo da exceção e marca erro. Cada span de IA guarda `langsmith.run_id` como atributo, e cada rastro do LangSmith guarda o `trace_id`, para navegar entre os dois.
+Os atributos usam ids, contagens, enums e durações, nunca texto de pergunta ou de documento. Um span com falha registra o tipo da exceção no atributo `error.type` e marca erro. O código só aceita os atributos da tabela, mais `request_id` e `langsmith.run_id`, e descarta os demais. Cada span de IA guarda `langsmith.run_id` como atributo, e cada rastro do LangSmith guarda o `trace_id`, para navegar entre os dois.
 
 ### 18.3 Métricas, painéis e alertas
 
-A API expõe Prometheus em `GET /metrics`, protegida por `METRICS_TOKEN`. No ambiente `production` da Railway, um serviço Prometheus coleta `http://api.railway.internal:$PORT/metrics` pela rede privada a cada 30 segundos, e um serviço Grafana lê o Prometheus. A API escuta em `::` para aceitar conexões da rede privada.
+A API expõe Prometheus em `GET /metrics`, protegida por `METRICS_TOKEN` no cabeçalho `Authorization: Bearer`. Sem `METRICS_TOKEN` configurado a rota responde 404, e com token errado, 401. Pedidos sem rota correspondente entram com `route="unmatched"`. No ambiente `production` da Railway, um serviço Prometheus coleta `http://api.railway.internal:$PORT/metrics` pela rede privada a cada 30 segundos, e um serviço Grafana lê o Prometheus. A API escuta em `::` para aceitar conexões da rede privada.
 
 | Métrica | Tipo | Rótulos |
 |---|---|---|
