@@ -117,6 +117,45 @@ describe("presets com movimento reduzido", () => {
     })
   })
 
+  it("M2 escreve o valor final direto quando o movimento está reduzido", () => {
+    const number = document.createElement("span")
+    presets.countUp(number, true, 1234, (value) => value.toLocaleString("pt-BR"))
+    expect(number.textContent).toBe("1.234")
+    expect(to).not.toHaveBeenCalled()
+    presets.countUp(number, false, 10)
+    expect(to).toHaveBeenCalledWith(
+      expect.objectContaining({ value: 0 }),
+      expect.objectContaining({ value: 10, duration: motionTokens.duration.chart })
+    )
+  })
+
+  it("M3 e M15 usam scaleX e ficam diretos com movimento reduzido", () => {
+    const chart = document.createElement("div")
+    presets.revealChart(chart, true)
+    expect(set).toHaveBeenCalledWith(chart, expect.objectContaining({ scaleX: 1 }))
+    presets.revealChart(chart, false)
+    expect(fromTo).toHaveBeenCalledWith(
+      chart,
+      expect.objectContaining({ scaleX: 0 }),
+      expect.objectContaining({ scaleX: 1, duration: motionTokens.duration.chart })
+    )
+    const segment = document.createElement("div")
+    segment.dataset.scale = "0.4"
+    presets.moveSegments([segment], false)
+    expect(to).toHaveBeenCalledWith(
+      [segment],
+      expect.objectContaining({ ease: motionTokens.ease.move })
+    )
+  })
+
+  it("M4 pula para a posição com movimento reduzido", () => {
+    const cursor = document.createElement("div")
+    const move = presets.followPointer(cursor, true)
+    move(40, 12)
+    expect(set).toHaveBeenLastCalledWith(cursor, { x: 40, y: 12 })
+    expect(to).not.toHaveBeenCalled()
+  })
+
   it("M11 move a barra com scaleX e fica direta quando o movimento está reduzido", () => {
     const bar = document.createElement("div")
     presets.moveStepper(bar, true, 0.5)

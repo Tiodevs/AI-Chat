@@ -1,4 +1,4 @@
-import { cleanup } from "@testing-library/react"
+import { cleanup, configure } from "@testing-library/react"
 import "@testing-library/jest-dom/vitest"
 import { afterEach, beforeEach, vi } from "vitest"
 
@@ -31,6 +31,9 @@ function installMatchMedia() {
 }
 
 installMatchMedia()
+
+// As rotas de admin carregam o Recharts sob demanda; sob carga, a importação passa de 1 s.
+configure({ asyncUtilTimeout: 3000 })
 
 globalThis.ResizeObserver = class {
   observe() {
