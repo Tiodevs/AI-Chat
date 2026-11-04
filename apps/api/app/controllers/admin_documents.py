@@ -9,12 +9,10 @@ from uuid import UUID
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, Request, UploadFile
 
-from app.adapters.password_hasher import get_password_hasher
+from app.controllers.admin_guard import require_admin
 from app.core.config import Settings
 from app.core.container import get_clock, get_document_admin_service, get_settings
-from app.domain.auth import SESSION_COOKIE_NAME
 from app.domain.documents import MAX_UPLOAD_BYTES
-from app.domain.profile import Profile
 from app.ports.clock import Clock
 from app.schemas.documents import DocumentListResponse, DocumentResponse, document_response
 from app.schemas.errors import ErrorResponse
@@ -32,18 +30,6 @@ _ERRORS: dict[int | str, dict[str, Any]] = {
     422: {"model": ErrorResponse},
     429: {"model": ErrorResponse},
 }
-
-
-async def _admin(request: Request, settings: Settings, clock: Clock) -> Profile:
-    from app.services.auth import AuthService
-
-    return await AuthService(
-        database_url=settings.database_url,
-        clock=clock,
-        hasher=get_password_hasher(),
-        hmac_key=settings.rate_limit_hmac_key,
-        app_env=settings.app_env,
-    ).require_admin(request.cookies.get(SESSION_COOKIE_NAME))
 
 
 async def _read_limited(upload: UploadFile) -> bytes:
@@ -66,7 +52,7 @@ async def list_documents(
     service: Annotated[Any, Depends(get_document_admin_service)],
 ) -> DocumentListResponse:
     """Documentos, versão ativa e a última versão com o status de ingestão."""
-    await _admin(request, settings, clock)
+    await require_admin(request, settings, clock)
     views = await service.list()
     return DocumentListResponse(documents=[document_response(view) for view in views])
 
@@ -87,7 +73,7 @@ async def upload_document(
     title: Annotated[str | None, Form(max_length=400)] = None,
 ) -> DocumentResponse:
     """Markdown, texto ou PDF de até 10 MB. Grava `document.upload` e começa a ingestão."""
-    admin = await _admin(request, settings, clock)
+    admin = await require_admin(request, settings, clock)
     accepted = await service.upload(
         admin_id=admin.id,
         filename=file.filename or "",
@@ -113,7 +99,7 @@ async def replace_document(
     service: Annotated[Any, Depends(get_document_admin_service)],
 ) -> DocumentResponse:
     """Versão nova. A anterior segue ativa até a nova chegar a `ready` (FR-11)."""
-    admin = await _admin(request, settings, clock)
+    admin = await require_admin(request, settings, clock)
     accepted = await service.replace(
         admin_id=admin.id,
         document_id=document_id,
@@ -138,7 +124,7 @@ async def retry_document(
     service: Annotated[Any, Depends(get_document_admin_service)],
 ) -> DocumentResponse:
     """Reprocessa o arquivo da última versão com falha numa versão nova."""
-    admin = await _admin(request, settings, clock)
+    admin = await require_admin(request, settings, clock)
     accepted = await service.retry(admin_id=admin.id, document_id=document_id)
     return _schedule(tasks, service, accepted)
 
@@ -156,6 +142,6 @@ async def archive_document(
     service: Annotated[Any, Depends(get_document_admin_service)],
 ) -> DocumentResponse:
     """Tira o documento das respostas (FR-12) e grava `document.archive`."""
-    admin = await _admin(request, settings, clock)
+    admin = await require_admin(request, settings, clock)
     view = await service.archive(admin_id=admin.id, document_id=document_id)
     return document_response(view)

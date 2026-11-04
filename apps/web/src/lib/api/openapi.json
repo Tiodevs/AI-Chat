@@ -2380,6 +2380,374 @@
           }
         }
       }
+    },
+    "/v1/admin/overview": {
+      "get": {
+        "summary": "Admin Overview",
+        "description": "Indicadores do período contra o período anterior, tendência, desfechos, funil e orçamento.",
+        "operationId": "adminOverview",
+        "parameters": [
+          {
+            "name": "period_days",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 7,
+              "title": "Period Days"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OverviewResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        }
+      }
+    },
+    "/v1/admin/quality": {
+      "get": {
+        "summary": "Admin Quality",
+        "description": "Contagens por desfecho e feedback e as conversas recentes, pseudonimizadas.",
+        "operationId": "adminQuality",
+        "parameters": [
+          {
+            "name": "period_days",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 7,
+              "title": "Period Days"
+            }
+          },
+          {
+            "name": "outcome",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 40
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Outcome"
+            }
+          },
+          {
+            "name": "feedback",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 40
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Feedback"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QualityResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        }
+      }
+    },
+    "/v1/admin/conversations/{conversation_id}": {
+      "get": {
+        "summary": "Admin Conversation",
+        "description": "Conversa pseudonimizada com os links de rastro. Grava `conversation.view`.",
+        "operationId": "adminConversation",
+        "parameters": [
+          {
+            "name": "conversation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Conversation Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InspectionResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        }
+      }
+    },
+    "/v1/admin/conversations/{conversation_id}/reveal": {
+      "post": {
+        "summary": "Reveal Identity",
+        "description": "Devolve a identidade do membro. Exige motivo e grava `identity.reveal`.",
+        "operationId": "revealIdentity",
+        "parameters": [
+          {
+            "name": "conversation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Conversation Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RevealRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IdentityResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -2481,6 +2849,29 @@
           "file"
         ],
         "title": "Body_uploadDocument"
+      },
+      "BudgetResponse": {
+        "properties": {
+          "used_tokens": {
+            "type": "integer",
+            "title": "Used Tokens"
+          },
+          "daily_budget": {
+            "type": "integer",
+            "title": "Daily Budget"
+          },
+          "ratio": {
+            "type": "number",
+            "title": "Ratio"
+          }
+        },
+        "type": "object",
+        "required": [
+          "used_tokens",
+          "daily_budget",
+          "ratio"
+        ],
+        "title": "BudgetResponse"
       },
       "CitationResponse": {
         "properties": {
@@ -2665,7 +3056,7 @@
         "properties": {
           "conversations": {
             "items": {
-              "$ref": "#/components/schemas/ConversationSummaryResponse"
+              "$ref": "#/components/schemas/app__schemas__conversations__ConversationSummaryResponse"
             },
             "type": "array",
             "title": "Conversations"
@@ -2704,38 +3095,6 @@
           "messages"
         ],
         "title": "ConversationResponse"
-      },
-      "ConversationSummaryResponse": {
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Id"
-          },
-          "created_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Created At"
-          },
-          "first_question": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "First Question"
-          }
-        },
-        "type": "object",
-        "required": [
-          "id",
-          "created_at",
-          "first_question"
-        ],
-        "title": "ConversationSummaryResponse"
       },
       "DocumentListResponse": {
         "properties": {
@@ -3373,6 +3732,269 @@
         ],
         "title": "FormRequest"
       },
+      "FunnelRowResponse": {
+        "properties": {
+          "step": {
+            "type": "string",
+            "enum": [
+              "started",
+              "password_set",
+              "completed"
+            ],
+            "title": "Step"
+          },
+          "chat": {
+            "type": "integer",
+            "title": "Chat"
+          },
+          "form": {
+            "type": "integer",
+            "title": "Form"
+          }
+        },
+        "type": "object",
+        "required": [
+          "step",
+          "chat",
+          "form"
+        ],
+        "title": "FunnelRowResponse"
+      },
+      "IdentityResponse": {
+        "properties": {
+          "conversation_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Conversation Id"
+          },
+          "full_name": {
+            "type": "string",
+            "title": "Full Name"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email"
+          }
+        },
+        "type": "object",
+        "required": [
+          "conversation_id",
+          "full_name",
+          "email"
+        ],
+        "title": "IdentityResponse"
+      },
+      "InspectionResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "subject_kind": {
+            "type": "string",
+            "enum": [
+              "guest",
+              "member"
+            ],
+            "title": "Subject Kind"
+          },
+          "pseudonym": {
+            "type": "string",
+            "title": "Pseudonym"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "messages": {
+            "items": {
+              "$ref": "#/components/schemas/InspectorMessageResponse"
+            },
+            "type": "array",
+            "title": "Messages"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "subject_kind",
+          "pseudonym",
+          "created_at",
+          "messages"
+        ],
+        "title": "InspectionResponse"
+      },
+      "InspectorCitationResponse": {
+        "properties": {
+          "index": {
+            "type": "integer",
+            "title": "Index"
+          },
+          "document_title": {
+            "type": "string",
+            "title": "Document Title"
+          },
+          "heading": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Heading"
+          }
+        },
+        "type": "object",
+        "required": [
+          "index",
+          "document_title",
+          "heading"
+        ],
+        "title": "InspectorCitationResponse"
+      },
+      "InspectorMessageResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "user",
+              "assistant"
+            ],
+            "title": "Role"
+          },
+          "content": {
+            "type": "string",
+            "title": "Content"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "outcome": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Outcome"
+          },
+          "prompt_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prompt Version"
+          },
+          "model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model"
+          },
+          "request_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Request Id"
+          },
+          "latency_ms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latency Ms"
+          },
+          "run_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Run Id"
+          },
+          "trace_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trace Url"
+          },
+          "citations": {
+            "items": {
+              "$ref": "#/components/schemas/InspectorCitationResponse"
+            },
+            "type": "array",
+            "title": "Citations"
+          },
+          "rating": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rating"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "role",
+          "content",
+          "created_at",
+          "outcome",
+          "prompt_version",
+          "model",
+          "request_id",
+          "latency_ms",
+          "run_id",
+          "trace_url",
+          "citations",
+          "rating"
+        ],
+        "title": "InspectorMessageResponse"
+      },
       "LegalVersionsResponse": {
         "properties": {
           "terms": {
@@ -3490,6 +4112,117 @@
           "created_at"
         ],
         "title": "MessageResponse"
+      },
+      "MetricResponse": {
+        "properties": {
+          "current": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current"
+          },
+          "previous": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Previous"
+          }
+        },
+        "type": "object",
+        "required": [
+          "current",
+          "previous"
+        ],
+        "title": "MetricResponse"
+      },
+      "OverviewResponse": {
+        "properties": {
+          "period_days": {
+            "type": "integer",
+            "title": "Period Days"
+          },
+          "generated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Generated At"
+          },
+          "questions": {
+            "$ref": "#/components/schemas/MetricResponse"
+          },
+          "answer_rate": {
+            "$ref": "#/components/schemas/MetricResponse"
+          },
+          "abstention_rate": {
+            "$ref": "#/components/schemas/MetricResponse"
+          },
+          "helpful_rate": {
+            "$ref": "#/components/schemas/MetricResponse"
+          },
+          "trend": {
+            "items": {
+              "$ref": "#/components/schemas/TrendPointResponse"
+            },
+            "type": "array",
+            "title": "Trend"
+          },
+          "outcomes": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Outcomes"
+          },
+          "intents": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Intents"
+          },
+          "feedback": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Feedback"
+          },
+          "funnel": {
+            "items": {
+              "$ref": "#/components/schemas/FunnelRowResponse"
+            },
+            "type": "array",
+            "title": "Funnel"
+          },
+          "budget": {
+            "$ref": "#/components/schemas/BudgetResponse"
+          }
+        },
+        "type": "object",
+        "required": [
+          "period_days",
+          "generated_at",
+          "questions",
+          "answer_rate",
+          "abstention_rate",
+          "helpful_rate",
+          "trend",
+          "outcomes",
+          "intents",
+          "feedback",
+          "funnel",
+          "budget"
+        ],
+        "title": "OverviewResponse"
       },
       "PasswordRequest": {
         "properties": {
@@ -3697,6 +4430,43 @@
         ],
         "title": "ProfileResponse"
       },
+      "QualityResponse": {
+        "properties": {
+          "period_days": {
+            "type": "integer",
+            "title": "Period Days"
+          },
+          "outcomes": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Outcomes"
+          },
+          "feedback": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Feedback"
+          },
+          "conversations": {
+            "items": {
+              "$ref": "#/components/schemas/app__schemas__insights__ConversationSummaryResponse"
+            },
+            "type": "array",
+            "title": "Conversations"
+          }
+        },
+        "type": "object",
+        "required": [
+          "period_days",
+          "outcomes",
+          "feedback",
+          "conversations"
+        ],
+        "title": "QualityResponse"
+      },
       "RegistrationFieldsResponse": {
         "properties": {
           "full_name": {
@@ -3845,6 +4615,21 @@
         ],
         "title": "RegistrationSessionResponse"
       },
+      "RevealRequest": {
+        "properties": {
+          "reason": {
+            "type": "string",
+            "maxLength": 2000,
+            "title": "Reason"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "reason"
+        ],
+        "title": "RevealRequest"
+      },
       "ReviewRequest": {
         "properties": {
           "accept": {
@@ -3888,6 +4673,129 @@
         ],
         "title": "TranscriptMessageResponse",
         "description": "Serializador da transcrição. Não tem campo de senha."
+      },
+      "TrendPointResponse": {
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date",
+            "title": "Date"
+          },
+          "questions": {
+            "type": "integer",
+            "title": "Questions"
+          },
+          "answered": {
+            "type": "integer",
+            "title": "Answered"
+          }
+        },
+        "type": "object",
+        "required": [
+          "date",
+          "questions",
+          "answered"
+        ],
+        "title": "TrendPointResponse"
+      },
+      "app__schemas__conversations__ConversationSummaryResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "first_question": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Question"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "created_at",
+          "first_question"
+        ],
+        "title": "ConversationSummaryResponse"
+      },
+      "app__schemas__insights__ConversationSummaryResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "subject_kind": {
+            "type": "string",
+            "enum": [
+              "guest",
+              "member"
+            ],
+            "title": "Subject Kind"
+          },
+          "pseudonym": {
+            "type": "string",
+            "title": "Pseudonym"
+          },
+          "started_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Started At"
+          },
+          "last_activity_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Last Activity At"
+          },
+          "questions": {
+            "type": "integer",
+            "title": "Questions"
+          },
+          "last_outcome": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Outcome"
+          },
+          "helpful": {
+            "type": "integer",
+            "title": "Helpful"
+          },
+          "not_helpful": {
+            "type": "integer",
+            "title": "Not Helpful"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "subject_kind",
+          "pseudonym",
+          "started_at",
+          "last_activity_at",
+          "questions",
+          "last_outcome",
+          "helpful",
+          "not_helpful"
+        ],
+        "title": "ConversationSummaryResponse"
       }
     }
   }

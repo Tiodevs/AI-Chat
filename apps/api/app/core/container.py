@@ -127,3 +127,18 @@ def get_document_admin_service(
             tracer=tracer_for(settings) or NullTracer(),
         ),
     )
+
+
+def get_insights_service(
+    settings: Annotated[Settings, Depends(get_settings)],
+    clock: Annotated[Clock, Depends(get_clock)],
+) -> Any:
+    from app.services.insights import InsightsService
+
+    return InsightsService(
+        database_url=settings.database_url,
+        clock=clock,
+        pseudonym_key=settings.pseudonym_key,
+        daily_budget=settings.llm_daily_token_budget,
+        run_url_template=settings.langsmith_run_url_template,
+    )
