@@ -119,6 +119,7 @@ EXPECTED_COLUMNS: dict[str, set[str]] = {
         "latency_ms",
         "outcome",
         "langsmith_run_id",
+        "request_id",
         "created_at",
     },
     "feedback": {"message_id", "rating", "created_at"},
