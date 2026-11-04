@@ -41,6 +41,7 @@ def test_state_changing_request_without_origin_is_bad_origin(
 def test_get_does_not_require_origin_and_v1_is_not_stored(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    monkeypatch.setenv("PRIVACY_CONTACT_EMAIL", "privacidade@harborlight.example")
     client = _client(monkeypatch)
     response = client.get("/v1/legal/versions")
     assert response.status_code == 200
@@ -48,6 +49,7 @@ def test_get_does_not_require_origin_and_v1_is_not_stored(
     assert response.json() == {
         "terms": "2026-10-25.1",
         "privacy_notice": "2026-10-25.1",
+        "privacy_contact_email": "privacidade@harborlight.example",
     }
     assert client.get("/health").headers.get("cache-control") is None
 

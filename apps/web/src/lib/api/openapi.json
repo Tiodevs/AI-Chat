@@ -48,7 +48,7 @@
     "/v1/legal/versions": {
       "get": {
         "summary": "Legal Versions",
-        "description": "Versão vigente dos Termos e do Aviso de Privacidade.",
+        "description": "Versão vigente dos Termos e do Aviso de Privacidade e o contato do encarregado.",
         "operationId": "getLegalVersions",
         "responses": {
           "200": {
@@ -57,6 +57,65 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/LegalVersionsResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/privacy/requests": {
+      "post": {
+        "summary": "Create Privacy Request",
+        "description": "Abre um pedido de titular com prazo de 15 dias. Limite de 5 por IP no dia.",
+        "operationId": "createPrivacyRequest",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PrivacyRequestCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrivacyRequestResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -2689,12 +2748,24 @@
           "privacy_notice": {
             "type": "string",
             "title": "Privacy Notice"
+          },
+          "privacy_contact_email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Privacy Contact Email"
           }
         },
         "type": "object",
         "required": [
           "terms",
-          "privacy_notice"
+          "privacy_notice",
+          "privacy_contact_email"
         ],
         "title": "LegalVersionsResponse"
       },
@@ -2802,6 +2873,69 @@
         ],
         "title": "PasswordRequest",
         "description": "A senha só entra por este pedido ou pelo formulário. Não vai para o modelo."
+      },
+      "PrivacyRequestCreate": {
+        "properties": {
+          "contact_email": {
+            "type": "string",
+            "maxLength": 320,
+            "title": "Contact Email"
+          },
+          "request_type": {
+            "type": "string",
+            "maxLength": 40,
+            "title": "Request Type"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 4000,
+            "title": "Description"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "contact_email",
+          "request_type",
+          "description"
+        ],
+        "title": "PrivacyRequestCreate"
+      },
+      "PrivacyRequestResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "request_type": {
+            "type": "string",
+            "title": "Request Type"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "received_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Received At"
+          },
+          "due_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Due At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "request_type",
+          "status",
+          "received_at",
+          "due_at"
+        ],
+        "title": "PrivacyRequestResponse"
       },
       "ProfilePatchRequest": {
         "properties": {
