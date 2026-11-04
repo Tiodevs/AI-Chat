@@ -1,5 +1,6 @@
 """Pipeline de perguntas com guardas. Passos 1 a 7 da seção 7.1 do SDD."""
 
+import time
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import Literal, Protocol
@@ -9,6 +10,14 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from app import __version__
 from app.adapters.gemini_embedding import EmbeddingRequestError
+from app.core.metrics import (
+    LLM_DURATION,
+    LLM_TOKENS,
+    QA_FIRST_TOKEN,
+    QA_OUTCOMES,
+    QA_TOP_SIMILARITY,
+)
+from app.core.telemetry import traced_span
 from app.domain.embedding_text import query_embedding_text
 from app.domain.errors import CircuitOpen, ProviderUnavailable
 from app.domain.grounding import Citation, ContextBlock, check_grounding
@@ -160,6 +169,7 @@ class QaWorkflow:
             )
         finally:
             if observed.result is not None:
+                _count_outcome(observed.result, self._chat.model_name)
                 self._record(
                     observed,
                     rewrite_tokens=(rewrite.input_tokens, rewrite.output_tokens),
@@ -180,11 +190,20 @@ class QaWorkflow:
         rewrite: RunContext,
     ) -> QaResult:
         try:
-            classification = await self._chat.complete_structured(
-                _rewrite_messages(question, history, visitor_type),
-                QuestionClassification,
-                rewrite,
-            )
+            with traced_span(
+                "qa.rewrite",
+                run_id=active_run_id,
+                model=self._chat.model_name,
+                prompt_version=REWRITE_PROMPT_VERSION,
+            ) as rewrite_span:
+                started = time.perf_counter()
+                classification = await self._chat.complete_structured(
+                    _rewrite_messages(question, history, visitor_type),
+                    QuestionClassification,
+                    rewrite,
+                )
+                LLM_DURATION.labels(operation="rewrite").observe(time.perf_counter() - started)
+                rewrite_span.set(intent=classification.intent)
         except CircuitOpen:
             return _keep(observed, _failed(Outcome.DEGRADED, active_run_id, _tokens(rewrite)))
         except ProviderUnavailable:
@@ -215,8 +234,19 @@ class QaWorkflow:
             )
 
         try:
-            vector = await self._embeddings.embed_query(query_embedding_text(standalone))
-            hits = await self._search.search_by_vector(standalone, vector)
+            with traced_span(
+                "qa.embed_query",
+                run_id=active_run_id,
+                model=self._embeddings.model_name,
+                dimensions=self._embeddings.dimensions,
+            ):
+                vector = await self._embeddings.embed_query(query_embedding_text(standalone))
+            with traced_span("qa.retrieve", run_id=active_run_id) as retrieve_span:
+                hits = await self._search.search_by_vector(standalone, vector)
+                top = max((hit.similarity for hit in hits), default=None)
+                retrieve_span.set(candidate_count=len(hits), top_similarity=top)
+                if top is not None:
+                    QA_TOP_SIMILARITY.observe(top)
         except EmbeddingRequestError:
             return _keep(
                 observed,
@@ -258,13 +288,29 @@ class QaWorkflow:
         )
         parts: list[str] = []
         try:
-            async for token in self._chat.stream(
-                _generate_messages(question, history, blocks),
-                generate,
-            ):
-                if events is not None:
-                    await events.token(token)
-                parts.append(token)
+            with traced_span(
+                "qa.generate",
+                run_id=active_run_id,
+                model=self._chat.model_name,
+                prompt_version=GENERATE_PROMPT_VERSION,
+            ) as generate_span:
+                started = time.perf_counter()
+                try:
+                    async for token in self._chat.stream(
+                        _generate_messages(question, history, blocks),
+                        generate,
+                    ):
+                        if not parts:
+                            QA_FIRST_TOKEN.observe(time.perf_counter() - started)
+                        if events is not None:
+                            await events.token(token)
+                        parts.append(token)
+                finally:
+                    LLM_DURATION.labels(operation="generate").observe(time.perf_counter() - started)
+                    generate_span.set(
+                        input_tokens=generate.input_tokens,
+                        output_tokens=generate.output_tokens,
+                    )
         except CircuitOpen:
             return _keep(
                 observed,
@@ -294,7 +340,9 @@ class QaWorkflow:
                 ),
             )
 
-        decision = check_grounding("".join(parts), blocks)
+        with traced_span("qa.ground", run_id=active_run_id) as ground_span:
+            decision = check_grounding("".join(parts), blocks)
+            ground_span.set(outcome="grounded" if decision.grounded else "grounding_failed")
         usage = _tokens(rewrite, generate)
         if not decision.grounded:
             return _keep(
@@ -413,6 +461,12 @@ def _generate_messages(
 
 def _history(history: Sequence[ConversationTurn]) -> list[Message]:
     return [Message(role=turn.role, content=turn.content) for turn in history]
+
+
+def _count_outcome(result: QaResult, model: str) -> None:
+    QA_OUTCOMES.labels(outcome=result.outcome.value).inc()
+    LLM_TOKENS.labels(model=model, direction="input").inc(result.input_tokens)
+    LLM_TOKENS.labels(model=model, direction="output").inc(result.output_tokens)
 
 
 def _keep(observed: _Observed, result: QaResult) -> QaResult:

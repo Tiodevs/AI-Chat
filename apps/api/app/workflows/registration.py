@@ -8,6 +8,8 @@ from uuid import UUID, uuid4
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.core.metrics import REGISTRATION_EVENTS
+from app.core.telemetry import traced_span
 from app.domain.errors import ProviderUnavailable
 from app.domain.fields import (
     SET_FIELDS_TOOL_NAME,
@@ -114,9 +116,13 @@ class RegistrationWorkflow:
         if not isinstance(updated, Machine):
             raise ProviderUnavailable(REGISTRATION_UNAVAILABLE)
         prompt = raw.get("prompt")
-        text = prompt if isinstance(prompt, str) and prompt else prompt_for(
-            updated.next_step.value,
-            correcting=updated.correcting,
+        text = (
+            prompt
+            if isinstance(prompt, str) and prompt
+            else prompt_for(
+                updated.next_step.value,
+                correcting=updated.correcting,
+            )
         )
         accepted = raw.get("accepted_names")
         if isinstance(accepted, list):
@@ -154,17 +160,20 @@ class RegistrationWorkflow:
             temperature=EXTRACT_TEMPERATURE,
         )
         user_text = state.get("user_text", "")
-        result = await self._chat.complete_with_tools(
-            [
-                Message(
-                    role="system",
-                    content=f"{EXTRACT_INSTRUCTIONS}\nPasso atual: {machine.next_step.value}.",
-                ),
-                Message(role="user", content=user_text if isinstance(user_text, str) else ""),
-            ],
-            [_set_fields_tool()],
-            run,
-        )
+        with traced_span(
+            "registration.extract", run_id=run.run_id, model=self._chat.model_name
+        ) as extract_span:
+            result = await self._chat.complete_with_tools(
+                [
+                    Message(
+                        role="system",
+                        content=f"{EXTRACT_INSTRUCTIONS}\nPasso atual: {machine.next_step.value}.",
+                    ),
+                    Message(role="user", content=user_text if isinstance(user_text, str) else ""),
+                ],
+                [_set_fields_tool()],
+                run,
+            )
         read = (
             read_tool_arguments(result.arguments)
             if result.name == SET_FIELDS_TOOL_NAME
@@ -172,6 +181,9 @@ class RegistrationWorkflow:
         )
         read = await _drop_taken_email(read)
         accepted = () if read.rejected else tuple(read.values)
+        extract_span.set(field_names=tuple(str(name) for name in accepted))
+        if accepted:
+            REGISTRATION_EVENTS.labels(event="extracted", path="chat").inc()
         return {
             "machine": apply_collected(machine, read),
             "accepted_names": list(accepted),
@@ -180,7 +192,10 @@ class RegistrationWorkflow:
         }
 
     def _decide(self, state: GraphState) -> dict[str, object]:
-        return {"machine": decide_next(_machine(state))}
+        with traced_span("registration.decide") as decide_span:
+            decided = decide_next(_machine(state))
+            decide_span.set(next_step=decided.next_step.value)
+        return {"machine": decided}
 
     async def _phrase(self, state: GraphState) -> dict[str, object]:
         machine = _machine(state)

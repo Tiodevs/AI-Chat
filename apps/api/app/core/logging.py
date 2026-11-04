@@ -7,6 +7,7 @@ import structlog
 from structlog.typing import EventDict, WrappedLogger
 
 from app import __version__
+from app.core.telemetry import span_ids
 
 _DENIED_KEYS = frozenset(
     {
@@ -107,11 +108,12 @@ def log_http_request(
     status_code: int,
     duration_ms: int,
 ) -> None:
+    trace_id, span_id = span_ids()
     structlog.get_logger("atrium").info(
         "http.request",
         request_id=request_id,
-        trace_id=None,
-        span_id=None,
+        trace_id=trace_id,
+        span_id=span_id,
         route=route,
         status_code=status_code,
         duration_ms=duration_ms,

@@ -2,6 +2,7 @@
 
 import structlog
 
+from app.core.metrics import LLM_BUDGET_RATIO
 from app.db.session import open_session
 from app.db.unit_of_work import UnitOfWork
 from app.domain.budget import BudgetLevel, budget_level, usage_day
@@ -20,7 +21,9 @@ class PostgresTokenBudget:
             return False
         incoming, outgoing = await self._totals()
         level = budget_level(incoming, outgoing, self._daily_budget)
-        log_budget(level, (incoming + outgoing) / self._daily_budget)
+        ratio = (incoming + outgoing) / self._daily_budget
+        LLM_BUDGET_RATIO.set(ratio)
+        log_budget(level, ratio)
         return level is BudgetLevel.EXCEEDED
 
     async def record(self, input_tokens: int, output_tokens: int) -> None:

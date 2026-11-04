@@ -9,6 +9,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.adapters.session_secret import new_session_secret
+from app.core.metrics import REGISTRATION_EVENTS
 from app.db.session import open_session
 from app.db.unit_of_work import UnitOfWork
 from app.domain.auth import (
@@ -156,6 +157,7 @@ class RegistrationService:
                 user_id=None,
                 expires_at=registration_deadline(now),
             )
+        REGISTRATION_EVENTS.labels(event="started", path=Path.CHAT.value).inc()
         return _view(record, machine, GREETING)
 
     async def get(self, session_id: UUID) -> SessionView:
@@ -221,6 +223,7 @@ class RegistrationService:
         updated = mark_password_set(machine)
         if updated is None:
             raise ValidationFailed(WRONG_STEP)
+        REGISTRATION_EVENTS.labels(event="password_set", path=record.path).inc()
         prompt = prompt_for(updated.next_step.value, correcting=False)
         now = self._clock.now()
         transcript = (
@@ -723,6 +726,7 @@ def _machine(record: RegistrationRecord) -> Machine:
 
 
 def _completed(record: RegistrationRecord, draft: MemberDraft, user_id: UUID) -> RegistrationRecord:
+    REGISTRATION_EVENTS.labels(event="completed", path=record.path).inc()
     return replace(
         record,
         status=Status.COMPLETED.value,
@@ -734,6 +738,7 @@ def _completed(record: RegistrationRecord, draft: MemberDraft, user_id: UUID) ->
 
 
 def _abandoned(record: RegistrationRecord) -> RegistrationRecord:
+    REGISTRATION_EVENTS.labels(event="abandoned", path=record.path).inc()
     return replace(record, status=Status.ABANDONED.value, password_hash=None, transcript=[])
 
 

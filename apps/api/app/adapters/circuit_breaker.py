@@ -2,6 +2,7 @@
 
 from datetime import datetime, timedelta
 
+from app.core.metrics import LLM_CIRCUIT_OPEN
 from app.ports.clock import Clock
 
 FAILURE_LIMIT = 5
@@ -27,14 +28,17 @@ class CircuitBreaker:
             return True
         if self._clock.now() >= self._open_until:
             self._open_until = None
+            LLM_CIRCUIT_OPEN.set(0)
             return True
         return False
 
     def record_success(self) -> None:
         self._consecutive_failures = 0
         self._open_until = None
+        LLM_CIRCUIT_OPEN.set(0)
 
     def record_failure(self) -> None:
         self._consecutive_failures += 1
         if self._consecutive_failures >= self._failure_limit:
             self._open_until = self._clock.now() + timedelta(seconds=self._open_seconds)
+            LLM_CIRCUIT_OPEN.set(1)

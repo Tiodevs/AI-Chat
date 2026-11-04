@@ -15,6 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app import __version__
 from app.adapters.noop_feedback import NoopFeedbackSink
 from app.adapters.session_secret import new_session_secret
+from app.core.metrics import FEEDBACK
 from app.core.sse import (
     DISCONNECTED,
     KEEPALIVE,
@@ -304,6 +305,7 @@ class ConversationService:
                 run_id = message.langsmith_run_id
         except IntegrityError:
             raise Conflict(DUPLICATE_FEEDBACK) from None
+        FEEDBACK.labels(rating="helpful" if rating == 1 else "not_helpful").inc()
         if run_id is None:
             return None
         return FeedbackNotice(run_id=run_id, score=user_helpful_score(rating))
