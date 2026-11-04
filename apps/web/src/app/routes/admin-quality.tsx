@@ -1,6 +1,7 @@
-import { PageHeading } from "@/app/page-heading.tsx"
-import { pt } from "@/i18n/pt.ts"
+import { QualityScreen } from "@/features/admin/quality-screen.tsx"
+import { useQuality } from "@/features/admin/useInsights.ts"
 
 export function Component() {
-  return <PageHeading title={pt.pages.quality} />
+  const model = useQuality()
+  return <QualityScreen {...model} />
 }

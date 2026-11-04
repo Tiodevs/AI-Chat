@@ -1,6 +1,7 @@
-import { PageHeading } from "@/app/page-heading.tsx"
-import { pt } from "@/i18n/pt.ts"
+import { OverviewScreen } from "@/features/admin/overview-screen.tsx"
+import { useOverview } from "@/features/admin/useInsights.ts"
 
 export function Component() {
-  return <PageHeading title={pt.pages.admin} />
+  const model = useOverview()
+  return <OverviewScreen {...model} />
 }
