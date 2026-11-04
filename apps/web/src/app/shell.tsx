@@ -12,6 +12,7 @@ import {
 import { GuestHeader } from "@/components/patterns/guest-header.tsx"
 import { SearchDialog } from "@/components/patterns/search-dialog.tsx"
 import { meQuery } from "@/features/auth/useSession.ts"
+import { useSignOut } from "@/features/auth/useSignOut.ts"
 import { pt } from "@/i18n/pt.ts"
 import { useGSAP } from "@/motion/gsap.ts"
 import { useMotion } from "@/motion/MotionProvider.tsx"
@@ -71,6 +72,17 @@ export function AppShell() {
   const viewer = viewerOf(me.data?.role)
   const guest = !me.isPending && viewer === "guest"
   const showSidebar = !me.isPending && !guest
+  const signOut = useSignOut()
+  const account = me.data
+    ? {
+        name: me.data.full_name.split(" ")[0] || me.data.full_name,
+        onSignOut: () => {
+          void signOut.signOut()
+        },
+        signingOut: signOut.pending,
+        signOutError: signOut.error,
+      }
+    : undefined
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -100,6 +112,7 @@ export function AppShell() {
       {showSidebar && !isMobile ? (
         <AppSidebar
           viewer={viewer}
+          account={account}
           collapsed={collapsed}
           onSearch={() => {
             setSearchOpen(true)
@@ -114,6 +127,7 @@ export function AppShell() {
         {showSidebar && isMobile ? (
           <MobileSidebar
             viewer={viewer}
+            account={account}
             open={mobileOpen}
             onOpenChange={(open) => {
               setMenuPath(open ? pathname : null)

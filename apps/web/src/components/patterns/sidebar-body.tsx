@@ -1,7 +1,10 @@
 import { PanelLeftClose, PanelLeftOpen, Search } from "lucide-react"
 import { NavLink } from "react-router"
 
-import { ProfileButton } from "@/components/patterns/profile-button.tsx"
+import {
+  ProfileButton,
+  type ProfileAccount,
+} from "@/components/patterns/profile-button.tsx"
 import { SidebarNoticeCard } from "@/components/patterns/sidebar-notice-card.tsx"
 import { Button } from "@/components/ui/button.tsx"
 import { Separator } from "@/components/ui/separator.tsx"
@@ -75,6 +78,7 @@ export function SidebarBody({
   onToggle,
   showCollapse = false,
   viewer = "admin",
+  account,
 }: {
   collapsed: boolean
   onSearch: () => void
@@ -82,6 +86,7 @@ export function SidebarBody({
   onToggle?: () => void
   showCollapse?: boolean
   viewer?: Viewer
+  account?: ProfileAccount
 }) {
   return (
     <div
@@ -216,7 +221,7 @@ export function SidebarBody({
             <SidebarNoticeCard />
           </div>
         </div>
-        <ProfileButton collapsed={collapsed} />
+        <ProfileButton collapsed={collapsed} {...account} />
       </div>
     </div>
   )
