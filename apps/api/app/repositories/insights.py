@@ -124,10 +124,10 @@ class InsightsRepository:
                 "count(*) FILTER (WHERE password_hash IS NOT NULL OR status = 'completed'), "
                 "count(*) FILTER (WHERE status = 'completed') "
                 "FROM registration_sessions "
-                "WHERE expires_at - :ttl >= :start AND expires_at - :ttl < :end "
+                "WHERE expires_at >= :start AND expires_at < :end "
                 "GROUP BY path"
             ),
-            {"start": window.start, "end": window.end, "ttl": REGISTRATION_TTL},
+            {"start": window.start + REGISTRATION_TTL, "end": window.end + REGISTRATION_TTL},
         )
         steps: dict[str, dict[str, int]] = {
             step.value: {"chat": 0, "form": 0} for step in FunnelStep
