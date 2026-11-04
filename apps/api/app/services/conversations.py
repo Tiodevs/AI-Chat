@@ -606,6 +606,7 @@ class _AskStream:
                         outcome=None,
                         langsmith_run_id=None,
                         created_at=created_at,
+                        request_id=self._prepared.request_id,
                     )
             except IntegrityError:
                 existing = await self._existing_user_message()
@@ -677,6 +678,7 @@ class _AskStream:
                     outcome=outcome,
                     langsmith_run_id=self._prepared.assistant_message_id,
                     created_at=created_at,
+                    request_id=self._prepared.request_id,
                 )
         except IntegrityError:
             return
