@@ -9,7 +9,9 @@ from uuid import UUID
 _PHONE_RE = re.compile(
     r"(?<!\w)(?:\(\d{3}\)\s*\d{3}-\d{4}|\+\d[\d\s().-]{7,}\d|\d{3}[-.\s]\d{3}[-.\s]\d{4})(?!\w)"
 )
-_CITATION_RE = re.compile(r"\[(\d+)\]")
+# Aceita [2] e também o grupo [2, 3] ou [2; 3], que o modelo às vezes escreve.
+_CITATION_RE = re.compile(r"\[(\d+(?:\s*[,;]\s*\d+)*)\]")
+_CITATION_SPLIT_RE = re.compile(r"\s*[,;]\s*")
 
 
 @dataclass(frozen=True, slots=True)
@@ -55,19 +57,20 @@ def _citations(draft: str, blocks: Sequence[ContextBlock]) -> list[Citation]:
     found: list[Citation] = []
     seen: set[int] = set()
     for match in _CITATION_RE.finditer(draft):
-        index = int(match.group(1))
-        block = by_index.get(index)
-        if block is None or index in seen:
-            continue
-        seen.add(index)
-        found.append(
-            Citation(
-                index=index,
-                document_title=block.document_title,
-                heading=block.heading,
-                chunk_id=block.chunk_id,
+        for raw in _CITATION_SPLIT_RE.split(match.group(1)):
+            index = int(raw)
+            block = by_index.get(index)
+            if block is None or index in seen:
+                continue
+            seen.add(index)
+            found.append(
+                Citation(
+                    index=index,
+                    document_title=block.document_title,
+                    heading=block.heading,
+                    chunk_id=block.chunk_id,
+                )
             )
-        )
     return found
 
 

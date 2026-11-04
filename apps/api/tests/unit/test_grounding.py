@@ -68,6 +68,15 @@ def test_repeated_citation_is_kept_once() -> None:
     assert [citation.index for citation in decision.citations] == [1]
 
 
+def test_grouped_citation_counts_each_index() -> None:
+    decision = check_grounding(
+        "Fica no lado oeste [1, 2]. Também [1;2] e [2,9].",
+        (_block("Lado oeste."), _block("Harbor Street.", index=2, title="Acesso")),
+    )
+    assert decision.grounded is True
+    assert [citation.index for citation in decision.citations] == [1, 2]
+
+
 def _block(content: str, *, index: int = 1, title: str = "Visitas") -> ContextBlock:
     return ContextBlock(
         index=index,
