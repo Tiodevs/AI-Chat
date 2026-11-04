@@ -5,7 +5,6 @@ from datetime import datetime
 
 import structlog
 
-from app.core.metrics import RETENTION_DELETED
 from app.core.telemetry import traced_span
 from app.db.session import open_session
 from app.db.unit_of_work import UnitOfWork
@@ -39,9 +38,10 @@ class RetentionService:
         now = self._clock.now()
         with traced_span("retention.run", rule=rule.value) as span:
             async with open_session(self._database_url) as session, UnitOfWork(session):
-                deleted = await step(RetentionRepository(session), cutoff(rule, now))
+                repository = RetentionRepository(session)
+                deleted = await step(repository, cutoff(rule, now))
+                await repository.record_run(rule.value, deleted, now)
             span.set(deleted_count=deleted)
-        RETENTION_DELETED.labels(rule=rule.value).inc(deleted)
         structlog.get_logger("atrium").info("retention.run", rule=rule.value, deleted_count=deleted)
         return RetentionResult(rule=rule, deleted_count=deleted)
 

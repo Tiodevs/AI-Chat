@@ -13,12 +13,16 @@ from app.models.guest_key import GuestKey
 from app.models.message import Message
 from app.models.rate_limit_window import RateLimitWindow
 from app.models.registration_session import RegistrationSession
+from app.models.retention_run import RetentionRun
 from app.models.user import User
 
 
 class RetentionRepository:
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
+
+    async def record_run(self, rule: str, deleted_count: int, ran_at: datetime) -> None:
+        self._session.add(RetentionRun(rule=rule, deleted_count=deleted_count, ran_at=ran_at))
 
     async def delete_inactive_accounts(self, cutoff: datetime) -> int:
         """Membros sem entrar desde o corte. Admins ficam de fora (seção 10.5)."""
