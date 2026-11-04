@@ -816,7 +816,7 @@ A IA atualiza esta tabela em cada PR.
 | 6.1 | Página da conta | Aprovada |
 | 6.2 | Canal do titular, retenção e documentos de privacidade | Aprovada |
 | 7.1 | Gestão de documentos | Em revisão |
-| 7.2 | Visão geral e qualidade | Pendente |
+| 7.2 | Visão geral e qualidade | Em revisão |
 | 7.3 | Fila de pedidos de titular | Pendente |
 | 8.1 | Rastros de sistema e métricas | Em revisão |
 | 8.2 | Painéis, alertas e fila de anotação | Em revisão |

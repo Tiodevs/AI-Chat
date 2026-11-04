@@ -354,13 +354,15 @@ A tela que segue mais de perto a imagem de referência.
 - `GroupedBarCard` "Funil de cadastro" com chat contra formulário por etapa.
 - Card de orçamento diário de tokens com `Progress`, em `--warning` acima de 80%.
 
+A taxa de abstenção soma `abstained` e `grounding_failed`. A intenção é derivada do desfecho gravado: `refused` é orientação médica, `off_topic` é fora do tema e o resto é informação pública. O funil conta as sessões de cadastro que começaram no período, pela validade de 24 horas. Os gráficos ficam escondidos de leitores de tela, que leem uma tabela equivalente. O seletor de período, 7 ou 30 dias, vale para a tela toda.
+
 #### Documentos `/admin/documents`
 
 `DataTable` com título, versão ativa, status e data. `FileDropzone` no topo, com o título opcional e o aviso de tipo e tamanho antes do envio. Linhas em processamento mostram `Badge` em `--info` e avisam que a versão ativa continua respondendo, e a lista é relida a cada 2 segundos enquanto houver uma. Prontas usam `--success` e arquivadas a superfície neutra, sem ações. Falhas mostram o erro em `--danger` e a ação Tentar de novo. Substituir abre um `Sheet` com título e fica desabilitado durante o processamento. Arquivar pede confirmação num `AlertDialog`. O resultado de cada ação é anunciado numa região `aria-live`.
 
 #### Qualidade `/admin/quality`
 
-`DataTable` de conversas filtrável por desfecho, feedback e período, com identidade pseudonimizada. A linha abre um `Sheet` inspetor com as mensagens, a versão do prompt, o `request_id`, o link para o rastro no LangSmith e a ação Revelar identidade, que pede um motivo.
+`SegmentedStatusCard` de desfechos e feedback no topo. `DataTable` de conversas filtrável por desfecho, feedback e período, com `PseudonymBadge`. A ação Abrir conversa abre um `Sheet` inspetor com as mensagens, o desfecho, as fontes, a versão do prompt, a latência, o `request_id`, o link para o rastro no LangSmith e, só para membros, a ação Revelar identidade, que pede um motivo de 10 a 500 caracteres antes de chamar a API. Sem `LANGSMITH_RUN_URL_TEMPLATE`, o inspetor mostra o id do rastro no lugar do link.
 
 #### Pedidos de titular `/admin/privacy`
 

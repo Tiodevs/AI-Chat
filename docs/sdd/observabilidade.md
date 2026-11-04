@@ -45,7 +45,7 @@ class FeedbackSink(Protocol):
 
 A configuração é lida uma vez com Pydantic Settings:
 
-`APP_ENV` (`local`, `test`, `development`, `production`), `DATABASE_URL`, `GEMINI_API_KEY`, `CHAT_MODEL`, `EMBEDDING_MODEL`, `EMBEDDING_DIMENSIONS`, `APP_AI_ADAPTER`, `WEB_ORIGIN`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `RETRIEVAL_MIN_SIMILARITY`, `LLM_DAILY_TOKEN_BUDGET`, `METRICS_TOKEN`, `RATE_LIMIT_HMAC_KEY`, `PSEUDONYM_KEY`, `PRIVACY_CONTACT_EMAIL`, `LOG_LEVEL`, `LANGSMITH_TRACING`, `LANGSMITH_API_KEY`, `LANGSMITH_PROJECT`, `LANGSMITH_ENDPOINT`, `LANGSMITH_WORKSPACE_ID`, `LANGSMITH_TRACING_SAMPLING_RATE`. `LANGSMITH_WORKSPACE_ID` fica vazio para uma chave já limitada a um workspace. Uma chave de organização precisa dele.
+`APP_ENV` (`local`, `test`, `development`, `production`), `DATABASE_URL`, `GEMINI_API_KEY`, `CHAT_MODEL`, `EMBEDDING_MODEL`, `EMBEDDING_DIMENSIONS`, `APP_AI_ADAPTER`, `WEB_ORIGIN`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `RETRIEVAL_MIN_SIMILARITY`, `LLM_DAILY_TOKEN_BUDGET`, `METRICS_TOKEN`, `RATE_LIMIT_HMAC_KEY`, `PSEUDONYM_KEY`, `PRIVACY_CONTACT_EMAIL`, `LOG_LEVEL`, `LANGSMITH_TRACING`, `LANGSMITH_API_KEY`, `LANGSMITH_PROJECT`, `LANGSMITH_ENDPOINT`, `LANGSMITH_WORKSPACE_ID`, `LANGSMITH_TRACING_SAMPLING_RATE`, `LANGSMITH_RUN_URL_TEMPLATE`. `LANGSMITH_WORKSPACE_ID` fica vazio para uma chave já limitada a um workspace. Uma chave de organização precisa dele. `LANGSMITH_RUN_URL_TEMPLATE` é a URL de um run no LangSmith com `{run_id}` no lugar do id; o inspetor de qualidade monta o link do rastro com ela e, vazia, mostra só o id.
 
 A `DATABASE_URL` da Railway usa o esquema `postgresql://`. A configuração a reescreve para `postgresql+asyncpg://`. A API usa sessões assíncronas do SQLAlchemy 2 e asyncpg.
 
@@ -152,6 +152,7 @@ A página de qualidade do admin usa agregados do banco, não o Prometheus, para 
 | `LANGSMITH_TRACING` | `false`, opcional `true` | `false` | `true` | `true` |
 | `LANGSMITH_PROJECT` | `atrium-dev` | sem uso | `atrium-dev` | `atrium-prod` |
 | `LANGSMITH_TRACING_SAMPLING_RATE` | `1.0` | sem uso | `1.0` | `1.0` na versão 1 |
+| `LANGSMITH_RUN_URL_TEMPLATE` | Opcional | sem uso | URL do projeto `atrium-dev` com `{run_id}` | URL do projeto `atrium-prod` com `{run_id}` |
 | `LANGSMITH_ENDPOINT` | Estados Unidos | sem uso | Estados Unidos | Estados Unidos |
 
 A região é a dos Estados Unidos, decisão D-2. `LANGSMITH_ENDPOINT` usa o endpoint padrão dessa região.
