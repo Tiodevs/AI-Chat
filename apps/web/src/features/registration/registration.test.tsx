@@ -312,7 +312,7 @@ describe("telas do cadastro", () => {
     ).toBeInTheDocument()
   })
 
-  it("com o modelo indisponível, o chat abre o formulário", async () => {
+  it("com o modelo indisponível, o chat avisa e não sai da tela", async () => {
     const user = userEvent.setup()
     vi.stubGlobal(
       "fetch",
@@ -361,18 +361,25 @@ describe("telas do cadastro", () => {
       })
     )
     const { router } = renderAt("/register")
-    await user.type(
-      await screen.findByLabelText(pt.registration.messageLabel),
-      "Ana"
-    )
+    const field = await screen.findByLabelText(pt.registration.messageLabel)
+    await user.type(field, "Ana")
     await user.click(screen.getByRole("button", { name: pt.registration.send }))
+    const alert = await screen.findByRole("alert")
     expect(
-      await screen.findByRole("heading", { name: pt.pages.registerForm })
+      within(alert).getByText(pt.registration.unavailable)
     ).toBeInTheDocument()
-    expect(router.state.location.pathname).toBe("/register/form")
-    expect(router.state.location.search).toContain("unavailable=1")
-    expect(router.state.location.search).toContain(`session=${sessionId}`)
-    expect(screen.getByText(pt.registration.unavailable)).toBeInTheDocument()
+    expect(router.state.location.pathname).toBe("/register")
+    expect(field).toHaveValue("Ana")
+    expect(
+      within(alert).getByRole("button", { name: pt.registration.retry })
+    ).toBeInTheDocument()
+    expect(
+      within(alert).getByRole("link", { name: pt.registration.useForm })
+    ).toHaveAttribute("href", `/register/form?session=${sessionId}`)
+    await user.click(
+      within(alert).getByRole("button", { name: pt.registration.dismiss })
+    )
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument()
   })
 
   it("o foco chega à senha com movimento reduzido", async () => {

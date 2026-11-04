@@ -218,7 +218,15 @@ export const pt = {
       "Só guardamos tipo de visitante e motivo da visita se a personalização estiver aceita.",
     termsRequired: "Aceite os Termos e o Aviso de Privacidade para continuar.",
     ageRequired: "Confirme que você tem 18 anos ou mais para continuar.",
-    unavailable: "O cadastro por conversa está indisponível. Use o formulário.",
+    unavailable:
+      "O assistente do cadastro está indisponível agora. Tente de novo em instantes ou use o formulário.",
+    unavailableForm:
+      "O cadastro por conversa está indisponível. Use o formulário.",
+    assistantName: "Assistente do Atrium",
+    typing: "O assistente está escrevendo",
+    errorTitle: "Não deu para enviar",
+    retry: "Tentar de novo",
+    dismiss: "Fechar aviso",
     sessionMissing: "Não encontrei este cadastro. Você pode preencher do zero.",
     thread: "Conversa do cadastro",
     fields: {

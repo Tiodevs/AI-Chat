@@ -1,12 +1,14 @@
-import { useId, useState, type ReactNode } from "react"
+import { SendHorizontal } from "lucide-react"
+import { useEffect, useId, useRef, useState, type ReactNode } from "react"
 import { Link } from "react-router"
 
 import { PageHeading } from "@/app/page-heading.tsx"
+import { AssistantBubble } from "@/components/patterns/assistant-bubble.tsx"
+import { ChatErrorNotice } from "@/components/patterns/chat-error-notice.tsx"
 import { ConsentFieldSet } from "@/components/patterns/consent-field-set.tsx"
 import { PasswordCard } from "@/components/patterns/password-card.tsx"
 import { ProfileSummaryCard } from "@/components/patterns/profile-summary-card.tsx"
 import { RegistrationStepper } from "@/components/patterns/registration-stepper.tsx"
-import { RequestIdCopy } from "@/components/patterns/request-id-copy.tsx"
 import { UserMessage } from "@/components/patterns/user-message.tsx"
 import { Button } from "@/components/ui/button.tsx"
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field.tsx"
@@ -33,8 +35,9 @@ export function RegistrationScreen({
   session,
   loading,
   pending,
-  error,
-  requestId,
+  notice,
+  outgoing,
+  dismissNotice,
   actionErrors,
   send,
   skip,
@@ -44,6 +47,7 @@ export function RegistrationScreen({
   accept,
 }: Chat) {
   const { isDesktop } = useMotion()
+  const [draft, setDraft] = useState("")
   const phase = phaseForStep(session?.next_step ?? "full_name")
   const summary = session ? (
     <ProfileSummaryCard
@@ -56,21 +60,30 @@ export function RegistrationScreen({
     <SummarySkeleton />
   )
 
+  async function sendDraft(text: string) {
+    const sent = await send(text)
+    if (sent) {
+      setDraft("")
+    }
+  }
+
+  const retryText = notice?.retryText ?? null
+
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
+    <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6">
       <PageHeading title={pt.pages.register} />
       <p className="max-w-[760px] text-body text-foreground">
         {pt.registration.lead}
       </p>
-      <div className="sticky top-0 z-10 flex justify-end bg-background py-2">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <RegistrationStepper phase={phase} />
         <Button asChild variant="link" className="h-11 px-0 md:h-8">
           <Link to={formPath(session?.id ?? null)}>
             {pt.registration.useForm}
           </Link>
         </Button>
       </div>
-      <RegistrationStepper phase={phase} />
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
+      <div className="flex flex-1 flex-col gap-4 lg:flex-row lg:items-start">
         {isDesktop ? null : (
           <MobileSummary
             count={filledFieldCount(session?.fields ?? emptySummaryFields())}
@@ -78,29 +91,63 @@ export function RegistrationScreen({
             {summary}
           </MobileSummary>
         )}
-        <div className="flex min-w-0 flex-1 flex-col gap-4">
-          {loading ? <TranscriptSkeleton /> : null}
-          {session ? <Transcript session={session} /> : null}
-          {error ? (
-            <p role="alert" className="text-body text-danger">
-              {error}
-            </p>
-          ) : null}
-          {requestId ? <RequestIdCopy requestId={requestId} /> : null}
+        <section
+          aria-label={pt.registration.thread}
+          className="flex min-w-0 flex-1 flex-col rounded-2xl border border-border bg-shell"
+        >
+          <div className="flex flex-1 flex-col gap-4 p-4 md:p-5">
+            {loading ? <AssistantBubble typing /> : null}
+            {session ? (
+              <Transcript
+                session={session}
+                outgoing={outgoing}
+                typing={pending && outgoing !== null}
+              />
+            ) : null}
+            {notice ? (
+              <ChatErrorNotice
+                title={pt.registration.errorTitle}
+                message={notice.message}
+                requestId={notice.requestId}
+                onDismiss={session ? dismissNotice : undefined}
+                onRetry={
+                  retryText && !pending
+                    ? () => {
+                        void sendDraft(retryText)
+                      }
+                    : undefined
+                }
+              >
+                {notice.unavailable || !session ? (
+                  <Button asChild variant="link" className="h-11 px-0 md:h-8">
+                    <Link to={formPath(session?.id ?? null)}>
+                      {pt.registration.useForm}
+                    </Link>
+                  </Button>
+                ) : null}
+              </ChatErrorNotice>
+            ) : null}
+          </div>
           {session ? (
-            <StepPanel
-              session={session}
-              pending={pending}
-              actionErrors={actionErrors}
-              send={send}
-              skip={skip}
-              setPassword={setPassword}
-              review={review}
-              accept={accept}
-            />
+            <div className="sticky bottom-0 z-10 rounded-b-2xl border-t border-border bg-shell p-4 md:p-5">
+              <StepPanel
+                session={session}
+                pending={pending}
+                draft={draft}
+                onDraftChange={setDraft}
+                actionErrors={actionErrors}
+                send={sendDraft}
+                skip={skip}
+                setPassword={setPassword}
+                review={review}
+                accept={accept}
+              />
+            </div>
           ) : null}
-        </div>
-        {isDesktop ? <div className="w-80 shrink-0">{summary}</div> : null}
+        </section>
+        {isDesktop ? (
+          <div className="sticky top-0 w-80 shrink-0">{summary}</div>
+        ) : null}
       </div>
     </div>
   )
@@ -123,7 +170,7 @@ function MobileSummary({
   count: number
   children: ReactNode
 }) {
-  const [open, setOpen] = useState(true)
+  const [open, setOpen] = useState(false)
   const panelId = useId()
   return (
     <div className="flex flex-col gap-2">
@@ -142,19 +189,34 @@ function MobileSummary({
   )
 }
 
-function Transcript({ session }: { session: RegistrationSession }) {
+function Transcript({
+  session,
+  outgoing,
+  typing,
+}: {
+  session: RegistrationSession
+  outgoing: string | null
+  typing: boolean
+}) {
+  const endRef = useRef<HTMLDivElement>(null)
   const latest = [...session.messages]
     .reverse()
     .find((message) => message.role === "assistant")
+  const count = session.messages.length
+
+  useEffect(() => {
+    endRef.current?.scrollIntoView?.({ block: "end", behavior: "smooth" })
+  }, [count, typing])
+
   return (
-    <div className="flex flex-col gap-4" aria-label={pt.registration.thread}>
+    <div className="flex flex-col gap-4">
       <div
         role="status"
         aria-live="polite"
         aria-atomic="true"
         className="sr-only"
       >
-        {latest?.text ?? ""}
+        {typing ? pt.registration.typing : (latest?.text ?? "")}
       </div>
       <ol className="m-0 flex list-none flex-col gap-4 p-0">
         {session.messages.map((message, index) => (
@@ -162,13 +224,22 @@ function Transcript({ session }: { session: RegistrationSession }) {
             {message.role === "user" ? (
               <UserMessage text={message.text} privacy={false} />
             ) : (
-              <p className="max-w-[85%] text-message text-foreground">
-                {message.text}
-              </p>
+              <AssistantBubble text={message.text} />
             )}
           </li>
         ))}
+        {outgoing ? (
+          <li>
+            <UserMessage text={outgoing} privacy={false} />
+          </li>
+        ) : null}
+        {typing ? (
+          <li>
+            <AssistantBubble typing />
+          </li>
+        ) : null}
       </ol>
+      <div ref={endRef} />
     </div>
   )
 }
@@ -176,6 +247,8 @@ function Transcript({ session }: { session: RegistrationSession }) {
 function StepPanel({
   session,
   pending,
+  draft,
+  onDraftChange,
   actionErrors,
   send,
   skip,
@@ -185,8 +258,10 @@ function StepPanel({
 }: {
   session: RegistrationSession
   pending: boolean
+  draft: string
+  onDraftChange: (value: string) => void
   actionErrors: Record<string, string>
-  send: Chat["send"]
+  send: (text: string) => Promise<void>
   skip: Chat["skip"]
   setPassword: Chat["setPassword"]
   review: Chat["review"]
@@ -215,8 +290,9 @@ function StepPanel({
   }
   return (
     <ReplyStep
-      key={session.next_step}
       pending={pending}
+      value={draft}
+      onChange={onDraftChange}
       canSkip={canSkipStep(session.next_step)}
       onSend={send}
       onSkip={() => {
@@ -228,63 +304,92 @@ function StepPanel({
 
 function ReplyStep({
   pending,
+  value,
+  onChange,
   canSkip,
   onSend,
   onSkip,
 }: {
   pending: boolean
+  value: string
+  onChange: (value: string) => void
   canSkip: boolean
-  onSend: (text: string) => Promise<boolean>
+  onSend: (text: string) => Promise<void>
   onSkip: () => void
 }) {
   const fieldId = useId()
-  const [value, setValue] = useState("")
+  const hintId = useId()
+  const fieldRef = useRef<HTMLTextAreaElement>(null)
 
-  async function submit() {
-    const text = value.trim()
-    if (!text) {
+  useEffect(() => {
+    const field = fieldRef.current
+    if (!field) {
       return
     }
-    const sent = await onSend(text)
-    if (sent) {
-      setValue("")
+    field.style.height = "auto"
+    field.style.height = `${field.scrollHeight}px`
+  }, [value])
+
+  function submit() {
+    const text = value.trim()
+    if (!text || pending) {
+      return
     }
+    void onSend(text)
   }
 
   return (
     <form
       aria-label={pt.registration.replyForm}
-      className="flex flex-col gap-3"
+      className="flex flex-col gap-2"
       onSubmit={(event) => {
         event.preventDefault()
-        void submit()
+        submit()
       }}
     >
       <Field data-disabled={pending || undefined}>
-        <FieldLabel htmlFor={fieldId}>
+        <FieldLabel htmlFor={fieldId} className="sr-only">
           {pt.registration.messageLabel}
         </FieldLabel>
-        <Textarea
-          id={fieldId}
-          value={value}
-          rows={2}
-          maxLength={1000}
-          placeholder={pt.registration.messagePlaceholder}
-          disabled={pending}
-          onChange={(event) => setValue(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === "Enter" && !event.shiftKey) {
-              event.preventDefault()
-              void submit()
-            }
-          }}
-        />
-        {canSkip ? (
-          <FieldDescription>{pt.registration.optionalHint}</FieldDescription>
-        ) : null}
+        <div className="flex items-end gap-2 rounded-2xl border border-border-strong bg-background p-2 focus-within:border-ring">
+          <Textarea
+            ref={fieldRef}
+            id={fieldId}
+            value={value}
+            rows={1}
+            maxLength={1000}
+            placeholder={pt.registration.messagePlaceholder}
+            disabled={pending}
+            aria-describedby={canSkip ? hintId : undefined}
+            className="max-h-40 min-h-11 resize-none border-0 bg-transparent shadow-none focus-visible:ring-0 md:min-h-8"
+            onChange={(event) => onChange(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && !event.shiftKey) {
+                event.preventDefault()
+                submit()
+              }
+            }}
+          />
+          <Button
+            type="submit"
+            className="min-h-11 shrink-0 md:min-h-8"
+            disabled={pending || value.trim() === ""}
+            aria-busy={pending || undefined}
+          >
+            {pending ? (
+              <Spinner aria-hidden data-icon="inline-start" />
+            ) : (
+              <SendHorizontal data-icon="inline-start" aria-hidden="true" />
+            )}
+            {pending ? pt.registration.sending : pt.registration.send}
+          </Button>
+        </div>
       </Field>
-      <div className="flex flex-wrap justify-end gap-2">
-        {canSkip ? (
+      {canSkip ? (
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <FieldDescription id={hintId}>
+            {pt.registration.optionalHint}
+          </FieldDescription>
           <Button
             type="button"
             variant="outline"
@@ -294,16 +399,8 @@ function ReplyStep({
           >
             {pt.registration.skip}
           </Button>
-        ) : null}
-        <Button
-          type="submit"
-          className="min-h-11 md:min-h-8"
-          disabled={pending || value.trim() === ""}
-        >
-          {pending ? <Spinner aria-hidden data-icon="inline-start" /> : null}
-          {pending ? pt.registration.sending : pt.registration.send}
-        </Button>
-      </div>
+        </div>
+      ) : null}
     </form>
   )
 }
@@ -425,13 +522,4 @@ function AcceptStep({
 
 function SummarySkeleton() {
   return <Skeleton className="h-40 w-full" />
-}
-
-function TranscriptSkeleton() {
-  return (
-    <div className="flex flex-col gap-3" aria-hidden="true">
-      <Skeleton className="h-6 w-2/3" />
-      <Skeleton className="h-6 w-1/2" />
-    </div>
-  )
 }
