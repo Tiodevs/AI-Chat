@@ -1,12 +1,17 @@
+import { useQuery } from "@tanstack/react-query"
 import { useEffect, useRef, useState } from "react"
 import { useLocation, useOutlet } from "react-router"
+
+import { viewerOf } from "@/app/navigation.ts"
 
 import { focusPageTitle } from "@/app/page-heading.tsx"
 import {
   AppSidebar,
   MobileSidebar,
 } from "@/components/patterns/app-sidebar.tsx"
+import { GuestHeader } from "@/components/patterns/guest-header.tsx"
 import { SearchDialog } from "@/components/patterns/search-dialog.tsx"
+import { meQuery } from "@/features/auth/useSession.ts"
 import { pt } from "@/i18n/pt.ts"
 import { useGSAP } from "@/motion/gsap.ts"
 import { useMotion } from "@/motion/MotionProvider.tsx"
@@ -62,6 +67,10 @@ export function AppShell() {
   const [menuPath, setMenuPath] = useState<string | null>(null)
   const { pathname } = useLocation()
   const mobileOpen = menuPath === pathname
+  const me = useQuery(meQuery)
+  const viewer = viewerOf(me.data?.role)
+  const guest = !me.isPending && viewer === "guest"
+  const showSidebar = !me.isPending && !guest
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -88,9 +97,23 @@ export function AppShell() {
       >
         {pt.skipToContent}
       </a>
-      {isMobile ? (
-        <div className="flex min-w-0 flex-1 flex-col">
+      {showSidebar && !isMobile ? (
+        <AppSidebar
+          viewer={viewer}
+          collapsed={collapsed}
+          onSearch={() => {
+            setSearchOpen(true)
+          }}
+          onToggleCollapsed={() => {
+            setCollapsedChoice((current) => !(current ?? !isDesktop))
+          }}
+        />
+      ) : null}
+      <div className="flex min-w-0 flex-1 flex-col">
+        {guest ? <GuestHeader compact={isMobile} /> : null}
+        {showSidebar && isMobile ? (
           <MobileSidebar
+            viewer={viewer}
             open={mobileOpen}
             onOpenChange={(open) => {
               setMenuPath(open ? pathname : null)
@@ -99,23 +122,14 @@ export function AppShell() {
               setSearchOpen(true)
             }}
           />
-          <PageMain />
-        </div>
-      ) : (
-        <>
-          <AppSidebar
-            collapsed={collapsed}
-            onSearch={() => {
-              setSearchOpen(true)
-            }}
-            onToggleCollapsed={() => {
-              setCollapsedChoice((current) => !(current ?? !isDesktop))
-            }}
-          />
-          <PageMain />
-        </>
-      )}
-      <SearchDialog open={searchOpen} onOpenChange={setSearchOpen} />
+        ) : null}
+        <PageMain />
+      </div>
+      <SearchDialog
+        open={searchOpen}
+        onOpenChange={setSearchOpen}
+        viewer={viewer}
+      />
     </div>
   )
 }

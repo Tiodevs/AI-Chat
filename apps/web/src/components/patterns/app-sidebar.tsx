@@ -1,6 +1,7 @@
 import { Menu } from "lucide-react"
 import { useRef } from "react"
 
+import type { Viewer } from "@/app/navigation.ts"
 import { SidebarBody } from "@/components/patterns/sidebar-body.tsx"
 import { Button } from "@/components/ui/button.tsx"
 import {
@@ -20,10 +21,12 @@ export function AppSidebar({
   collapsed,
   onToggleCollapsed,
   onSearch,
+  viewer = "admin",
 }: {
   collapsed: boolean
   onToggleCollapsed: () => void
   onSearch: () => void
+  viewer?: Viewer
 }) {
   const rootRef = useRef<HTMLElement>(null)
   const skipMotion = useRef(true)
@@ -59,6 +62,7 @@ export function AppSidebar({
         onSearch={onSearch}
         onToggle={onToggleCollapsed}
         showCollapse
+        viewer={viewer}
       />
     </aside>
   )
@@ -68,10 +72,12 @@ export function MobileSidebar({
   open,
   onOpenChange,
   onSearch,
+  viewer = "admin",
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   onSearch: () => void
+  viewer?: Viewer
 }) {
   const panelRef = useRef<HTMLDivElement>(null)
   const mounted = useGsapPresence(open, panelRef, -24)
@@ -109,6 +115,7 @@ export function MobileSidebar({
             <div className="min-h-0 flex-1">
               <SidebarBody
                 collapsed={false}
+                viewer={viewer}
                 onSearch={() => {
                   onOpenChange(false)
                   onSearch()

@@ -25,12 +25,12 @@ Alternativa ao banco da Railway: o `docker-compose.yml` da raiz sobe PostgreSQL 
 docker compose up --build
 ```
 
-A API aplica as migrações, cria o admin e carrega o corpus antes de aceitar pedidos. O adaptador de IA é `fake`, então não precisa de chave. Para usar o Gemini, crie um `.env` na raiz com `APP_AI_ADAPTER=gemini` e `GEMINI_API_KEY`.
+A API aplica as migrações, cria o admin e carrega o corpus antes de aceitar pedidos. O adaptador de IA é `fake`, então não precisa de chave. Ele não tem roteiro para o cadastro por conversa, então ali cada mensagem responde 503 e a tela mostra o aviso de indisponível; o formulário funciona. Para usar o Gemini, crie um `.env` na raiz com `APP_AI_ADAPTER=gemini` e `GEMINI_API_KEY`. O mesmo `.env` define o admin com `ADMIN_EMAIL` e `ADMIN_PASSWORD`; sem eles, vale `admin@example.com` / `Atrium-local-2026-admin`. O admin só é criado quando o banco não tem nenhum, então trocar essas variáveis depois exige `docker compose down -v` (ou remover o admin antigo).
 
 | Serviço | Endereço | Acesso |
 |---|---|---|
 | Frontend | http://localhost:5173 | |
-| API | http://127.0.0.1:8000 (`/health`, `/ready`) | admin `admin@example.com` |
+| API | http://127.0.0.1:8000 (`/health`, `/ready`) | admin de `ADMIN_EMAIL` (padrão `admin@example.com`) |
 | Prometheus | http://localhost:9090 | |
 | Grafana | http://localhost:3000 | `admin` / `admin` |
 | PostgreSQL | `postgresql://atrium:atrium@127.0.0.1:5432/atrium` | |

@@ -54,7 +54,7 @@ export function RegistrationFormScreen(model: FormModel) {
       <p className="text-body text-foreground">{pt.registration.formLead}</p>
       {model.unavailable ? (
         <p role="status" className="text-body text-foreground">
-          {pt.registration.unavailable}
+          {pt.registration.unavailableForm}
         </p>
       ) : null}
       {model.loadError ? (

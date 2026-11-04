@@ -1,7 +1,7 @@
 import { useRef, useState } from "react"
 import { Link } from "react-router"
 
-import { flattenNavigation } from "@/app/navigation.ts"
+import { flattenNavigation, type Viewer } from "@/app/navigation.ts"
 import {
   Dialog,
   DialogContent,
@@ -16,9 +16,11 @@ import { useGsapPresence } from "@/motion/useGsapPresence.ts"
 export function SearchDialog({
   open,
   onOpenChange,
+  viewer = "guest",
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
+  viewer?: Viewer
 }) {
   const panelRef = useRef<HTMLDivElement>(null)
   const mounted = useGsapPresence(open, panelRef)
@@ -31,7 +33,7 @@ export function SearchDialog({
     }
   }
   const normalized = query.trim().toLocaleLowerCase("pt-BR")
-  const items = flattenNavigation().filter((item) =>
+  const items = flattenNavigation(viewer).filter((item) =>
     item.label.toLocaleLowerCase("pt-BR").includes(normalized),
   )
 

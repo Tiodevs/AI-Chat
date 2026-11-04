@@ -151,12 +151,13 @@ A entrelinha das mensagens é maior que a da interface porque respostas longas s
 
 | Região | Desktop, 1024 px ou mais | Tablet, de 768 a 1023 px | Celular, abaixo de 768 px |
 |---|---|---|---|
-| Barra lateral | 240 px fixa, recolhível para 64 px só com ícones | Recolhida em 64 px | Sheet aberto pelo botão de menu |
+| Barra lateral, com sessão | 240 px fixa, recolhível para 64 px só com ícones | Recolhida em 64 px | Sheet aberto pelo botão de menu |
+| Cabeçalho, sem sessão | Logotipo e os botões Entrar, Criar conta e Cadastrar com IA | O mesmo | Logotipo e um menu com as mesmas três ações |
 | Conteúdo | Até 1280 px, padding 24 px | Padding 20 px | Padding 16 px |
 | Chat | Coluna de até 760 px, centralizada | A mesma | Largura total, compositor fixo embaixo, com área segura |
 | Cards de indicador | Quatro por linha | Dois por linha | Um por linha, rolagem vertical |
 
-A barra lateral segue a imagem: logotipo e botão de recolher no topo, busca com `⌘K`, grupos rotulados, um card "What's new" acima do rodapé e o botão de perfil no rodapé.
+A barra lateral só aparece com sessão. Ela segue a imagem: logotipo e botão de recolher no topo, busca com `⌘K`, grupos rotulados, um card "What's new" acima do rodapé e o botão de perfil no rodapé. Com sessão, ela não mostra Entrar nem os cadastros. Operação e Sistema aparecem só para o admin. Sem sessão, o `GuestHeader` toma o lugar da barra lateral, e a busca com `⌘K` lista só as páginas públicas.
 
 ### 14.6 Inventário de componentes
 
@@ -166,7 +167,8 @@ Componentes de produto em `components/patterns`, mapeados a partir da imagem:
 
 | Na imagem | No Atrium | Onde |
 |---|---|---|
-| Barra lateral com grupos Platform e System | `AppSidebar` com grupos Assistant e Account no visitante, Operations e System no admin | Todas as telas |
+| Barra lateral com grupos Platform e System | `AppSidebar` com grupos Assistant e Account no membro, Operations e System no admin | Todas as telas, com sessão |
+| Cabeçalho do site | `GuestHeader` com Entrar, Criar conta e Cadastrar com IA | Todas as telas, sem sessão |
 | Busca com `⌘K` | `CommandPalette` para navegar, abrir conversas e ações | Todas as telas |
 | Cards Leads, Conversion Rate e CLV | `StatCard` com `DeltaBadge`, o ponto colorido e a variação | Visão geral do admin |
 | Gráfico Revenue over time com cursor e tooltip | `TrendChartCard` com cursor vertical, tooltip e pílula de data invertida | Visão geral do admin |
@@ -189,7 +191,7 @@ Componentes sem equivalente na imagem:
 | `OutcomeBadge` | Answered, Not in sources, Medical advice declined, Replaced e Unavailable |
 | `Composer` | Campo que cresce, enviar, parar e o aviso de saúde |
 | `SafetyNotice` | Alert permanente sobre IA e orientação médica |
-| `RegistrationStepper` | Details, Password, Review e Agree |
+| `RegistrationStepper` | Details, Password, Review e Agree. Fora da tela de cadastro desde 2026-11-04; o componente fica no Storybook |
 | `ProfileSummaryCard` | Campos entendidos pela IA, editáveis, com o motivo de cada pergunta |
 | `PasswordCard` | Passo seguro, fora do chat, com medidor de força |
 | `ConsentFieldSet` | Aceites obrigatórios e opcionais, com o consentimento sensível destacado |
@@ -315,12 +317,12 @@ Cada tela descreve objetivo, composição e estados. Os textos citados são a c�
 #### Cadastro por conversa `/register`
 
 - **Objetivo:** criar a conta conversando, sem perder o controle dos dados.
-- **Composição no desktop:** `RegistrationStepper` no topo. À esquerda, o chat. À direita, o `ProfileSummaryCard`, que se preenche à medida que a IA entende os campos. Cada campo tem um link "Por que pedimos" e pode ser editado ali mesmo. No celular, o cartão vira uma faixa recolhível acima do chat.
+- **Composição:** no topo, o botão "Ver o que entendemos", com a contagem de campos, e o link "Usar o formulário". Não há indicador de etapas. Abaixo, o chat, num painel de conversa: falas do assistente em `AssistantBubble`, com avatar, as do visitante em `UserMessage`, e o compositor fixo no rodapé do painel, com o botão Enviar dentro do campo. Enquanto a resposta não chega, a mensagem enviada já aparece e o assistente mostra que está escrevendo. O `ProfileSummaryCard` começa oculto. Aberto pelo botão, ele fica à direita do chat no desktop e acima dele no celular, e abre sozinho no passo de revisão. Ele se preenche à medida que a IA entende os campos. Cada campo tem um link "Por que pedimos" e pode ser editado ali mesmo.
 - **Passo da senha:** o `PasswordCard` aparece no lugar do compositor, com a nota "Sua senha vai direto para o nosso servidor. A IA não a vê."
 - **Passo de revisão:** o resumo completo com Editar em cada linha e o botão Está certo.
 - **Passo de aceite:** `ConsentFieldSet` com os dois aceites obrigatórios e os dois opcionais. O opcional de personalização fica destacado e explica que tipo de visitante e motivo da visita podem indicar que a pessoa é paciente. Os opcionais começam desmarcados.
 - **Sempre visível:** o link "Usar o formulário".
-- **Estados:** campo com erro aparece no cartão e é pedido de novo no chat. Uma dúvida que não traz o dado recebe uma resposta curta e o mesmo campo é pedido de novo. E-mail já cadastrado oferece Entrar. Com o Gemini indisponível, a tela leva ao formulário com os campos já entendidos.
+- **Estados:** campo com erro aparece no cartão e é pedido de novo no chat. Uma dúvida que não traz o dado recebe uma resposta curta e o mesmo campo é pedido de novo. E-mail já cadastrado recebe, na conversa, uma resposta fixa que explica que a conta existe e pede outro e-mail, com o botão Entrar logo abaixo. O passo continua no e-mail. Uma falha ao enviar não sai da tela: o `ChatErrorNotice` aparece na conversa com a mensagem do erro, `RequestIdCopy`, Tentar de novo e Fechar, e o texto continua no compositor. Com o Gemini indisponível, o mesmo aviso explica o motivo e oferece Usar o formulário, que leva os campos já entendidos.
 
 #### Cadastro por formulário `/register/form`
 
@@ -446,7 +448,7 @@ A tela que segue mais de perto a imagem de referência.
 | M8 | `CitationChip` | Eventos `citation` | Entrada com `stagger` de 0,04 s, `scale` de 0,9 a 1 | Aparecem direto |
 | M9 | Substituição | Evento `replace` | O rascunho sai com `autoAlpha` em `duration.fast`, a resposta segura entra em `duration.base` | Troca direta |
 | M10 | Campo entendido no `ProfileSummaryCard` | Turno do cadastro com campo novo | Uma camada de destaque vai a 1 e volta a 0 em opacidade, e o ícone de confirmação vai de `scale` 0,6 a 1 com `ease.confirm` | Ícone aparece direto, sem destaque |
-| M11 | `RegistrationStepper` | Troca de passo | A barra de progresso muda `scaleX` com `ease.move` | Muda direto |
+| M11 | `RegistrationStepper`, hoje fora da tela | Troca de passo | A barra de progresso muda `scaleX` com `ease.move` | Muda direto |
 | M12 | `PasswordCard` | `next_step = password` | `autoAlpha` e `y` de 12 a 0 em `duration.slow`. O foco vai para o campo no `onComplete`. | Aparece direto e recebe o foco |
 | M13 | `AppSidebar` | Recolher e expandir | Flip registra o estado, a classe muda e Flip anima as posições com `ease.move`. Rótulos saem com `autoAlpha`. | Muda direto |
 | M14 | Paleta de comandos, diálogos, sheets e menus | Abrir e fechar | Hook `useGsapPresence` com `forceMount` do Radix: entrada com `autoAlpha` e `scale` de 0,98 a 1, saída em `duration.fast` com `ease.exit` antes de desmontar | Aparece e some direto |

@@ -9,7 +9,6 @@ import type { components } from "@/lib/api/schema.ts"
 
 import {
   failureFrom,
-  formPath,
   sessionIdFrom,
   type Consents,
   type FieldName,
@@ -42,15 +41,47 @@ function resumable(status: string) {
   return status !== "completed" && status !== "abandoned"
 }
 
+export type ChatNotice = {
+  message: string
+  requestId: string | null
+  /** O provedor de IA está fora. A tela oferece o formulário. */
+  unavailable: boolean
+  /** Texto que falhou, para tentar de novo. */
+  retryText: string | null
+}
+
 export function useRegistrationChat() {
   const navigate = useNavigate()
   const [session, setSession] = useState<RegistrationSession | null>(null)
   const [loading, setLoading] = useState(true)
   const [pending, setPending] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [requestId, setRequestId] = useState<string | null>(null)
+  const [notice, setNotice] = useState<ChatNotice | null>(null)
+  const [outgoing, setOutgoing] = useState<string | null>(null)
   const [documentVersion, setDocumentVersion] = useState<string | null>(null)
   const [actionErrors, setActionErrors] = useState<Record<string, string>>({})
+
+  const fail = useCallback(
+    (error: unknown, status: number, retryText: string | null = null) => {
+      const failure = failureFrom(error, status)
+      setNotice({
+        message:
+          status === 503 ? pt.registration.unavailable : failure.message,
+        requestId: failure.requestId,
+        unavailable: status === 503,
+        retryText,
+      })
+    },
+    []
+  )
+
+  const crash = useCallback((retryText: string | null = null) => {
+    setNotice({
+      message: pt.couldNotContinue,
+      requestId: null,
+      unavailable: false,
+      retryText,
+    })
+  }, [])
 
   const remember = useCallback((next: RegistrationSession) => {
     sessionStorage.setItem(SESSION_KEY, next.id)
@@ -68,14 +99,8 @@ export function useRegistrationChat() {
         data?: SessionResponse
         error?: unknown
       }) {
-        if (started.response.status === 503) {
-          await navigate(formPath(null, true), { replace: true })
-          return
-        }
         if (!started.response.ok || !started.data) {
-          const failure = failureFrom(started.error, started.response.status)
-          setError(failure.message)
-          setRequestId(failure.requestId)
+          fail(started.error, started.response.status)
           return
         }
         remember(asSession(started.data))
@@ -111,10 +136,6 @@ export function useRegistrationChat() {
         if (legal.data?.terms) {
           setDocumentVersion(legal.data.terms)
         }
-        if (existing.response.status === 503) {
-          await navigate(formPath(stored, true), { replace: true })
-          return
-        }
         if (existing.data && resumable(existing.data.status)) {
           remember(asSession(existing.data))
           return
@@ -126,7 +147,7 @@ export function useRegistrationChat() {
         await openStarted(started)
       } catch {
         if (!signal.aborted) {
-          setError(pt.couldNotContinue)
+          crash()
         }
       } finally {
         if (!signal.aborted) {
@@ -137,39 +158,35 @@ export function useRegistrationChat() {
 
     void load()
     return () => controller.abort()
-  }, [navigate, remember])
+  }, [crash, fail, remember])
 
   async function send(text: string) {
     if (!session || pending || !text.trim()) {
       return false
     }
+    const trimmed = text.trim()
     setPending(true)
-    setError(null)
-    setRequestId(null)
+    setNotice(null)
+    setOutgoing(trimmed)
     try {
       const result = await api.POST(
         "/v1/registration/sessions/{session_id}/messages",
         {
           params: { path: { session_id: session.id } },
-          body: { text: text.trim() },
+          body: { text: trimmed },
         }
       )
-      if (result.response.status === 503) {
-        await navigate(formPath(session.id, true), { replace: true })
-        return false
-      }
       if (!result.response.ok || !result.data) {
-        const failure = failureFrom(result.error, result.response.status)
-        setError(failure.message)
-        setRequestId(failure.requestId)
+        fail(result.error, result.response.status, trimmed)
         return false
       }
       remember(asSession(result.data))
       return true
     } catch {
-      setError(pt.couldNotContinue)
+      crash(trimmed)
       return false
     } finally {
+      setOutgoing(null)
       setPending(false)
     }
   }
@@ -179,7 +196,7 @@ export function useRegistrationChat() {
       return false
     }
     setPending(true)
-    setError(null)
+    setNotice(null)
     try {
       const body: components["schemas"]["FieldsPatchRequest"] = {
         [field]: value,
@@ -191,20 +208,14 @@ export function useRegistrationChat() {
           body,
         }
       )
-      if (result.response.status === 503) {
-        await navigate(formPath(session.id, true), { replace: true })
-        return false
-      }
       if (!result.response.ok || !result.data) {
-        const failure = failureFrom(result.error, result.response.status)
-        setError(failure.message)
-        setRequestId(failure.requestId)
+        fail(result.error, result.response.status)
         return false
       }
       remember(asSession(result.data))
       return true
     } catch {
-      setError(pt.couldNotContinue)
+      crash()
       return false
     } finally {
       setPending(false)
@@ -216,7 +227,7 @@ export function useRegistrationChat() {
       return
     }
     setPending(true)
-    setError(null)
+    setNotice(null)
     try {
       const result = await api.POST(
         "/v1/registration/sessions/{session_id}/password",
@@ -226,14 +237,12 @@ export function useRegistrationChat() {
         }
       )
       if (!result.response.ok || !result.data) {
-        const failure = failureFrom(result.error, result.response.status)
-        setError(failure.message)
-        setRequestId(failure.requestId)
+        fail(result.error, result.response.status)
         return
       }
       remember(asSession(result.data))
     } catch {
-      setError(pt.couldNotContinue)
+      crash()
     } finally {
       setPending(false)
     }
@@ -244,7 +253,7 @@ export function useRegistrationChat() {
       return
     }
     setPending(true)
-    setError(null)
+    setNotice(null)
     try {
       const result = await api.POST(
         "/v1/registration/sessions/{session_id}/review",
@@ -254,14 +263,12 @@ export function useRegistrationChat() {
         }
       )
       if (!result.response.ok || !result.data) {
-        const failure = failureFrom(result.error, result.response.status)
-        setError(failure.message)
-        setRequestId(failure.requestId)
+        fail(result.error, result.response.status)
         return
       }
       remember(asSession(result.data))
     } catch {
-      setError(pt.couldNotContinue)
+      crash()
     } finally {
       setPending(false)
     }
@@ -272,11 +279,11 @@ export function useRegistrationChat() {
       return
     }
     if (!documentVersion) {
-      setError(pt.couldNotContinue)
+      crash()
       return
     }
     setPending(true)
-    setError(null)
+    setNotice(null)
     setActionErrors({})
     try {
       const result = await api.POST(
@@ -295,9 +302,8 @@ export function useRegistrationChat() {
       if (!result.response.ok || !result.data) {
         const failure = failureFrom(result.error, result.response.status)
         setActionErrors(failure.fieldErrors)
-        setRequestId(failure.requestId)
         if (Object.keys(failure.fieldErrors).length === 0) {
-          setError(failure.message)
+          fail(result.error, result.response.status)
         }
         return
       }
@@ -305,7 +311,7 @@ export function useRegistrationChat() {
       queryClient.setQueryData(meQuery.queryKey, result.data)
       await navigate("/account")
     } catch {
-      setError(pt.couldNotContinue)
+      crash()
     } finally {
       setPending(false)
     }
@@ -315,8 +321,9 @@ export function useRegistrationChat() {
     session,
     loading,
     pending,
-    error,
-    requestId,
+    notice,
+    outgoing,
+    dismissNotice: () => setNotice(null),
     actionErrors,
     send,
     skip: () => send(pt.registration.skipMessage),

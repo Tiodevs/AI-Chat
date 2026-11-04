@@ -10,7 +10,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip.tsx"
-import { navigation, type NavItem } from "@/app/navigation.ts"
+import { navigationFor, type NavItem, type Viewer } from "@/app/navigation.ts"
 import { pt } from "@/i18n/pt.ts"
 import { cn } from "@/lib/utils.ts"
 
@@ -74,12 +74,14 @@ export function SidebarBody({
   onNavigate,
   onToggle,
   showCollapse = false,
+  viewer = "admin",
 }: {
   collapsed: boolean
   onSearch: () => void
   onNavigate?: () => void
   onToggle?: () => void
   showCollapse?: boolean
+  viewer?: Viewer
 }) {
   return (
     <div
@@ -170,7 +172,7 @@ export function SidebarBody({
           collapsed ? "scrollbar-none items-center gap-5" : "gap-5",
         )}
       >
-        {navigation.map((group) => (
+        {navigationFor(viewer).map((group) => (
           <div
             key={group.label}
             className={cn(

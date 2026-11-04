@@ -31,6 +31,7 @@ from app.prompts.registration import (
     REGISTRATION_UNAVAILABLE,
     SET_FIELDS_DESCRIPTION,
     TOOL_PROPERTY_DESCRIPTIONS,
+    issue_reply,
     prompt_for,
 )
 
@@ -199,6 +200,14 @@ class RegistrationWorkflow:
 
     async def _phrase(self, state: GraphState) -> dict[str, object]:
         machine = _machine(state)
+        if machine.field_errors:
+            return {
+                "prompt": issue_reply(
+                    tuple((issue.field, issue.code) for issue in machine.field_errors),
+                    machine.next_step.value,
+                    correcting=machine.correcting,
+                )
+            }
         fallback = prompt_for(machine.next_step.value, correcting=machine.correcting)
         run = _run(state, prompt_version=PHRASE_PROMPT_VERSION, temperature=PHRASE_TEMPERATURE)
         user_text = state.get("user_text", "")
