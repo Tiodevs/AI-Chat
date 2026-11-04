@@ -394,6 +394,104 @@ export function press(target: gsap.TweenTarget, reduced: boolean) {
   )
 }
 
+const pointerSeconds = 0.2
+
+/** M2: o número visível sobe de 0 ao valor, com snap. O aria-label fica com o componente. */
+export function countUp(
+  target: gsap.TweenTarget,
+  reduced: boolean,
+  value = 0,
+  format: (value: number) => string = (current) => String(current),
+  decimals = 0
+) {
+  if (!canAnimate(target)) {
+    return
+  }
+  const element = target instanceof Element ? target : null
+  if (reduced) {
+    gsap.set(target, { autoAlpha: 1 })
+    if (element) {
+      element.textContent = format(value)
+    }
+    return
+  }
+  const counter = { value: 0 }
+  const step = 1 / 10 ** decimals
+  gsap.to(counter, {
+    value,
+    duration: motionTokens.duration.chart,
+    ease: motionTokens.ease.enter,
+    snap: { value: step },
+    onUpdate: () => {
+      if (element) {
+        element.textContent = format(counter.value)
+      }
+    },
+  })
+}
+
+/** M3: área e linha se revelam da esquerda com scaleX. */
+export function revealChart(target: gsap.TweenTarget, reduced: boolean) {
+  if (!canAnimate(target)) {
+    return
+  }
+  if (reduced) {
+    gsap.set(target, { scaleX: 1, transformOrigin: "left center" })
+    return
+  }
+  gsap.fromTo(
+    target,
+    { scaleX: 0, transformOrigin: "left center" },
+    {
+      scaleX: 1,
+      duration: motionTokens.duration.chart,
+      ease: motionTokens.ease.move,
+      clearProps: "transform",
+    }
+  )
+}
+
+/** M4: cursor e tooltip seguem o ponteiro com quickTo. Devolve a função que move. */
+export function followPointer(target: gsap.TweenTarget, reduced: boolean) {
+  if (reduced || !canAnimate(target)) {
+    gsap.set(target, { x: 0, y: 0 })
+    return (x: number, y: number) => {
+      gsap.set(target, { x, y })
+    }
+  }
+  const moveX = gsap.quickTo(target, "x", {
+    duration: pointerSeconds,
+    ease: motionTokens.ease.enter,
+  })
+  const moveY = gsap.quickTo(target, "y", {
+    duration: pointerSeconds,
+    ease: motionTokens.ease.enter,
+  })
+  return (x: number, y: number) => {
+    moveX(x)
+    moveY(y)
+  }
+}
+
+/** M15: cada segmento vai ao `data-scale` dele com scaleX. */
+export function moveSegments(target: gsap.TweenTarget, reduced: boolean) {
+  if (!canAnimate(target)) {
+    return
+  }
+  const scaleOf = (_index: number, element: Element) =>
+    Number((element as HTMLElement).dataset.scale ?? "0")
+  if (reduced) {
+    gsap.set(target, { scaleX: scaleOf, transformOrigin: "left center" })
+    return
+  }
+  gsap.to(target, {
+    scaleX: scaleOf,
+    transformOrigin: "left center",
+    duration: motionTokens.duration.slow,
+    ease: motionTokens.ease.move,
+  })
+}
+
 export const presets = {
   enterRoute,
   showSidebarLabels,
@@ -410,4 +508,8 @@ export const presets = {
   moveStepper,
   enterPassword,
   press,
+  countUp,
+  revealChart,
+  followPointer,
+  moveSegments,
 }
