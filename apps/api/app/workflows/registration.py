@@ -2,7 +2,7 @@
 
 from collections.abc import Awaitable, Callable
 from contextvars import ContextVar
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from typing import Any, TypedDict
 from uuid import UUID, uuid4
 
@@ -18,7 +18,13 @@ from app.domain.fields import (
     rejected_tool,
     set_fields_parameters,
 )
-from app.domain.registration import Machine, apply_collected, decide_next
+from app.domain.registration import (
+    Machine,
+    Step,
+    apply_collected,
+    decide_next,
+    public_fields,
+)
 from app.domain.trace_policy import registration_event_from_record
 from app.ports.chat import ChatProvider, Message, RunContext, Tool
 from app.ports.tracing import NullTracer, TraceRecorder
@@ -33,6 +39,7 @@ from app.prompts.registration import (
     TOOL_PROPERTY_DESCRIPTIONS,
     issue_reply,
     prompt_for,
+    review_prompt,
 )
 
 EXTRACT_TEMPERATURE = 0.0
@@ -208,6 +215,8 @@ class RegistrationWorkflow:
                     correcting=machine.correcting,
                 )
             }
+        if machine.next_step == Step.REVIEW and not machine.correcting:
+            return {"prompt": review_prompt(asdict(public_fields(machine.fields)))}
         fallback = prompt_for(machine.next_step.value, correcting=machine.correcting)
         run = _run(state, prompt_version=PHRASE_PROMPT_VERSION, temperature=PHRASE_TEMPERATURE)
         user_text = state.get("user_text", "")
@@ -218,7 +227,11 @@ class RegistrationWorkflow:
                     Message(role="system", content=PHRASE_INSTRUCTIONS),
                     Message(
                         role="user",
-                        content=f"passo: {machine.next_step.value}\nmensagem: {message}",
+                        content=(
+                            f"passo: {machine.next_step.value}\n"
+                            f"pergunta modelo: {fallback}\n"
+                            f"mensagem: {message}"
+                        ),
                     ),
                 ],
                 PhraseText,
