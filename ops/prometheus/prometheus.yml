@@ -1,0 +1,15 @@
+# Coleta da API pela rede privada da Railway a cada 30 s. Seção 18.3 do SDD.
+# As variáveis ${...} são trocadas por entrypoint.sh antes de o Prometheus iniciar.
+global:
+  scrape_interval: 30s
+  evaluation_interval: 30s
+
+scrape_configs:
+  - job_name: atrium-api
+    metrics_path: /metrics
+    scheme: http
+    authorization:
+      type: Bearer
+      credentials: ${METRICS_TOKEN}
+    static_configs:
+      - targets: ["${API_HOST}:${API_PORT}"]

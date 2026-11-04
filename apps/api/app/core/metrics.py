@@ -1,6 +1,10 @@
 """Métricas Prometheus. Seção 18.3 do SDD."""
 
+from collections.abc import Iterable
+from dataclasses import dataclass, field
+
 from prometheus_client import CollectorRegistry, Counter, Gauge, Histogram, generate_latest
+from prometheus_client.core import CounterMetricFamily, GaugeMetricFamily, Metric
 
 REGISTRY = CollectorRegistry()
 
@@ -43,14 +47,49 @@ INGESTION_VERSIONS = Counter(
     "atrium_ingestion_versions", "Versões de documento ingeridas", ["status"], registry=REGISTRY
 )
 FEEDBACK = Counter("atrium_feedback", "Feedback do visitante", ["rating"], registry=REGISTRY)
-DSR_OPEN = Gauge("atrium_dsr_open", "Pedidos de titular abertos", ["overdue"], registry=REGISTRY)
-RETENTION_DELETED = Counter(
-    "atrium_retention_deleted", "Registros eliminados", ["rule"], registry=REGISTRY
-)
 
 REGISTRATION_EVENT_NAMES = frozenset(
     {"started", "extracted", "optional_skipped", "password_set", "completed", "abandoned"}
 )
+
+
+@dataclass(slots=True)
+class DatabaseSnapshot:
+    """Valores lidos do banco a cada coleta. O retention-job roda em outro processo."""
+
+    dsr_open: int = 0
+    dsr_overdue: int = 0
+    retention_deleted: dict[str, int] = field(default_factory=dict)
+    retention_last_run_seconds: float | None = None
+    loaded: bool = False
+
+
+SNAPSHOT = DatabaseSnapshot()
+
+
+class DatabaseCollector:
+    def collect(self) -> Iterable[Metric]:
+        if not SNAPSHOT.loaded:
+            return
+        dsr = GaugeMetricFamily("atrium_dsr_open", "Pedidos de titular abertos", labels=["overdue"])
+        dsr.add_metric(["false"], SNAPSHOT.dsr_open)
+        dsr.add_metric(["true"], SNAPSHOT.dsr_overdue)
+        yield dsr
+        deleted = CounterMetricFamily(
+            "atrium_retention_deleted", "Registros eliminados pela retenção", labels=["rule"]
+        )
+        for rule, total in sorted(SNAPSHOT.retention_deleted.items()):
+            deleted.add_metric([rule], total)
+        yield deleted
+        if SNAPSHOT.retention_last_run_seconds is not None:
+            yield GaugeMetricFamily(
+                "atrium_retention_last_run_timestamp_seconds",
+                "Instante da última execução do retention-job",
+                value=SNAPSHOT.retention_last_run_seconds,
+            )
+
+
+REGISTRY.register(DatabaseCollector())
 
 
 def render_metrics() -> bytes:

@@ -130,8 +130,8 @@ Um projeto Railway, dois ambientes: `development` e `production`. Em cada ambien
 | `postgres` | PostgreSQL da Railway | Extensão `vector` ligada na configuração do banco. Se a imagem não tiver a extensão, usar o template pgvector antes da primeira migração. |
 | `api` | `apps/api`, construída com Railpack | Configuração em `apps/api/railway.json` |
 | `retention-job` | `apps/api`, mesma imagem | Tarefa agendada, `0 6 * * *`, comando `python -m app.scripts.retention` |
-| `prometheus` | Template da Railway | Só em `production` |
-| `grafana` | Template da Railway | Só em `production`, com volume para os dados |
+| `prometheus` | `ops/prometheus`, com Dockerfile e volume em `/prometheus` | Só em `production` |
+| `grafana` | `ops/grafana`, com Dockerfile, painéis e alertas provisionados e volume para os dados | Só em `production` |
 
 Configuração do serviço `api` em `railway.json`:
 

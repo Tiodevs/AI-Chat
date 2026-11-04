@@ -1,0 +1,2 @@
+# Scripts executados em contêineres Linux precisam de LF, mesmo no Windows.
+*.sh text eol=lf

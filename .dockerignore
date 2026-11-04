@@ -1,0 +1,17 @@
+.git
+.github
+.claude
+**/node_modules
+**/.venv
+**/__pycache__
+**/.pytest_cache
+**/.mypy_cache
+**/.ruff_cache
+**/.env
+**/dist
+**/storybook-static
+**/test-results
+**/playwright-report
+apps/api/tests
+apps/web/e2e
+docs

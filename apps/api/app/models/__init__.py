@@ -14,6 +14,7 @@ from app.models.guest_key import GuestKey
 from app.models.message import Message
 from app.models.rate_limit_window import RateLimitWindow
 from app.models.registration_session import RegistrationSession
+from app.models.retention_run import RetentionRun
 from app.models.token_usage_day import TokenUsageDay
 from app.models.user import User
 
@@ -32,6 +33,7 @@ __all__ = [
     "Message",
     "RateLimitWindow",
     "RegistrationSession",
+    "RetentionRun",
     "TokenUsageDay",
     "User",
 ]
