@@ -14,13 +14,15 @@ Um assistente que responde visitantes de um hospital usando só informações pu
 ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL%20%2B%20pgvector-4169E1?logo=postgresql&logoColor=white)
 ![LGPD](https://img.shields.io/badge/LGPD-por%20design-0E9F6E)
+[![Licença MIT](https://img.shields.io/badge/licen%C3%A7a-MIT-blue)](LICENSE)
 [![PRs bem-vindos](https://img.shields.io/badge/PRs-bem--vindos-ff69b4)](CONTRIBUTING.md)
 
 [Visão geral](#visão-geral) ·
 [Telas](#telas) ·
 [Como funciona](#por-dentro) ·
 [Rodar localmente](#rodar-localmente) ·
-[Contribuir](#contribuir)
+[Contribuir](#contribuir) ·
+[Licença](#licença)
 
 <br />
 
@@ -305,6 +307,10 @@ Contribuições são bem-vindas: correções, testes, acessibilidade, documenta�
 3. Crie uma branch `tipo/assunto-curto`, faça commits atômicos (`feat: …`, `fix: …`, `docs: …`) e abra a PR.
 
 A especificação vem antes do código: se a mudança altera comportamento, a PR atualiza a seção correspondente do [SDD](docs/sdd.md).
+
+## Licença
+
+Distribuído sob a licença [MIT](LICENSE). Você pode usar, copiar, modificar e distribuir o código, mantendo o aviso de copyright.
 
 <div align="center">
 <br />
