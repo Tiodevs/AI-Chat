@@ -6,7 +6,10 @@ from datetime import datetime
 from uuid import UUID
 
 from sqlalchemy import text
+from sqlalchemy.engine import RowMapping
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
+
+from app.domain.documents import DocumentView, StoredVersion, VersionView
 
 SEED_LOCK_KEY = 32032026
 
@@ -220,6 +223,89 @@ class DocumentRepository:
             {"document_id": document_id},
         )
 
+    async def list_views(self) -> list[DocumentView]:
+        """Ativos primeiro, depois os arquivados, do mais recente ao mais antigo."""
+        result = await self._session.execute(text(_VIEW_SQL + _VIEW_ORDER))
+        return [_view(row) for row in result.mappings()]
+
+    async def view(self, document_id: UUID) -> DocumentView | None:
+        result = await self._session.execute(
+            text(_VIEW_SQL + " WHERE document.id = :document_id"),
+            {"document_id": document_id},
+        )
+        row = result.mappings().first()
+        return None if row is None else _view(row)
+
+    async def lock(self, document_id: UUID) -> tuple[str, str, str] | None:
+        """Trava o documento para a ação do admin. Devolve slug, título e status."""
+        result = await self._session.execute(
+            text(
+                "SELECT slug, title, status FROM documents "
+                "WHERE id = :document_id FOR UPDATE"
+            ),
+            {"document_id": document_id},
+        )
+        row = result.first()
+        if row is None:
+            return None
+        return str(row[0]), str(row[1]), str(row[2])
+
+    async def taken_slugs(self, base: str) -> set[str]:
+        """O slug vem de slugify, então só tem letras, dígitos e hífens."""
+        result = await self._session.execute(
+            text("SELECT slug FROM documents WHERE slug = :base OR slug LIKE :pattern"),
+            {"base": base, "pattern": base + "-%"},
+        )
+        return {str(value) for value in result.scalars()}
+
+    async def create_document(self, *, slug: str, title: str, created_by: UUID) -> UUID:
+        created = await self._session.scalar(
+            text(
+                "INSERT INTO documents (title, slug, status, created_by) "
+                "VALUES (:title, :slug, 'active', :created_by) RETURNING id"
+            ),
+            {"title": title, "slug": slug, "created_by": created_by},
+        )
+        return _uuid(created)
+
+    async def touch(self, document_id: UUID) -> None:
+        await self._session.execute(
+            text("UPDATE documents SET updated_at = now() WHERE id = :document_id"),
+            {"document_id": document_id},
+        )
+
+    async def latest_stored(self, document_id: UUID) -> StoredVersion | None:
+        result = await self._session.execute(
+            text(
+                "SELECT id, filename, media_type, sha256, ingestion_status, created_at, "
+                "original_bytes FROM document_versions "
+                "WHERE document_id = :document_id ORDER BY version DESC LIMIT 1"
+            ),
+            {"document_id": document_id},
+        )
+        row = result.mappings().first()
+        if row is None:
+            return None
+        return StoredVersion(
+            id=_uuid(row["id"]),
+            filename=str(row["filename"]),
+            media_type=str(row["media_type"]),
+            sha256=str(row["sha256"]),
+            ingestion_status=str(row["ingestion_status"]),
+            created_at=row["created_at"],
+            original_bytes=bytes(row["original_bytes"]),
+        )
+
+    async def processing_since(self, document_id: UUID) -> list[datetime]:
+        result = await self._session.execute(
+            text(
+                "SELECT created_at FROM document_versions "
+                "WHERE document_id = :document_id AND ingestion_status = 'processing'"
+            ),
+            {"document_id": document_id},
+        )
+        return list(result.scalars())
+
     async def id_for_slug(self, slug: str) -> UUID | None:
         value = await self._session.scalar(
             text("SELECT id FROM documents WHERE slug = :slug"),
@@ -228,6 +314,62 @@ class DocumentRepository:
         if value is None:
             return None
         return _uuid(value)
+
+
+_VERSION_COLUMNS = (
+    "id", "version", "filename", "media_type", "byte_size",
+    "ingestion_status", "error", "created_at",
+)
+
+
+def _version_select(alias: str, prefix: str) -> str:
+    return ", ".join(f"{alias}.{column} AS {prefix}_{column}" for column in _VERSION_COLUMNS)
+
+
+_VIEW_SQL = (
+    "SELECT document.id, document.title, document.slug, document.status, "
+    "document.created_at, document.updated_at, "
+    + _version_select("active", "active")
+    + ", "
+    + _version_select("latest", "latest")
+    + " FROM documents AS document "
+    "LEFT JOIN document_versions AS active ON active.id = document.active_version "
+    "LEFT JOIN LATERAL ("
+    "SELECT * FROM document_versions AS candidate "
+    "WHERE candidate.document_id = document.id "
+    "ORDER BY candidate.version DESC LIMIT 1"
+    ") AS latest ON true"
+)
+_VIEW_ORDER = " ORDER BY document.status = 'archived', document.updated_at DESC, document.title"
+
+
+def _version(row: RowMapping, prefix: str) -> VersionView | None:
+    if row[f"{prefix}_id"] is None:
+        return None
+    error = row[f"{prefix}_error"]
+    return VersionView(
+        id=_uuid(row[f"{prefix}_id"]),
+        version=int(row[f"{prefix}_version"]),
+        filename=str(row[f"{prefix}_filename"]),
+        media_type=str(row[f"{prefix}_media_type"]),
+        byte_size=int(row[f"{prefix}_byte_size"]),
+        ingestion_status=str(row[f"{prefix}_ingestion_status"]),
+        error=None if error is None else str(error),
+        created_at=row[f"{prefix}_created_at"],
+    )
+
+
+def _view(row: RowMapping) -> DocumentView:
+    return DocumentView(
+        id=_uuid(row["id"]),
+        title=str(row["title"]),
+        slug=str(row["slug"]),
+        status=str(row["status"]),
+        created_at=row["created_at"],
+        updated_at=row["updated_at"],
+        active_version=_version(row, "active"),
+        latest_version=_version(row, "latest"),
+    )
 
 
 def _uuid(value: object) -> UUID:

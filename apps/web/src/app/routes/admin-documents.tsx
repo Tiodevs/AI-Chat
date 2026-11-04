@@ -1,6 +1,7 @@
-import { PageHeading } from "@/app/page-heading.tsx"
-import { pt } from "@/i18n/pt.ts"
+import { DocumentsScreen } from "@/features/admin/documents-screen.tsx"
+import { useDocuments } from "@/features/admin/useDocuments.ts"
 
 export function Component() {
-  return <PageHeading title={pt.pages.documents} />
+  const model = useDocuments()
+  return <DocumentsScreen {...model} />
 }

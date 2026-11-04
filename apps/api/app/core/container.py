@@ -103,3 +103,27 @@ def get_conversation_service(
             settings.llm_daily_token_budget,
         ),
     )
+
+
+def get_document_admin_service(
+    settings: Annotated[Settings, Depends(get_settings)],
+    clock: Annotated[Clock, Depends(get_clock)],
+) -> Any:
+    from app.adapters.embedding_factory import build_embedding_provider
+    from app.adapters.langsmith_tracing import tracer_for
+    from app.adapters.text_extractor import FileTextExtractor
+    from app.ports.tracing import NullTracer
+    from app.services.documents import DocumentAdminService
+    from app.services.ingestion import IngestionService
+
+    return DocumentAdminService(
+        database_url=settings.database_url,
+        clock=clock,
+        hmac_key=settings.rate_limit_hmac_key,
+        ingestion=IngestionService(
+            settings.database_url,
+            build_embedding_provider(settings),
+            FileTextExtractor(),
+            tracer=tracer_for(settings) or NullTracer(),
+        ),
+    )

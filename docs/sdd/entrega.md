@@ -44,7 +44,10 @@ O job padrão usa `FakeChatProvider`, `DeterministicEmbeddingProvider` e `NoopFe
 | Um segundo aceite não cria um segundo usuário | Seção 7.2 |
 | A máquina de estados aceita pular opcionais e volta para correção na revisão | FR-5 |
 | O divisor de chunks respeita títulos e o limite de tamanho | Seção 7.3 |
+| Upload acima de 10 MB ou de tipo não aceito é recusado no servidor | FR-10, NFR-10 |
 | Uma versão nova com falha deixa os chunks anteriores pesquisáveis | FR-11 |
+| Durante a substituição, a busca devolve a versão anterior | FR-11 |
+| Cada ação de documento grava o evento de auditoria | Seção 8.1 |
 | Arquivar tira um chunk dos resultados | FR-12 |
 | Semear duas vezes embeda uma vez, e duas semeaduras simultâneas não duplicam | FR-13, seção 6.4 |
 | O adaptador de embedding envia um pedido por texto | Seção 17 |

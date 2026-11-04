@@ -338,6 +338,8 @@ O formulário envia todos os campos, a senha e os aceites num único pedido. Ele
 
 Na inicialização, versões em `processing` há mais de 15 minutos passam a `failed`. A semente usa este mesmo pipeline, de forma síncrona, no comando de pré-implantação.
 
+Pelo admin, o controlador grava a versão e a auditoria numa transação e responde logo. Os passos 2 a 6 rodam numa tarefa de fundo do próprio processo da API, depois da resposta. Uma extração que lança erro marca a versão como `failed` com a mensagem de leitura, sem chegar ao embedding. Enquanto uma versão do documento estiver em `processing` há menos de 15 minutos, substituir ou tentar de novo responde 409, para uma versão mais velha nunca terminar depois da nova e tomar o lugar dela. Tentar de novo cria uma versão nova com os bytes da última versão com falha.
+
 ## 8. Desenho dos dados
 
 Os identificadores são UUIDs. Os timestamps são `timestamptz` em UTC. O e-mail é gravado em minúsculas. A coluna de vetor é `vector(768)`. Toda tabela com dado pessoal tem uma regra de retenção na seção 11.6.
@@ -370,7 +372,7 @@ Os identificadores são UUIDs. Os timestamps são `timestamptz` em UTC. O e-mail
 
 **retention_runs.** `rule`, `deleted_count`, `ran_at`. Uma linha por regra a cada execução do `retention-job`, gravada na mesma transação que apaga. Não guarda dado pessoal e serve às métricas `atrium_retention_*` da seção 18.3, porque o job roda em outro processo que a coleta não alcança.
 
-**audit_events.** `actor_user_id` (sem chave estrangeira, porque `account.delete` precisa sobreviver à exclusão do usuário), `action`, `target_type`, `target_id`, `reason` anulável, `created_at`. As ações incluem `document.upload`, `document.replace`, `document.archive`, `conversation.view`, `identity.reveal`, `dsr.update`, `account.delete` e `consent.change`.
+**audit_events.** `actor_user_id` (sem chave estrangeira, porque `account.delete` precisa sobreviver à exclusão do usuário), `action`, `target_type`, `target_id`, `reason` anulável, `created_at`. As ações incluem `document.upload`, `document.replace`, `document.retry`, `document.archive`, `conversation.view`, `identity.reveal`, `dsr.update`, `account.delete` e `consent.change`.
 
 **token_usage_days.** `day` chave primária, `input_tokens`, `output_tokens`.
 
