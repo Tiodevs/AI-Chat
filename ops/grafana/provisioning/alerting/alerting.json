@@ -1,0 +1,554 @@
+{
+  "apiVersion": 1,
+  "contactPoints": [
+    {
+      "orgId": 1,
+      "name": "atrium-operacao",
+      "receivers": [
+        {
+          "uid": "atrium-operacao-email",
+          "type": "email",
+          "settings": {
+            "addresses": "${ALERT_EMAIL}",
+            "singleEmail": true
+          },
+          "disableResolveMessage": false
+        }
+      ]
+    }
+  ],
+  "policies": [
+    {
+      "orgId": 1,
+      "receiver": "atrium-operacao",
+      "group_by": [
+        "alertname"
+      ],
+      "group_wait": "30s",
+      "group_interval": "5m",
+      "repeat_interval": "4h"
+    }
+  ],
+  "groups": [
+    {
+      "orgId": 1,
+      "name": "atrium",
+      "folder": "Atrium",
+      "interval": "1m",
+      "rules": [
+        {
+          "uid": "atrium-api-errors",
+          "title": "Erros da API",
+          "condition": "C",
+          "data": [
+            {
+              "refId": "A",
+              "relativeTimeRange": {
+                "from": 600,
+                "to": 0
+              },
+              "datasourceUid": "prometheus",
+              "model": {
+                "refId": "A",
+                "expr": "sum(rate(atrium_http_requests_total{status=~\"5..\"}[10m])) / sum(rate(atrium_http_requests_total[10m]))",
+                "instant": true,
+                "intervalMs": 1000,
+                "maxDataPoints": 43200
+              }
+            },
+            {
+              "refId": "B",
+              "datasourceUid": "__expr__",
+              "model": {
+                "refId": "B",
+                "type": "reduce",
+                "expression": "A",
+                "reducer": "last",
+                "settings": {
+                  "mode": "dropNN"
+                }
+              }
+            },
+            {
+              "refId": "C",
+              "datasourceUid": "__expr__",
+              "model": {
+                "refId": "C",
+                "type": "threshold",
+                "expression": "B",
+                "conditions": [
+                  {
+                    "evaluator": {
+                      "type": "gt",
+                      "params": [
+                        0.02
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          ],
+          "noDataState": "OK",
+          "execErrState": "Error",
+          "for": "10m",
+          "annotations": {
+            "summary": "5xx acima de 2% por 10 minutos."
+          },
+          "labels": {
+            "service": "atrium"
+          },
+          "isPaused": false
+        },
+        {
+          "uid": "atrium-ai-latency",
+          "title": "Latência de IA",
+          "condition": "C",
+          "data": [
+            {
+              "refId": "A",
+              "relativeTimeRange": {
+                "from": 600,
+                "to": 0
+              },
+              "datasourceUid": "prometheus",
+              "model": {
+                "refId": "A",
+                "expr": "histogram_quantile(0.95, sum by (le) (rate(atrium_qa_first_token_seconds_bucket[10m])))",
+                "instant": true,
+                "intervalMs": 1000,
+                "maxDataPoints": 43200
+              }
+            },
+            {
+              "refId": "B",
+              "datasourceUid": "__expr__",
+              "model": {
+                "refId": "B",
+                "type": "reduce",
+                "expression": "A",
+                "reducer": "last",
+                "settings": {
+                  "mode": "dropNN"
+                }
+              }
+            },
+            {
+              "refId": "C",
+              "datasourceUid": "__expr__",
+              "model": {
+                "refId": "C",
+                "type": "threshold",
+                "expression": "B",
+                "conditions": [
+                  {
+                    "evaluator": {
+                      "type": "gt",
+                      "params": [
+                        3
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          ],
+          "noDataState": "OK",
+          "execErrState": "Error",
+          "for": "30m",
+          "annotations": {
+            "summary": "p95 do primeiro token acima de 3 s por 30 minutos."
+          },
+          "labels": {
+            "service": "atrium"
+          },
+          "isPaused": false
+        },
+        {
+          "uid": "atrium-ai-quality",
+          "title": "Qualidade em queda",
+          "condition": "C",
+          "data": [
+            {
+              "refId": "A",
+              "relativeTimeRange": {
+                "from": 3600,
+                "to": 0
+              },
+              "datasourceUid": "prometheus",
+              "model": {
+                "refId": "A",
+                "expr": "sum(increase(atrium_qa_outcomes_total{outcome=~\"abstained|grounding_failed\"}[1h])) / sum(increase(atrium_qa_outcomes_total[1h]))",
+                "instant": true,
+                "intervalMs": 1000,
+                "maxDataPoints": 43200
+              }
+            },
+            {
+              "refId": "B",
+              "datasourceUid": "__expr__",
+              "model": {
+                "refId": "B",
+                "type": "reduce",
+                "expression": "A",
+                "reducer": "last",
+                "settings": {
+                  "mode": "dropNN"
+                }
+              }
+            },
+            {
+              "refId": "C",
+              "datasourceUid": "__expr__",
+              "model": {
+                "refId": "C",
+                "type": "threshold",
+                "expression": "B",
+                "conditions": [
+                  {
+                    "evaluator": {
+                      "type": "gt",
+                      "params": [
+                        0.25
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          ],
+          "noDataState": "OK",
+          "execErrState": "Error",
+          "for": "0s",
+          "annotations": {
+            "summary": "abstained mais grounding_failed acima de 25% das respostas em 1 hora."
+          },
+          "labels": {
+            "service": "atrium"
+          },
+          "isPaused": false
+        },
+        {
+          "uid": "atrium-llm-budget",
+          "title": "Orçamento",
+          "condition": "C",
+          "data": [
+            {
+              "refId": "A",
+              "relativeTimeRange": {
+                "from": 600,
+                "to": 0
+              },
+              "datasourceUid": "prometheus",
+              "model": {
+                "refId": "A",
+                "expr": "max(atrium_llm_budget_ratio)",
+                "instant": true,
+                "intervalMs": 1000,
+                "maxDataPoints": 43200
+              }
+            },
+            {
+              "refId": "B",
+              "datasourceUid": "__expr__",
+              "model": {
+                "refId": "B",
+                "type": "reduce",
+                "expression": "A",
+                "reducer": "last",
+                "settings": {
+                  "mode": "dropNN"
+                }
+              }
+            },
+            {
+              "refId": "C",
+              "datasourceUid": "__expr__",
+              "model": {
+                "refId": "C",
+                "type": "threshold",
+                "expression": "B",
+                "conditions": [
+                  {
+                    "evaluator": {
+                      "type": "gt",
+                      "params": [
+                        0.8
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          ],
+          "noDataState": "OK",
+          "execErrState": "Error",
+          "for": "0s",
+          "annotations": {
+            "summary": "Orçamento diário de tokens acima de 80%."
+          },
+          "labels": {
+            "service": "atrium"
+          },
+          "isPaused": false
+        },
+        {
+          "uid": "atrium-llm-circuit",
+          "title": "Circuito aberto",
+          "condition": "C",
+          "data": [
+            {
+              "refId": "A",
+              "relativeTimeRange": {
+                "from": 300,
+                "to": 0
+              },
+              "datasourceUid": "prometheus",
+              "model": {
+                "refId": "A",
+                "expr": "max(atrium_llm_circuit_open)",
+                "instant": true,
+                "intervalMs": 1000,
+                "maxDataPoints": 43200
+              }
+            },
+            {
+              "refId": "B",
+              "datasourceUid": "__expr__",
+              "model": {
+                "refId": "B",
+                "type": "reduce",
+                "expression": "A",
+                "reducer": "last",
+                "settings": {
+                  "mode": "dropNN"
+                }
+              }
+            },
+            {
+              "refId": "C",
+              "datasourceUid": "__expr__",
+              "model": {
+                "refId": "C",
+                "type": "threshold",
+                "expression": "B",
+                "conditions": [
+                  {
+                    "evaluator": {
+                      "type": "gt",
+                      "params": [
+                        0.5
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          ],
+          "noDataState": "OK",
+          "execErrState": "Error",
+          "for": "5m",
+          "annotations": {
+            "summary": "Circuito do modelo aberto por 5 minutos."
+          },
+          "labels": {
+            "service": "atrium"
+          },
+          "isPaused": false
+        },
+        {
+          "uid": "atrium-ingestion-failed",
+          "title": "Ingestão",
+          "condition": "C",
+          "data": [
+            {
+              "refId": "A",
+              "relativeTimeRange": {
+                "from": 3600,
+                "to": 0
+              },
+              "datasourceUid": "prometheus",
+              "model": {
+                "refId": "A",
+                "expr": "sum(increase(atrium_ingestion_versions_total{status=\"failed\"}[1h]))",
+                "instant": true,
+                "intervalMs": 1000,
+                "maxDataPoints": 43200
+              }
+            },
+            {
+              "refId": "B",
+              "datasourceUid": "__expr__",
+              "model": {
+                "refId": "B",
+                "type": "reduce",
+                "expression": "A",
+                "reducer": "last",
+                "settings": {
+                  "mode": "dropNN"
+                }
+              }
+            },
+            {
+              "refId": "C",
+              "datasourceUid": "__expr__",
+              "model": {
+                "refId": "C",
+                "type": "threshold",
+                "expression": "B",
+                "conditions": [
+                  {
+                    "evaluator": {
+                      "type": "gt",
+                      "params": [
+                        0
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          ],
+          "noDataState": "OK",
+          "execErrState": "Error",
+          "for": "0s",
+          "annotations": {
+            "summary": "Versão de documento com falha na última hora."
+          },
+          "labels": {
+            "service": "atrium"
+          },
+          "isPaused": false
+        },
+        {
+          "uid": "atrium-dsr-overdue",
+          "title": "Pedido de titular atrasado",
+          "condition": "C",
+          "data": [
+            {
+              "refId": "A",
+              "relativeTimeRange": {
+                "from": 600,
+                "to": 0
+              },
+              "datasourceUid": "prometheus",
+              "model": {
+                "refId": "A",
+                "expr": "max(atrium_dsr_open{overdue=\"true\"})",
+                "instant": true,
+                "intervalMs": 1000,
+                "maxDataPoints": 43200
+              }
+            },
+            {
+              "refId": "B",
+              "datasourceUid": "__expr__",
+              "model": {
+                "refId": "B",
+                "type": "reduce",
+                "expression": "A",
+                "reducer": "last",
+                "settings": {
+                  "mode": "dropNN"
+                }
+              }
+            },
+            {
+              "refId": "C",
+              "datasourceUid": "__expr__",
+              "model": {
+                "refId": "C",
+                "type": "threshold",
+                "expression": "B",
+                "conditions": [
+                  {
+                    "evaluator": {
+                      "type": "gt",
+                      "params": [
+                        0
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          ],
+          "noDataState": "OK",
+          "execErrState": "Error",
+          "for": "0s",
+          "annotations": {
+            "summary": "Há pedido de titular com prazo vencido."
+          },
+          "labels": {
+            "service": "atrium"
+          },
+          "isPaused": false
+        },
+        {
+          "uid": "atrium-retention-stalled",
+          "title": "Retenção parada",
+          "condition": "C",
+          "data": [
+            {
+              "refId": "A",
+              "relativeTimeRange": {
+                "from": 300,
+                "to": 0
+              },
+              "datasourceUid": "prometheus",
+              "model": {
+                "refId": "A",
+                "expr": "time() - max(atrium_retention_last_run_timestamp_seconds)",
+                "instant": true,
+                "intervalMs": 1000,
+                "maxDataPoints": 43200
+              }
+            },
+            {
+              "refId": "B",
+              "datasourceUid": "__expr__",
+              "model": {
+                "refId": "B",
+                "type": "reduce",
+                "expression": "A",
+                "reducer": "last",
+                "settings": {
+                  "mode": "dropNN"
+                }
+              }
+            },
+            {
+              "refId": "C",
+              "datasourceUid": "__expr__",
+              "model": {
+                "refId": "C",
+                "type": "threshold",
+                "expression": "B",
+                "conditions": [
+                  {
+                    "evaluator": {
+                      "type": "gt",
+                      "params": [
+                        93600
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          ],
+          "noDataState": "Alerting",
+          "execErrState": "Error",
+          "for": "0s",
+          "annotations": {
+            "summary": "Nenhuma execução do retention-job em 26 horas."
+          },
+          "labels": {
+            "service": "atrium"
+          },
+          "isPaused": false
+        }
+      ]
+    }
+  ]
+}
