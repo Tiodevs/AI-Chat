@@ -5,17 +5,10 @@ import { useNavigate, useSearchParams } from "react-router"
 import { queryClient } from "@/app/query-client.ts"
 import { safeReturnTo } from "@/features/auth/return-to.ts"
 import { meQuery, type Me } from "@/features/auth/useSession.ts"
+import { legalVersionsQuery } from "@/features/privacy/useLegalVersions.ts"
 import { api } from "@/lib/api/client.ts"
 
 import { failureFrom, termsPurpose, type SubmitFailure } from "./model.ts"
-
-const legalVersionsQuery = {
-  queryKey: ["legal", "versions"] as const,
-  queryFn: async () => {
-    const result = await api.GET("/v1/legal/versions")
-    return result.data?.terms ?? null
-  },
-}
 
 export function useLegalAccept(me: Me) {
   const navigate = useNavigate()
@@ -50,7 +43,7 @@ export function useLegalAccept(me: Me) {
   }
 
   return {
-    version: version.data ?? null,
+    version: version.data?.terms ?? null,
     needsAcceptance: me.needs_legal_acceptance,
     returnTo,
     pending,

@@ -17,6 +17,8 @@ A API roda direto na máquina. Docker não é necessário. O banco é o PostgreS
 5. Suba a API com `uv run uvicorn app.main:app --reload`.
 6. Abra `http://127.0.0.1:8000/health` e `http://127.0.0.1:8000/ready`. `/health` responde 200 sem o banco. `/ready` responde 200 quando o banco responde e a extensão `vector` está instalada.
 
+A retenção da seção 11.6 roda com `uv run python -m app.scripts.retention`, em `apps/api`. Ela imprime quantas linhas cada regra apagou.
+
 O frontend fica em `apps/web`.
 
 1. Entre em `apps/web`.

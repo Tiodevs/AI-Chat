@@ -53,11 +53,31 @@ export interface paths {
         };
         /**
          * Legal Versions
-         * @description Versão vigente dos Termos e do Aviso de Privacidade.
+         * @description Versão vigente dos Termos e do Aviso de Privacidade e o contato do encarregado.
          */
         get: operations["getLegalVersions"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/privacy/requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create Privacy Request
+         * @description Abre um pedido de titular com prazo de 15 dias. Limite de 5 por IP no dia.
+         */
+        post: operations["createPrivacyRequest"];
         delete?: never;
         options?: never;
         head?: never;
@@ -759,6 +779,8 @@ export interface components {
             terms: string;
             /** Privacy Notice */
             privacy_notice: string;
+            /** Privacy Contact Email */
+            privacy_contact_email: string | null;
         };
         /** LoginRequest */
         LoginRequest: {
@@ -800,6 +822,37 @@ export interface components {
         PasswordRequest: {
             /** Password */
             password: string;
+        };
+        /** PrivacyRequestCreate */
+        PrivacyRequestCreate: {
+            /** Contact Email */
+            contact_email: string;
+            /** Request Type */
+            request_type: string;
+            /** Description */
+            description: string;
+        };
+        /** PrivacyRequestResponse */
+        PrivacyRequestResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Request Type */
+            request_type: string;
+            /** Status */
+            status: string;
+            /**
+             * Received At
+             * Format: date-time
+             */
+            received_at: string;
+            /**
+             * Due At
+             * Format: date-time
+             */
+            due_at: string;
         };
         /**
          * ProfilePatchRequest
@@ -976,6 +1029,57 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LegalVersionsResponse"];
+                };
+            };
+        };
+    };
+    createPrivacyRequest: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PrivacyRequestCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrivacyRequestResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
         };

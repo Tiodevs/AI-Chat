@@ -78,13 +78,13 @@ A exportação contém perfil, consentimentos com versões, conversas com mensag
 
 ### 11.6 Retenção e eliminação
 
-A tarefa agendada `retention-job` roda todo dia às 06:00 UTC na Railway e executa `python -m app.scripts.retention`. Cada regra é uma função testada.
+A tarefa agendada `retention-job` roda todo dia às 06:00 UTC na Railway e executa `python -m app.scripts.retention`. Cada regra é uma função testada, com transação própria, e grava o evento `retention.run`. Os prazos em meses viram dias corridos: 12 meses são 365 dias e 24 meses são 730. A última atividade de uma conversa é a mensagem mais nova, ou a criação quando não há mensagem.
 
 | Dado | Retenção |
 |---|---|
-| Conta e perfil | Até a exclusão, ou 24 meses sem entrar. Uma conta inativa é eliminada. |
+| Conta e perfil | Até a exclusão, ou 24 meses sem entrar. Uma conta inativa de membro é eliminada. Contas de admin seguem a seção 10.5. |
 | Conversas de membro | 12 meses a partir da última mensagem, ou até a exclusão da conta |
-| Conversas de convidado | 30 dias |
+| Conversas de convidado | 30 dias depois da última mensagem. A chave de convidado também some em 30 dias, e uma conversa que já virou de membro fica com o membro. |
 | Sessão de cadastro e transcrição | Apagada na conclusão, no abandono ou em 24 horas |
 | Sessões de autenticação | Apagadas 14 dias depois de expirar ou de serem revogadas |
 | Janelas de limite de taxa | 48 horas |

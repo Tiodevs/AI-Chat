@@ -6,6 +6,7 @@ from app.models.base import Base
 from app.models.chunk import Chunk
 from app.models.consent_record import ConsentRecord
 from app.models.conversation import Conversation
+from app.models.data_subject_request import DataSubjectRequest
 from app.models.document import Document
 from app.models.document_version import DocumentVersion
 from app.models.feedback import Feedback
@@ -23,6 +24,7 @@ __all__ = [
     "Chunk",
     "ConsentRecord",
     "Conversation",
+    "DataSubjectRequest",
     "Document",
     "DocumentVersion",
     "Feedback",
