@@ -1,6 +1,6 @@
 """Cadastro por chat e por formulário. Os dois chamam a mesma conclusão. Seção 7.2."""
 
-from dataclasses import dataclass, replace
+from dataclasses import asdict, dataclass, replace
 from datetime import UTC, datetime, timedelta
 from typing import Literal
 from uuid import UUID, uuid4
@@ -43,6 +43,7 @@ from app.domain.registration import (
     Path,
     PublicFields,
     Status,
+    Step,
     TranscriptItem,
     accept_review,
     accepts_message,
@@ -77,6 +78,7 @@ from app.prompts.registration import (
     WRONG_STEP,
     message_for,
     prompt_for,
+    review_prompt,
 )
 from app.repositories.auth_sessions import AuthSessionRepository
 from app.repositories.consents import ConsentRepository
@@ -199,7 +201,7 @@ class RegistrationService:
         if machine.status in (Status.COMPLETED, Status.ABANDONED):
             raise ValidationFailed(WRONG_STEP)
         updated = await self._edit(machine, edits)
-        prompt = prompt_for(updated.next_step.value, correcting=updated.correcting)
+        prompt = _step_prompt(updated)
         transcript = load_transcript(record.transcript)
         saved = await self._save(record, updated, transcript, record.password_hash)
         return _view(saved, updated, prompt)
@@ -224,7 +226,7 @@ class RegistrationService:
         if updated is None:
             raise ValidationFailed(WRONG_STEP)
         REGISTRATION_EVENTS.labels(event="password_set", path=record.path).inc()
-        prompt = prompt_for(updated.next_step.value, correcting=False)
+        prompt = _step_prompt(updated)
         now = self._clock.now()
         transcript = (
             *load_transcript(record.transcript),
@@ -238,7 +240,7 @@ class RegistrationService:
         updated = accept_review(machine) if accept else reject_review(machine)
         if updated is None:
             raise ValidationFailed(WRONG_STEP)
-        prompt = prompt_for(updated.next_step.value, correcting=updated.correcting)
+        prompt = _step_prompt(updated)
         now = self._clock.now()
         transcript = (
             *load_transcript(record.transcript),
@@ -704,6 +706,12 @@ def _view(record: RegistrationRecord, machine: Machine, prompt: str) -> SessionV
         messages=load_transcript(record.transcript),
         expires_at=record.expires_at,
     )
+
+
+def _step_prompt(machine: Machine) -> str:
+    if machine.next_step == Step.REVIEW and not machine.correcting:
+        return review_prompt(asdict(public_fields(machine.fields)))
+    return prompt_for(machine.next_step.value, correcting=machine.correcting)
 
 
 def _stored_prompt(record: RegistrationRecord, machine: Machine) -> str:

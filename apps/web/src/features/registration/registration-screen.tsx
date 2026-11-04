@@ -48,8 +48,7 @@ export function RegistrationScreen({
   const { isDesktop } = useMotion()
   const [draft, setDraft] = useState("")
   const summaryId = useId()
-  const [summaryChoice, setSummaryChoice] = useState<boolean | null>(null)
-  const summaryOpen = summaryChoice ?? session?.next_step === "review"
+  const [summaryOpen, setSummaryOpen] = useState(false)
   const summary = session ? (
     <ProfileSummaryCard
       fields={session.fields}
@@ -83,7 +82,7 @@ export function RegistrationScreen({
           className="min-h-11 md:min-h-8"
           aria-expanded={summaryOpen}
           aria-controls={summaryId}
-          onClick={() => setSummaryChoice(!summaryOpen)}
+          onClick={() => setSummaryOpen((open) => !open)}
         >
           {summaryOpen ? (
             <PanelRightClose data-icon="inline-start" aria-hidden="true" />

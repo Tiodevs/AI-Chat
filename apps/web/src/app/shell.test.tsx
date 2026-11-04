@@ -40,21 +40,34 @@ const member = {
   needs_legal_acceptance: false,
 }
 
-function signIn() {
+function signIn(logoutStatus = 204) {
+  let signedIn = true
+  const calls: string[] = []
   vi.stubGlobal(
     "fetch",
     vi.fn(async (input: RequestInfo | URL) => {
       const request =
         input instanceof Request ? input : new Request(String(input))
-      if (new URL(request.url).pathname.endsWith("/v1/me")) {
-        return new Response(JSON.stringify(member), {
-          status: 200,
-          headers: { "content-type": "application/json" },
-        })
+      const path = new URL(request.url).pathname
+      calls.push(`${request.method} ${path}`)
+      if (path.endsWith("/v1/auth/logout")) {
+        if (logoutStatus === 204) {
+          signedIn = false
+        }
+        return new Response(null, { status: logoutStatus })
+      }
+      if (path.endsWith("/v1/me")) {
+        return signedIn
+          ? new Response(JSON.stringify(member), {
+              status: 200,
+              headers: { "content-type": "application/json" },
+            })
+          : new Response(null, { status: 401 })
       }
       return new Response(null, { status: 404 })
     })
   )
+  return calls
 }
 
 function renderAt(path: string) {
@@ -159,6 +172,51 @@ describe("casca", () => {
     ).not.toBeInTheDocument()
     expect(
       within(nav).getByRole("link", { name: pt.nav.privacy })
+    ).toBeInTheDocument()
+  })
+
+  it("com sessão, o menu de perfil mostra o nome e sai da conta", async () => {
+    const calls = signIn()
+    const user = userEvent.setup()
+    const { router } = renderAt("/privacy")
+    const profile = await screen.findByRole("button", {
+      name: pt.profile.menu,
+    })
+    expect(profile).toHaveTextContent("Ana")
+    await user.click(profile)
+    expect(
+      screen.queryByRole("menuitem", { name: pt.nav.signIn })
+    ).not.toBeInTheDocument()
+    await user.click(
+      await screen.findByRole("menuitem", { name: pt.profile.signOut })
+    )
+    expect(
+      await screen.findByRole("navigation", { name: pt.sidebar.guestMenu })
+    ).toBeInTheDocument()
+    expect(
+      calls.some((call) => /^POST .*\/v1\/auth\/logout$/.test(call))
+    ).toBe(true)
+    expect(router.state.location.pathname).toBe("/")
+    expect(
+      screen.queryByRole("navigation", { name: pt.sidebar.label })
+    ).not.toBeInTheDocument()
+  })
+
+  it("se a saída falha, mantém a sessão e avisa", async () => {
+    signIn(500)
+    const user = userEvent.setup()
+    renderAt("/")
+    await user.click(
+      await screen.findByRole("button", { name: pt.profile.menu })
+    )
+    await user.click(
+      await screen.findByRole("menuitem", { name: pt.profile.signOut })
+    )
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      pt.profile.signOutFailed
+    )
+    expect(
+      screen.getByRole("navigation", { name: pt.sidebar.label })
     ).toBeInTheDocument()
   })
 

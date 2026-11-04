@@ -22,3 +22,31 @@ export const Recolhido: Story = {
 export const MenuAberto: Story = {
   args: { collapsed: false, defaultOpen: true },
 }
+
+export const ComSessao: Story = {
+  args: {
+    collapsed: false,
+    defaultOpen: true,
+    name: "Ana",
+    onSignOut: () => undefined,
+  },
+}
+
+export const Saindo: Story = {
+  args: {
+    collapsed: false,
+    defaultOpen: true,
+    name: "Ana",
+    onSignOut: () => undefined,
+    signingOut: true,
+  },
+}
+
+export const FalhaAoSair: Story = {
+  args: {
+    collapsed: false,
+    name: "Ana",
+    onSignOut: () => undefined,
+    signOutError: "Não foi possível sair. Tente de novo.",
+  },
+}

@@ -225,25 +225,33 @@ function AnswerPieces({
   citations: CitationView[]
   onSelect: (chunkId: string) => void
 }) {
-  const pieces = text.split(/(\[\d+\])/g)
+  // [2] e também o grupo [2, 3], que o modelo às vezes escreve.
+  const pieces = text.split(/(\[\d+(?:\s*[,;]\s*\d+)*\])/g)
   return pieces.map((piece, index) => {
-    const match = /^\[(\d+)\]$/.exec(piece)
+    const match = /^\[([\d\s,;]+)\]$/.exec(piece)
     if (!match) {
       return <span key={`${index}-${piece}`}>{piece}</span>
     }
-    const citationIndex = Number(match[1])
-    const citation = citations.find((item) => item.index === citationIndex)
-    if (!citation) {
+    const found = match[1]
+      .split(/[,;]/)
+      .map((raw) => Number(raw.trim()))
+      .map((citationIndex) => ({
+        citationIndex,
+        citation: citations.find((item) => item.index === citationIndex),
+      }))
+    if (found.some((item) => !item.citation)) {
       return <span key={`${index}-${piece}`}>{piece}</span>
     }
-    return (
-      <CitationChip
-        key={`${citation.chunkId}-${index}`}
-        index={citationIndex}
-        onSelect={() => {
-          onSelect(citation.chunkId)
-        }}
-      />
+    return found.map(({ citationIndex, citation }) =>
+      citation ? (
+        <CitationChip
+          key={`${citation.chunkId}-${index}-${citationIndex}`}
+          index={citationIndex}
+          onSelect={() => {
+            onSelect(citation.chunkId)
+          }}
+        />
+      ) : null
     )
   })
 }

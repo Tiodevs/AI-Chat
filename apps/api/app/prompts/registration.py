@@ -1,7 +1,7 @@
 """Saudação, frases modelo e erros do cadastro. Seções 7.2 e 10.2."""
 
 EXTRACT_PROMPT_VERSION = "registration-extract@2026-10-28.2"
-PHRASE_PROMPT_VERSION = "registration-phrase@2026-11-04.1"
+PHRASE_PROMPT_VERSION = "registration-phrase@2026-11-04.2"
 
 EXTRACT_INSTRUCTIONS = (
     "Você extrai campos de cadastro da mensagem do visitante.\n"
@@ -33,6 +33,8 @@ TOOL_PROPERTY_DESCRIPTIONS = {
 PHRASE_INSTRUCTIONS = (
     "Você escreve uma resposta curta, em português, para o passo do cadastro informado.\n"
     "O passo informado é o dado que falta agora. Peça só esse dado, nunca outro.\n"
+    "Use a pergunta modelo como base e mantenha as opções que ela oferece, "
+    "sem inventar outras.\n"
     "Se a mensagem do visitante for uma dúvida, responda em uma ou duas frases simples "
     "e depois peça o dado desse passo.\n"
     "Se a mensagem trouxe o dado de um passo anterior, ele já foi gravado: "
@@ -101,6 +103,45 @@ _FIELD_MESSAGES = {
     ("visitor_type", "required"): "Este campo é obrigatório.",
     ("visit_reason", "required"): "Este campo é obrigatório.",
 }
+
+
+REVIEW_INTRO = "Confira os seus dados:"
+REVIEW_QUESTION = (
+    "Está tudo certo? Se estiver, toque em Está certo. "
+    "Se quiser mudar algo, toque em Quero corrigir."
+)
+REVIEW_SKIPPED = "não informado"
+REVIEW_LABELS = {
+    "full_name": "Nome completo",
+    "email": "E-mail",
+    "phone": "Telefone",
+    "visitor_type": "Tipo de visitante",
+    "visit_reason": "Motivo da visita",
+}
+VISITOR_TYPE_LABELS = {"patient": "Paciente", "visitor": "Visita", "caregiver": "Cuidador"}
+VISIT_REASON_LABELS = {
+    "visiting_someone": "Visitar alguém",
+    "own_appointment": "Minha consulta",
+    "exam_or_test": "Exame",
+    "accompanying_someone": "Acompanhar alguém",
+    "administrative": "Assunto administrativo",
+    "other": "Outro",
+}
+
+
+def review_prompt(values: dict[str, str | None]) -> str:
+    """Mensagem da revisão: os dados entendidos, um por linha, e a pergunta final."""
+    lines = [REVIEW_INTRO]
+    for field, label in REVIEW_LABELS.items():
+        raw = values.get(field)
+        if field == "visitor_type" and raw:
+            raw = VISITOR_TYPE_LABELS.get(raw, raw)
+        if field == "visit_reason" and raw:
+            raw = VISIT_REASON_LABELS.get(raw, raw)
+        lines.append(f"• {label}: {raw or REVIEW_SKIPPED}")
+    lines.append("")
+    lines.append(REVIEW_QUESTION)
+    return "\n".join(lines)
 
 
 def prompt_for(step: str, *, correcting: bool) -> str:

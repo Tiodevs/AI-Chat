@@ -176,7 +176,7 @@ Componentes de produto em `components/patterns`, mapeados a partir da imagem:
 | Blocos Open e In Progress | `StatTile` para contagens, como Ready e Processing | Documentos e qualidade |
 | Retention Rate com barras agrupadas | `GroupedBarCard` para o funil de cadastro, chat contra formulário | Visão geral do admin |
 | Card What's new | `SidebarNoticeCard` com dicas de privacidade e de uso | Barra lateral do visitante |
-| Botão Customizer no rodapé | `ProfileButton` com menu de conta | Barra lateral |
+| Botão Customizer no rodapé | `ProfileButton` com o primeiro nome de quem entrou e um menu com Conta, Sair e a preferência de movimento. Sair chama `POST /v1/auth/logout`, limpa os dados da conta guardados na tela e volta ao início sem sessão; se a API falhar, a sessão continua e o botão avisa | Barra lateral |
 | Menu de três pontos | `CardActionsMenu` | Cards do admin |
 
 Componentes sem equivalente na imagem:
@@ -317,9 +317,9 @@ Cada tela descreve objetivo, composição e estados. Os textos citados são a c�
 #### Cadastro por conversa `/register`
 
 - **Objetivo:** criar a conta conversando, sem perder o controle dos dados.
-- **Composição:** no topo, o botão "Ver o que entendemos", com a contagem de campos, e o link "Usar o formulário". Não há indicador de etapas. Abaixo, o chat, num painel de conversa: falas do assistente em `AssistantBubble`, com avatar, as do visitante em `UserMessage`, e o compositor fixo no rodapé do painel, com o botão Enviar dentro do campo. Enquanto a resposta não chega, a mensagem enviada já aparece e o assistente mostra que está escrevendo. O `ProfileSummaryCard` começa oculto. Aberto pelo botão, ele fica à direita do chat no desktop e acima dele no celular, e abre sozinho no passo de revisão. Ele se preenche à medida que a IA entende os campos. Cada campo tem um link "Por que pedimos" e pode ser editado ali mesmo.
+- **Composição:** no topo, o botão "Ver o que entendemos", com a contagem de campos, e o link "Usar o formulário". Não há indicador de etapas. Abaixo, o chat, num painel de conversa: falas do assistente em `AssistantBubble`, com avatar, as do visitante em `UserMessage`, e o compositor fixo no rodapé do painel, com o botão Enviar dentro do campo. Enquanto a resposta não chega, a mensagem enviada já aparece e o assistente mostra que está escrevendo. O `ProfileSummaryCard` começa oculto. Aberto pelo botão, ele fica à direita do chat no desktop e acima dele no celular,. Ele se preenche à medida que a IA entende os campos. Cada campo tem um link "Por que pedimos" e pode ser editado ali mesmo.
 - **Passo da senha:** o `PasswordCard` aparece no lugar do compositor, com a nota "Sua senha vai direto para o nosso servidor. A IA não a vê."
-- **Passo de revisão:** o resumo completo com Editar em cada linha e o botão Está certo.
+- **Passo de revisão:** o próprio assistente manda, na conversa, os dados entendidos, um por linha, e pergunta se está tudo certo. Abaixo ficam os botões Está certo e Quero corrigir. Quero corrigir volta à conversa com "O que você quer corrigir no cadastro?". O resumo lateral não abre sozinho.
 - **Passo de aceite:** `ConsentFieldSet` com os dois aceites obrigatórios e os dois opcionais. O opcional de personalização fica destacado e explica que tipo de visitante e motivo da visita podem indicar que a pessoa é paciente. Os opcionais começam desmarcados.
 - **Sempre visível:** o link "Usar o formulário".
 - **Estados:** campo com erro aparece no cartão e é pedido de novo no chat. Uma dúvida que não traz o dado recebe uma resposta curta e o mesmo campo é pedido de novo. E-mail já cadastrado recebe, na conversa, uma resposta fixa que explica que a conta existe e pede outro e-mail, com o botão Entrar logo abaixo. O passo continua no e-mail. Uma falha ao enviar não sai da tela: o `ChatErrorNotice` aparece na conversa com a mensagem do erro, `RequestIdCopy`, Tentar de novo e Fechar, e o texto continua no compositor. Com o Gemini indisponível, o mesmo aviso explica o motivo e oferece Usar o formulário, que leva os campos já entendidos.

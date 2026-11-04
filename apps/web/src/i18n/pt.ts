@@ -58,6 +58,9 @@ export const pt = {
   profile: {
     menu: "Menu da conta",
     guest: "Visitante",
+    signOut: "Sair",
+    signingOut: "Saindo…",
+    signOutFailed: "Não foi possível sair. Tente de novo.",
     motion: "Movimento",
     motionSystem: "Sistema",
     motionReduce: "Reduzir movimento",

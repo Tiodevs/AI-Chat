@@ -6,7 +6,12 @@ from app.adapters.fake_chat import FakeChatProvider
 from app.domain.errors import ProviderUnavailable
 from app.domain.registration import FieldSet, Machine, Status, Step, new_machine
 from app.ports.chat import ToolResult
-from app.prompts.registration import EMAIL_TAKEN_REPLY, message_for, prompt_for
+from app.prompts.registration import (
+    EMAIL_TAKEN_REPLY,
+    REVIEW_QUESTION,
+    message_for,
+    prompt_for,
+)
 from app.workflows.registration import PhraseText, RegistrationWorkflow
 
 
@@ -124,3 +129,54 @@ def test_registration_invalid_value_names_the_problem_and_the_step() -> None:
         f"{message_for('email', 'invalid')} {prompt_for('email', correcting=False)}"
     )
     assert chat.structured_calls == []
+
+
+def test_registration_review_lists_the_fields_in_the_chat() -> None:
+    chat = FakeChatProvider(
+        tool_result=ToolResult(
+            name="set_fields", arguments={"visit_reason": "visiting_someone"}
+        ),
+        structured=PhraseText(text="Qual é o seu nome completo?"),
+    )
+    machine = Machine(
+        status=Status.COLLECTING_OPTIONAL,
+        fields=FieldSet(
+            full_name="Ana Costa",
+            email="ana@example.com",
+            phone_skipped=True,
+            visitor_type="visitor",
+        ),
+        password_set=True,
+        correcting=False,
+        field_errors=(),
+        next_step=Step.VISIT_REASON,
+    )
+    result = asyncio.run(
+        RegistrationWorkflow(chat).turn(machine, "visitar meu pai", request_id="req")
+    )
+    assert result.machine.next_step == Step.REVIEW
+    assert "• Nome completo: Ana Costa" in result.prompt
+    assert "• E-mail: ana@example.com" in result.prompt
+    assert "• Telefone: não informado" in result.prompt
+    assert "• Tipo de visitante: Visita" in result.prompt
+    assert "• Motivo da visita: Visitar alguém" in result.prompt
+    assert result.prompt.endswith(REVIEW_QUESTION)
+    assert chat.structured_calls == []
+
+
+def test_registration_phrase_sees_the_step_template_with_its_options() -> None:
+    chat = FakeChatProvider(
+        tool_result=ToolResult(name="set_fields", arguments={"phone": "41 98720-8844"}),
+        structured=PhraseText(text="Você é paciente, visita ou cuidador?"),
+    )
+    machine = Machine(
+        status=Status.COLLECTING_OPTIONAL,
+        fields=FieldSet(full_name="Ana Costa", email="ana@example.com"),
+        password_set=False,
+        correcting=False,
+        field_errors=(),
+        next_step=Step.PHONE,
+    )
+    asyncio.run(RegistrationWorkflow(chat).turn(machine, "41 98720-8844", request_id="req"))
+    sent = chat.structured_calls[0][0][-1].content
+    assert f"pergunta modelo: {prompt_for('visitor_type', correcting=False)}" in sent

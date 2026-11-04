@@ -17,13 +17,15 @@ from app.prompts.registration import versioned_registration_prompts
 # Mudar o texto sem mudar PROMPT_VERSION quebra a igualdade abaixo.
 _LOCKED_HASHES = {
     "qa-rewrite@2026-10-27.1": "d04cb4058b7319e772cf98a02bc9a63e3d1c7b95518fdb3b134871e65e70c5bf",
-    "qa-generate@2026-10-27.1": "1a533c1e2534875ee07753b3b4c2cb759413d1af5334f0e9def67f75ae80bb33",
+    "qa-generate@2026-11-04.1": (
+        "10753169b1fa027700397479ccb732a272063cbf8c91995c9a600b39991e3989"
+    ),
     "groundedness@2026-10-27.1": "be3d0615be6e9d8dcbd9cfaf39d9514ba2c4eb5a70c158fb680d4ebbe80fcb13",
     "registration-extract@2026-10-28.2": (
         "03cd33e663ce500186035ebba129850be9262c43c2eb67b496ef46f8875bbf85"
     ),
-    "registration-phrase@2026-11-04.1": (
-        "a4606d4b7285d771a5cd8eaddbb03b02c5ae3f692cf29c7587ac09dd197b1ec9"
+    "registration-phrase@2026-11-04.2": (
+        "79bab0254d23fd51ca3c9ecc2acaae51c6ce2d4da5034bd758ea31c54f0f2cbd"
     ),
 }
 
