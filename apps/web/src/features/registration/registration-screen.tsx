@@ -1,5 +1,5 @@
-import { SendHorizontal } from "lucide-react"
-import { useEffect, useId, useRef, useState, type ReactNode } from "react"
+import { PanelRightClose, PanelRightOpen, SendHorizontal } from "lucide-react"
+import { useEffect, useId, useRef, useState } from "react"
 import { Link } from "react-router"
 
 import { PageHeading } from "@/app/page-heading.tsx"
@@ -8,7 +8,6 @@ import { ChatErrorNotice } from "@/components/patterns/chat-error-notice.tsx"
 import { ConsentFieldSet } from "@/components/patterns/consent-field-set.tsx"
 import { PasswordCard } from "@/components/patterns/password-card.tsx"
 import { ProfileSummaryCard } from "@/components/patterns/profile-summary-card.tsx"
-import { RegistrationStepper } from "@/components/patterns/registration-stepper.tsx"
 import { UserMessage } from "@/components/patterns/user-message.tsx"
 import { Button } from "@/components/ui/button.tsx"
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field.tsx"
@@ -23,7 +22,7 @@ import {
   emptyConsents,
   filledFieldCount,
   formPath,
-  phaseForStep,
+  emailOffersSignIn,
   type Consents,
   type RegistrationSession,
 } from "@/features/registration/model.ts"
@@ -48,7 +47,9 @@ export function RegistrationScreen({
 }: Chat) {
   const { isDesktop } = useMotion()
   const [draft, setDraft] = useState("")
-  const phase = phaseForStep(session?.next_step ?? "full_name")
+  const summaryId = useId()
+  const [summaryChoice, setSummaryChoice] = useState<boolean | null>(null)
+  const summaryOpen = summaryChoice ?? session?.next_step === "review"
   const summary = session ? (
     <ProfileSummaryCard
       fields={session.fields}
@@ -76,7 +77,26 @@ export function RegistrationScreen({
         {pt.registration.lead}
       </p>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <RegistrationStepper phase={phase} />
+        <Button
+          type="button"
+          variant="outline"
+          className="min-h-11 md:min-h-8"
+          aria-expanded={summaryOpen}
+          aria-controls={summaryId}
+          onClick={() => setSummaryChoice(!summaryOpen)}
+        >
+          {summaryOpen ? (
+            <PanelRightClose data-icon="inline-start" aria-hidden="true" />
+          ) : (
+            <PanelRightOpen data-icon="inline-start" aria-hidden="true" />
+          )}
+          {summaryOpen
+            ? pt.registration.summaryHide
+            : pt.registration.summaryShow.replace(
+                "{count}",
+                String(filledFieldCount(session?.fields ?? emptySummaryFields()))
+              )}
+        </Button>
         <Button asChild variant="link" className="h-11 px-0 md:h-8">
           <Link to={formPath(session?.id ?? null)}>
             {pt.registration.useForm}
@@ -84,13 +104,7 @@ export function RegistrationScreen({
         </Button>
       </div>
       <div className="flex flex-1 flex-col gap-4 lg:flex-row lg:items-start">
-        {isDesktop ? null : (
-          <MobileSummary
-            count={filledFieldCount(session?.fields ?? emptySummaryFields())}
-          >
-            {summary}
-          </MobileSummary>
-        )}
+        {summaryOpen && !isDesktop ? <div id={summaryId}>{summary}</div> : null}
         <section
           aria-label={pt.registration.thread}
           className="flex min-w-0 flex-1 flex-col rounded-2xl border border-border bg-shell"
@@ -145,8 +159,10 @@ export function RegistrationScreen({
             </div>
           ) : null}
         </section>
-        {isDesktop ? (
-          <div className="sticky top-0 w-80 shrink-0">{summary}</div>
+        {summaryOpen && isDesktop ? (
+          <div id={summaryId} className="sticky top-0 w-80 shrink-0">
+            {summary}
+          </div>
         ) : null}
       </div>
     </div>
@@ -161,32 +177,6 @@ function emptySummaryFields() {
     visitor_type: null,
     visit_reason: null,
   }
-}
-
-function MobileSummary({
-  count,
-  children,
-}: {
-  count: number
-  children: ReactNode
-}) {
-  const [open, setOpen] = useState(false)
-  const panelId = useId()
-  return (
-    <div className="flex flex-col gap-2">
-      <Button
-        type="button"
-        variant="outline"
-        className="min-h-11 justify-between md:min-h-8"
-        aria-expanded={open}
-        aria-controls={panelId}
-        onClick={() => setOpen((current) => !current)}
-      >
-        {pt.registration.summaryToggle.replace("{count}", String(count))}
-      </Button>
-      {open ? <div id={panelId}>{children}</div> : null}
-    </div>
-  )
 }
 
 function Transcript({
@@ -228,6 +218,13 @@ function Transcript({
             )}
           </li>
         ))}
+        {!typing && emailOffersSignIn(session.field_errors.email) ? (
+          <li className="flex flex-wrap gap-2 ps-10">
+            <Button asChild className="min-h-11 md:min-h-8">
+              <Link to="/sign-in">{pt.registration.signIn}</Link>
+            </Button>
+          </li>
+        ) : null}
         {outgoing ? (
           <li>
             <UserMessage text={outgoing} privacy={false} />

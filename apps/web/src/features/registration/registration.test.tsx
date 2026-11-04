@@ -164,6 +164,20 @@ describe("telas do cadastro", () => {
     )
 
     renderAt("/register")
+    const toggle = await screen.findByRole("button", {
+      name: pt.registration.summaryShow.replace("{count}", "0"),
+    })
+    expect(toggle).toHaveAttribute("aria-expanded", "false")
+    expect(
+      screen.queryByRole("region", { name: pt.registration.summaryTitle })
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole("list", { name: pt.registration.stepsLabel })
+    ).not.toBeInTheDocument()
+    await user.click(toggle)
+    expect(
+      screen.getByRole("button", { name: pt.registration.summaryHide })
+    ).toHaveAttribute("aria-expanded", "true")
     const summary = await screen.findByRole("region", {
       name: pt.registration.summaryTitle,
     })
@@ -242,6 +256,18 @@ describe("telas do cadastro", () => {
       "ana@example.com"
     )
     await user.click(screen.getByRole("button", { name: pt.registration.send }))
+    const thread = await screen.findByRole("region", {
+      name: pt.registration.thread,
+    })
+    expect((await within(thread).findAllByText(taken)).length).toBeGreaterThan(0)
+    expect(
+      within(thread).getByRole("link", { name: pt.registration.signIn })
+    ).toHaveAttribute("href", "/sign-in")
+    await user.click(
+      screen.getByRole("button", {
+        name: pt.registration.summaryShow.replace("{count}", "1"),
+      })
+    )
     const summary = await screen.findByRole("region", {
       name: pt.registration.summaryTitle,
     })
