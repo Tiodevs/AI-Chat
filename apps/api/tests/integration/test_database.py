@@ -58,6 +58,7 @@ EXPECTED_COLUMNS: dict[str, set[str]] = {
         "closed_at",
         "resolution_note",
     },
+    "retention_runs": {"id", "rule", "deleted_count", "ran_at"},
     "audit_events": {
         "id",
         "actor_user_id",
@@ -158,6 +159,7 @@ EXPECTED_CONSTRAINTS: dict[str, set[str]] = {
     },
     "rate_limit_windows": {"rate_limit_windows_pkey"},
     "audit_events": {"audit_events_pkey"},
+    "retention_runs": {"retention_runs_pkey"},
     "data_subject_requests": {
         "data_subject_requests_pkey",
         "data_subject_requests_request_type",
@@ -272,7 +274,7 @@ async def _assert_schema(database_url: str) -> None:
             )
             assert extension == 1
             revision = await connection.scalar(text("SELECT version_num FROM alembic_version"))
-            assert revision == "0007_data_subject_requests"
+            assert revision == "0008_retention_runs"
             await _assert_columns(connection)
             await _assert_constraints(connection)
         await _exercise_rows(engine)
