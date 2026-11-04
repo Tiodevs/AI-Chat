@@ -356,7 +356,7 @@ A tela que segue mais de perto a imagem de referência.
 
 #### Documentos `/admin/documents`
 
-`DataTable` com título, versão ativa, status e data. `FileDropzone` no topo. Linhas em processamento mostram `Badge` em `--info`. Falhas mostram o erro e a ação Retry. Substituir abre um `Sheet`.
+`DataTable` com título, versão ativa, status e data. `FileDropzone` no topo, com o título opcional e o aviso de tipo e tamanho antes do envio. Linhas em processamento mostram `Badge` em `--info` e avisam que a versão ativa continua respondendo, e a lista é relida a cada 2 segundos enquanto houver uma. Prontas usam `--success` e arquivadas a superfície neutra, sem ações. Falhas mostram o erro em `--danger` e a ação Tentar de novo. Substituir abre um `Sheet` com título e fica desabilitado durante o processamento. Arquivar pede confirmação num `AlertDialog`. O resultado de cada ação é anunciado numa região `aria-live`.
 
 #### Qualidade `/admin/quality`
 

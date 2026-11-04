@@ -49,16 +49,19 @@ Erros de validação usam `validation_error` e HTTP 422. Falhas de autorização
 | `DELETE /v1/me` | Membro ou admin | Exclui a conta e responde 204, apagando o cookie. Um admin recebe 403. |
 | `POST /v1/privacy/requests` | Qualquer um, limitado | `{ "contact_email", "request_type", "description" }`, descrição com até 2.000 caracteres. Responde 201 com `{ "id", "request_type", "status", "received_at", "due_at" }`, `status = open` e `due_at` 15 dias corridos depois. Com sessão válida, o pedido guarda o `user_id`. Erros de campo voltam em `field_errors`. O sexto pedido do mesmo IP no dia responde 429. |
 | `GET /v1/admin/overview` | Admin | Indicadores do painel, com período e comparação com o período anterior |
-| `GET /v1/admin/documents` | Admin | Documentos, versão ativa e status de ingestão |
-| `POST /v1/admin/documents` | Admin | Upload multipart e título |
-| `POST /v1/admin/documents/{id}/replace` | Admin | Arquivo de substituição em multipart |
-| `POST /v1/admin/documents/{id}/archive` | Admin | Arquiva. |
+| `GET /v1/admin/documents` | Admin | `{ "documents" }`, ativos primeiro e depois os arquivados, do mais recente ao mais antigo. Cada item traz `id`, `title`, `slug`, `status`, `created_at`, `updated_at`, `active_version` e `latest_version`. As duas versões trazem `id`, `version`, `filename`, `media_type`, `byte_size`, `ingestion_status`, `error` e `created_at`, e podem ser `null`. |
+| `POST /v1/admin/documents` | Admin, limitado | Multipart com `file` e `title` opcional. Responde 201 com o documento, a versão nova em `processing` e `active_version` nula. Grava `document.upload`. |
+| `POST /v1/admin/documents/{id}/replace` | Admin, limitado | Multipart com `file`. Responde 202 com o documento. A versão ativa continua a mesma até a nova chegar a `ready`. Grava `document.replace`. |
+| `POST /v1/admin/documents/{id}/retry` | Admin, limitado | Sem corpo. Reprocessa o arquivo da última versão, que precisa estar em `failed`, numa versão nova. Responde 202. Grava `document.retry`. |
+| `POST /v1/admin/documents/{id}/archive` | Admin | Arquiva e responde 200 com o documento. Arquivar de novo não grava outro evento. Grava `document.archive`. |
 | `GET /v1/admin/quality` | Admin | Contagens por desfecho, feedback e conversas recentes, pseudonimizadas |
 | `GET /v1/admin/conversations/{id}` | Admin | Conversa pseudonimizada, links de rastro. Grava `conversation.view`. |
 | `POST /v1/admin/conversations/{id}/reveal` | Admin | `{ "reason" }`. Devolve a identidade e grava `identity.reveal`. |
 | `GET /v1/admin/privacy/requests` | Admin | Fila de pedidos de titular |
 | `PATCH /v1/admin/privacy/requests/{id}` | Admin | Status e nota de resolução. Grava `dsr.update`. |
 | `GET /metrics` | Bearer `METRICS_TOKEN` | Texto Prometheus. Desligada quando o token não está definido. |
+
+O tipo do upload vem da extensão: `.md` e `.markdown` são `text/markdown`, `.txt` é `text/plain` e `.pdf` é `application/pdf`. O tipo declarado pelo navegador não conta. Texto precisa ser UTF-8 sem byte nulo, e PDF precisa começar com `%PDF-`. Arquivo vazio, acima de 10 MB, de outro tipo ou título acima de 200 caracteres responde 422 com `field_errors` em `file` ou `title`. Sem título, vale o nome do arquivo sem a extensão. O `slug` vem do nome do arquivo, em ASCII com hífens, e ganha `-2`, `-3` quando já existe. Documento inexistente responde 404. Substituir ou tentar de novo um documento arquivado, ou com uma versão em `processing` há menos de 15 minutos, responde 409, e tentar de novo sem falha na última versão também. Upload, substituição e nova tentativa contam no balde de uploads da seção 10.4, que conta a tentativa antes da validação do documento, e o 31º pedido na hora responde 429. A ingestão segue a seção 7.3.
 
 A saudação e as frases modelo do cadastro são cópia fixa em `app/prompts/registration.py`, então a primeira tela não depende do Gemini.
 

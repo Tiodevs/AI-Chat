@@ -595,7 +595,7 @@ Cada etapa traz: objetivo, seções do SDD, entregas, critérios de aceite (CA) 
 **Seções.** 7.3, 10.4 (balde de uploads), 12 (`/v1/admin/documents...`) e 15.5 (Documentos).
 
 **Entregas.**
-- `GET /v1/admin/documents`, `POST /v1/admin/documents`, `POST .../replace` e `POST .../archive`, com auditoria.
+- `GET /v1/admin/documents`, `POST /v1/admin/documents`, `POST .../replace`, `POST .../retry` e `POST .../archive`, com auditoria.
 - Validação no servidor de tamanho (10 MB) e tipo (Markdown, texto e PDF).
 - `/admin/documents` com `DataTable`, `FileDropzone`, `Sheet` de substituição e ação Retry.
 - `AppSidebar` com os grupos Operação e Sistema para admin.
@@ -815,7 +815,7 @@ A IA atualiza esta tabela em cada PR.
 | 5.2 | Telas do cadastro | Aprovada |
 | 6.1 | Página da conta | Aprovada |
 | 6.2 | Canal do titular, retenção e documentos de privacidade | Aprovada |
-| 7.1 | Gestão de documentos | Pendente |
+| 7.1 | Gestão de documentos | Em revisão |
 | 7.2 | Visão geral e qualidade | Pendente |
 | 7.3 | Fila de pedidos de titular | Pendente |
 | 8.1 | Rastros de sistema e métricas | Em revisão |
