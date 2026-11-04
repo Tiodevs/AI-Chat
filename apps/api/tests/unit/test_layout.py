@@ -92,3 +92,15 @@ def test_env_example_lists_section_17_without_secrets() -> None:
     assert set(assignments) == SECTION_17_ENV_NAMES
     for key in EMPTY_SECRET_KEYS:
         assert assignments[key] == ""
+
+
+def test_the_four_privacy_documents_of_section_11_11_exist() -> None:
+    privacy = ROOT / "docs/privacy"
+    for name in ("ropa.md", "ripd.md", "lia.md", "incident-playbook.md"):
+        assert (privacy / name).is_file(), name
+    ropa = (privacy / "ropa.md").read_text(encoding="utf-8")
+    for processor in ("Railway", "Vercel", "Google", "LangChain"):
+        assert processor in ropa
+    playbook = (privacy / "incident-playbook.md").read_text(encoding="utf-8")
+    assert "3 dias úteis" in playbook
+    assert "5 anos" in playbook
