@@ -176,7 +176,7 @@ Componentes de produto em `components/patterns`, mapeados a partir da imagem:
 | Blocos Open e In Progress | `StatTile` para contagens, como Ready e Processing | Documentos e qualidade |
 | Retention Rate com barras agrupadas | `GroupedBarCard` para o funil de cadastro, chat contra formulário | Visão geral do admin |
 | Card What's new | `SidebarNoticeCard` com dicas de privacidade e de uso | Barra lateral do visitante |
-| Botão Customizer no rodapé | `ProfileButton` com menu de conta | Barra lateral |
+| Botão Customizer no rodapé | `ProfileButton` com o primeiro nome de quem entrou e um menu com Conta, Sair e a preferência de movimento. Sair chama `POST /v1/auth/logout`, limpa os dados da conta guardados na tela e volta ao início sem sessão; se a API falhar, a sessão continua e o botão avisa | Barra lateral |
 | Menu de três pontos | `CardActionsMenu` | Cards do admin |
 
 Componentes sem equivalente na imagem:
