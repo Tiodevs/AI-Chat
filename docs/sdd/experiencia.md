@@ -151,12 +151,13 @@ A entrelinha das mensagens é maior que a da interface porque respostas longas s
 
 | Região | Desktop, 1024 px ou mais | Tablet, de 768 a 1023 px | Celular, abaixo de 768 px |
 |---|---|---|---|
-| Barra lateral | 240 px fixa, recolhível para 64 px só com ícones | Recolhida em 64 px | Sheet aberto pelo botão de menu |
+| Barra lateral, com sessão | 240 px fixa, recolhível para 64 px só com ícones | Recolhida em 64 px | Sheet aberto pelo botão de menu |
+| Cabeçalho, sem sessão | Logotipo e os botões Entrar, Criar conta e Cadastrar com IA | O mesmo | Logotipo e um menu com as mesmas três ações |
 | Conteúdo | Até 1280 px, padding 24 px | Padding 20 px | Padding 16 px |
 | Chat | Coluna de até 760 px, centralizada | A mesma | Largura total, compositor fixo embaixo, com área segura |
 | Cards de indicador | Quatro por linha | Dois por linha | Um por linha, rolagem vertical |
 
-A barra lateral segue a imagem: logotipo e botão de recolher no topo, busca com `⌘K`, grupos rotulados, um card "What's new" acima do rodapé e o botão de perfil no rodapé.
+A barra lateral só aparece com sessão. Ela segue a imagem: logotipo e botão de recolher no topo, busca com `⌘K`, grupos rotulados, um card "What's new" acima do rodapé e o botão de perfil no rodapé. Com sessão, ela não mostra Entrar nem os cadastros. Operação e Sistema aparecem só para o admin. Sem sessão, o `GuestHeader` toma o lugar da barra lateral, e a busca com `⌘K` lista só as páginas públicas.
 
 ### 14.6 Inventário de componentes
 
@@ -166,7 +167,8 @@ Componentes de produto em `components/patterns`, mapeados a partir da imagem:
 
 | Na imagem | No Atrium | Onde |
 |---|---|---|
-| Barra lateral com grupos Platform e System | `AppSidebar` com grupos Assistant e Account no visitante, Operations e System no admin | Todas as telas |
+| Barra lateral com grupos Platform e System | `AppSidebar` com grupos Assistant e Account no membro, Operations e System no admin | Todas as telas, com sessão |
+| Cabeçalho do site | `GuestHeader` com Entrar, Criar conta e Cadastrar com IA | Todas as telas, sem sessão |
 | Busca com `⌘K` | `CommandPalette` para navegar, abrir conversas e ações | Todas as telas |
 | Cards Leads, Conversion Rate e CLV | `StatCard` com `DeltaBadge`, o ponto colorido e a variação | Visão geral do admin |
 | Gráfico Revenue over time com cursor e tooltip | `TrendChartCard` com cursor vertical, tooltip e pílula de data invertida | Visão geral do admin |
@@ -315,12 +317,12 @@ Cada tela descreve objetivo, composição e estados. Os textos citados são a c�
 #### Cadastro por conversa `/register`
 
 - **Objetivo:** criar a conta conversando, sem perder o controle dos dados.
-- **Composição no desktop:** `RegistrationStepper` no topo. À esquerda, o chat. À direita, o `ProfileSummaryCard`, que se preenche à medida que a IA entende os campos. Cada campo tem um link "Por que pedimos" e pode ser editado ali mesmo. No celular, o cartão vira uma faixa recolhível acima do chat.
+- **Composição no desktop:** `RegistrationStepper` no topo. À esquerda, o chat, num painel de conversa: falas do assistente em `AssistantBubble`, com avatar, as do visitante em `UserMessage`, e o compositor fixo no rodapé do painel, com o botão Enviar dentro do campo. Enquanto a resposta não chega, a mensagem enviada já aparece e o assistente mostra que está escrevendo. À direita, o `ProfileSummaryCard`, que se preenche à medida que a IA entende os campos. Cada campo tem um link "Por que pedimos" e pode ser editado ali mesmo. No celular, o cartão vira uma faixa recolhível acima do chat, que começa fechada para a conversa ficar à vista.
 - **Passo da senha:** o `PasswordCard` aparece no lugar do compositor, com a nota "Sua senha vai direto para o nosso servidor. A IA não a vê."
 - **Passo de revisão:** o resumo completo com Editar em cada linha e o botão Está certo.
 - **Passo de aceite:** `ConsentFieldSet` com os dois aceites obrigatórios e os dois opcionais. O opcional de personalização fica destacado e explica que tipo de visitante e motivo da visita podem indicar que a pessoa é paciente. Os opcionais começam desmarcados.
 - **Sempre visível:** o link "Usar o formulário".
-- **Estados:** campo com erro aparece no cartão e é pedido de novo no chat. Uma dúvida que não traz o dado recebe uma resposta curta e o mesmo campo é pedido de novo. E-mail já cadastrado oferece Entrar. Com o Gemini indisponível, a tela leva ao formulário com os campos já entendidos.
+- **Estados:** campo com erro aparece no cartão e é pedido de novo no chat. Uma dúvida que não traz o dado recebe uma resposta curta e o mesmo campo é pedido de novo. E-mail já cadastrado oferece Entrar. Uma falha ao enviar não sai da tela: o `ChatErrorNotice` aparece na conversa com a mensagem do erro, `RequestIdCopy`, Tentar de novo e Fechar, e o texto continua no compositor. Com o Gemini indisponível, o mesmo aviso explica o motivo e oferece Usar o formulário, que leva os campos já entendidos.
 
 #### Cadastro por formulário `/register/form`
 
