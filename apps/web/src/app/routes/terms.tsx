@@ -1,6 +1,7 @@
-import { PageHeading } from "@/app/page-heading.tsx"
-import { pt } from "@/i18n/pt.ts"
+import { TermsScreen } from "@/features/privacy/terms-screen.tsx"
+import { useLegalVersions } from "@/features/privacy/useLegalVersions.ts"
 
 export function Component() {
-  return <PageHeading title={pt.pages.terms} />
+  const { terms } = useLegalVersions()
+  return <TermsScreen version={terms} />
 }

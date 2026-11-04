@@ -337,6 +337,192 @@ export const pt = {
       requestsLink: "Fazer um pedido ao encarregado de dados",
     },
   },
+  privacyNotice: {
+    version: "Versão {version}",
+    contentsLabel: "Nesta página",
+    fictional:
+      "O Harborlight General Hospital e o Atrium são fictícios. Use só dados inventados.",
+    sections: {
+      controller: {
+        title: "Quem cuida dos seus dados",
+        body: [
+          "O controlador é quem opera esta implantação do Atrium, em nome do Harborlight General Hospital.",
+          "A mesma pessoa é o encarregado de dados (art. 41 da LGPD).",
+        ],
+        contact: "Contato do encarregado: {email}",
+        contactMissing:
+          "O contato do encarregado ainda não foi configurado. Use o formulário do canal no fim desta página.",
+      },
+      data: {
+        title: "Que dados tratamos e por quê",
+        columns: ["Dado", "Finalidade", "Base legal"],
+        rows: [
+          ["Nome, e-mail e senha (guardada como hash)", "Ter uma conta e entrar", "Execução de contrato"],
+          ["Telefone, opcional", "Contato do perfil", "Execução de contrato"],
+          ["Tipo de visitante e motivo da visita, opcionais", "Personalizar respostas públicas", "Consentimento específico e destacado"],
+          ["Conversas de membro", "Guardar o histórico que você pediu", "Execução de contrato"],
+          ["Conversas de convidado", "Responder à pergunta feita", "Pedido do titular"],
+          ["Conversas usadas para melhoria", "Avaliar e melhorar o assistente", "Consentimento"],
+          ["Rastros de IA mascarados", "Qualidade e diagnóstico", "Legítimo interesse"],
+          ["HMAC do IP e navegador", "Segurança e limite de pedidos", "Legítimo interesse"],
+          ["Registros de consentimento", "Provar o seu consentimento", "Cumprimento de obrigação"],
+        ],
+      },
+      health: {
+        title: "Dados de saúde",
+        body: [
+          "Não compartilhe dados de saúde. O Atrium não dá orientação médica.",
+          "Uma mensagem que pede orientação médica não é guardada. O histórico mostra que ela foi descartada.",
+          "O texto da pergunta passa pelo Google, de forma transitória, para ser classificado e respondido.",
+        ],
+      },
+      processors: {
+        title: "Com quem compartilhamos",
+        lead: "Estes operadores tratam dados fora do Brasil, com as cláusulas contratuais de cada provedor (art. 33 da LGPD).",
+        columns: ["Operador", "País", "Finalidade"],
+        rows: [
+          ["Railway", "Estados Unidos", "Hospedagem da API, do banco de dados e da tarefa de retenção"],
+          ["Vercel", "Estados Unidos", "Entrega do site e encaminhamento dos pedidos para a API"],
+          ["Google (API Gemini)", "Estados Unidos", "Classificar e responder perguntas e entender o cadastro por conversa"],
+          ["LangChain (LangSmith)", "Estados Unidos", "Rastros de IA mascarados, para qualidade e diagnóstico"],
+        ],
+      },
+      retention: {
+        title: "Por quanto tempo guardamos",
+        columns: ["Dado", "Prazo"],
+        rows: [
+          ["Conta e perfil", "Até você excluir a conta, ou 24 meses sem entrar"],
+          ["Conversas de membro", "12 meses depois da última mensagem, ou até a exclusão da conta"],
+          ["Conversas de convidado", "30 dias"],
+          ["Sessão de cadastro", "Apagada na conclusão, no abandono ou em 24 horas"],
+          ["Sessões de entrada", "14 dias depois de expirar ou de você sair"],
+          ["Limites de pedidos", "48 horas"],
+          ["Registros de consentimento", "Enquanto a conta existir"],
+          ["Auditoria", "2 anos, sem e-mail nem conteúdo"],
+          ["Pedidos ao encarregado", "2 anos depois de fechados"],
+        ],
+      },
+      rights: {
+        title: "Seus direitos",
+        body: [
+          "Na página da conta você exporta seus dados em JSON, corrige o perfil, desliga consentimentos opcionais e exclui a conta, na hora.",
+          "Pelo canal abaixo você pede acesso, correção, eliminação, portabilidade, informação sobre compartilhamento, revogação ou oposição. Respondemos em até 15 dias corridos.",
+          "Convidados sem conta usam o canal, porque não conseguimos provar quem é o dono de uma conversa anônima depois que o cookie se perde.",
+          "Os consentimentos opcionais são livres. Sem eles você usa o Atrium do mesmo jeito.",
+        ],
+      },
+      cookies: {
+        title: "Cookies",
+        lead: "Usamos só cookies estritamente necessários. Não há cookie de análise nem de publicidade, por isso não há banner de cookies.",
+        columns: ["Cookie", "Para que serve", "Duração"],
+        rows: [
+          ["atrium_session", "Manter você conectado à conta", "14 dias, ou até você sair"],
+          ["atrium_guest", "Manter a conversa de convidado depois de recarregar a página", "30 dias"],
+        ],
+        storage:
+          "A preferência de movimento fica no armazenamento local do navegador e não sai dele.",
+      },
+      security: {
+        title: "Segurança",
+        body: [
+          "Todo o tráfego usa TLS. Senhas usam argon2id, e tokens de sessão e IPs ficam só como hash.",
+          "O admin vê conversas pseudonimizadas. Revelar a identidade exige um motivo, que fica registrado.",
+          "O site não carrega scripts nem fontes de terceiros.",
+        ],
+      },
+      incidents: {
+        title: "Incidentes",
+        body: [
+          "Se um incidente puder gerar risco ou dano relevante, avisamos a ANPD e as pessoas afetadas em até 3 dias úteis.",
+        ],
+      },
+      channel: {
+        title: "Canal do titular",
+        lead: "Envie um pedido ao encarregado. Não é preciso ter conta. Respondemos pelo e-mail informado em até 15 dias corridos.",
+      },
+    },
+  },
+  privacyRequest: {
+    email: "E-mail para a resposta",
+    type: "Tipo do pedido",
+    description: "Descreva o pedido",
+    descriptionHint: "Até 2.000 caracteres. Não inclua dados de saúde.",
+    submit: "Enviar pedido",
+    submitting: "Enviando…",
+    sent: "Pedido enviado. O prazo de resposta é {date}.",
+    emailInvalid: "Digite um e-mail válido para a resposta.",
+    typeRequired: "Escolha o tipo do pedido.",
+    descriptionRequired: "Descreva o pedido.",
+    descriptionTooLong: "Descreva o pedido em até 2.000 caracteres.",
+    types: {
+      access: "Acesso",
+      correction: "Correção",
+      deletion: "Eliminação",
+      portability: "Portabilidade",
+      consent_revocation: "Revogar consentimento",
+      information_about_sharing: "Compartilhamento",
+      objection: "Oposição",
+      other: "Outro",
+    },
+  },
+  termsOfUse: {
+    version: "Versão {version}",
+    sections: [
+      {
+        id: "o-que-e",
+        title: "O que é o Atrium",
+        body: [
+          "O Atrium é o assistente público do Harborlight General Hospital, um hospital fictício na cidade fictícia de Port Meridian. Ele responde perguntas sobre visitas, caminhos, horários e serviços com base nas informações publicadas pelo hospital.",
+          "O Atrium é uma inteligência artificial. As respostas trazem as fontes usadas e podem conter erros.",
+        ],
+      },
+      {
+        id: "nao-e-orientacao-medica",
+        title: "Não é orientação médica",
+        body: [
+          "O Atrium não dá diagnóstico, não indica tratamento nem medicamento. Numa emergência, ligue para o número local de emergência.",
+        ],
+      },
+      {
+        id: "conta",
+        title: "Sua conta",
+        body: [
+          "Para criar uma conta você precisa ter 18 anos ou mais e aceitar estes Termos e o Aviso de Privacidade.",
+          "Você cuida da sua senha. Você pode corrigir, exportar ou excluir seus dados na página da conta.",
+        ],
+      },
+      {
+        id: "uso-aceitavel",
+        title: "Uso aceitável",
+        body: [
+          "Não tente contornar os limites de pedidos, burlar as proteções do assistente nem usar o Atrium para obter dados de outras pessoas.",
+          "Podemos limitar ou suspender um acesso que coloque o serviço ou outras pessoas em risco.",
+        ],
+      },
+      {
+        id: "disponibilidade",
+        title: "Disponibilidade",
+        body: [
+          "O Atrium pode ficar indisponível ou mudar sem aviso. Quando o assistente não puder responder, ele mostra o telefone da mesa do hospital.",
+        ],
+      },
+      {
+        id: "privacidade",
+        title: "Privacidade",
+        body: [
+          "O tratamento dos seus dados está no Aviso de Privacidade.",
+        ],
+      },
+      {
+        id: "mudancas",
+        title: "Mudanças nestes Termos",
+        body: [
+          "Quando estes Termos ou o Aviso mudarem, a versão nova aparece no topo da página e você aceita de novo na próxima entrada.",
+        ],
+      },
+    ],
+    privacyLink: "Ler o Aviso de Privacidade",
+  },
   legalAccept: {
     lead: "Atualizamos os Termos de Uso e o Aviso de Privacidade (versão {version}). Leia e aceite para continuar.",
     accept: "Aceitar e continuar",
