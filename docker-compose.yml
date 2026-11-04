@@ -1,0 +1,107 @@
+# Ambiente local completo: banco, API, frontend, Prometheus e Grafana.
+#   docker compose up --build
+# Os valores abaixo são de desenvolvimento local e não servem para nenhum outro ambiente.
+# Para usar o Gemini de verdade, crie um .env na raiz com APP_AI_ADAPTER=gemini e GEMINI_API_KEY.
+name: atrium
+
+services:
+  db:
+    image: pgvector/pgvector:pg18
+    environment:
+      POSTGRES_USER: atrium
+      POSTGRES_PASSWORD: atrium
+      POSTGRES_DB: atrium
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U atrium -d atrium"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      APP_ENV: local
+      DATABASE_URL: postgresql://atrium:atrium@db:5432/atrium
+      WEB_ORIGIN: http://localhost:5173
+      APP_AI_ADAPTER: ${APP_AI_ADAPTER:-fake}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      CHAT_MODEL: ${CHAT_MODEL:-gemini-2.5-flash}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-gemini-embedding-2}
+      ADMIN_EMAIL: admin@example.com
+      ADMIN_PASSWORD: Atrium-local-2026-admin
+      METRICS_TOKEN: local-metrics-token
+      RATE_LIMIT_HMAC_KEY: local-rate-limit-key-0000000000000000000000000000000000
+      PSEUDONYM_KEY: local-pseudonym-key-0000000000000000000000000000000000000
+      PRIVACY_CONTACT_EMAIL: privacidade@example.com
+      LANGSMITH_TRACING: "false"
+      OTEL_SERVICE_NAME: atrium-api
+      OTEL_TRACES_EXPORTER: none
+      OTEL_METRICS_EXPORTER: none
+      OTEL_LOGS_EXPORTER: none
+    command:
+      - sh
+      - -c
+      - >-
+        alembic upgrade head
+        && python -m app.scripts.bootstrap_admin
+        && python -m app.scripts.seed
+        && exec opentelemetry-instrument uvicorn app.main:app --host 0.0.0.0 --port 8000 --proxy-headers
+    ports:
+      - "127.0.0.1:8000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/ready')"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      API_PROXY_TARGET: http://api:8000
+    ports:
+      - "127.0.0.1:5173:5173"
+
+  prometheus:
+    build: ops/prometheus
+    depends_on:
+      - api
+    environment:
+      API_HOST: api
+      API_PORT: "8000"
+      METRICS_TOKEN: local-metrics-token
+    ports:
+      - "127.0.0.1:9090:9090"
+    volumes:
+      - prometheus-data:/prometheus
+
+  grafana:
+    build: ops/grafana
+    depends_on:
+      - prometheus
+    environment:
+      PROMETHEUS_URL: http://prometheus:9090
+      ALERT_EMAIL: operacao@example.com
+    ports:
+      - "127.0.0.1:3000:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+
+volumes:
+  db-data:
+  prometheus-data:
+  grafana-data:
