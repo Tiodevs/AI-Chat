@@ -90,8 +90,12 @@ async def list_conversations(
     records = await service.list_for_member(request.cookies.get(SESSION_COOKIE_NAME))
     return ConversationListResponse(
         conversations=[
-            ConversationSummaryResponse(id=record.id, created_at=record.created_at)
-            for record in records
+            ConversationSummaryResponse(
+                id=record.id,
+                created_at=record.created_at,
+                first_question=question,
+            )
+            for record, question in records
         ]
     )
 

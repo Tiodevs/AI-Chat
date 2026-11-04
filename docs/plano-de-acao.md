@@ -813,7 +813,7 @@ A IA atualiza esta tabela em cada PR.
 | 4.4 | LangSmith e linha de base de avaliação | Em revisão |
 | 5.1 | Domínio e API do cadastro | Aprovada |
 | 5.2 | Telas do cadastro | Aprovada |
-| 6.1 | Página da conta | Pendente |
+| 6.1 | Página da conta | Em revisão |
 | 6.2 | Canal do titular, retenção e documentos de privacidade | Pendente |
 | 7.1 | Gestão de documentos | Pendente |
 | 7.2 | Visão geral e qualidade | Pendente |

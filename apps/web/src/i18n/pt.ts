@@ -267,4 +267,81 @@ export const pt = {
     limitedMany:
       "Você fez muitas tentativas. Tente de novo em {minutes} minutos.",
   },
+  account: {
+    tabsLabel: "Seções da conta",
+    loadError: "Não foi possível carregar esta seção.",
+    tabs: {
+      profile: "Perfil",
+      conversations: "Conversas",
+      privacy: "Privacidade",
+    },
+    profile: {
+      email: "E-mail",
+      emailNote: "O e-mail é o seu acesso e não muda por aqui.",
+      fullName: "Nome completo",
+      phone: "Telefone",
+      phoneHint: "Opcional. Deixe em branco para remover.",
+      visitorType: "Tipo de visitante",
+      visitReason: "Motivo da visita",
+      sensitiveOff:
+        "Tipo de visitante e motivo da visita só aparecem com a personalização ativa. Ative em Privacidade.",
+      save: "Salvar alterações",
+      saving: "Salvando…",
+      saved: "Alterações salvas.",
+      nameRequired: "O nome é obrigatório.",
+      nameInvalid: "O nome precisa ter de 2 a 80 caracteres.",
+      phoneInvalid:
+        "O telefone precisa ter de 7 a 20 caracteres, com dígitos, espaço e + - ( ).",
+      motionTitle: "Movimento",
+      motionHint: "Controla as animações do Atrium neste navegador.",
+    },
+    conversations: {
+      empty: "Nenhuma conversa ainda.",
+      untitled: "Conversa sem pergunta",
+      listLabel: "Suas conversas",
+      loading: "Carregando conversas",
+    },
+    privacy: {
+      consentsTitle: "Seus consentimentos",
+      consentsLead:
+        "Você pode desligar um consentimento opcional a qualquer momento. Desligar a personalização apaga o tipo de visitante e o motivo da visita.",
+      termsRequired: "Termos de Uso e Aviso de Privacidade",
+      termsRequiredNote: "Obrigatório para ter uma conta.",
+      personalization: "Personalizar respostas com o meu perfil",
+      personalizationNote:
+        "Tipo de visitante e motivo da visita podem indicar que você é paciente. Opcional.",
+      quality: "Usar minhas conversas para melhorar o assistente",
+      qualityNote: "Opcional. Sem isso, suas conversas não entram na avaliação.",
+      grantedOn: "Aceito em {date}",
+      off: "Desligado",
+      version: "Versão {version}",
+      changeFailed: "Não foi possível mudar este consentimento.",
+      exportTitle: "Exportar meus dados",
+      exportLead:
+        "Baixe um arquivo JSON com o seu perfil, consentimentos, conversas, fontes e avaliações.",
+      exportButton: "Exportar meus dados",
+      exporting: "Preparando…",
+      exported: "A exportação foi baixada.",
+      deleteTitle: "Excluir minha conta",
+      deleteLead:
+        "Apaga o seu perfil, os consentimentos e as conversas. Não dá para desfazer.",
+      deleteButton: "Excluir minha conta",
+      deleteDialogTitle: "Excluir minha conta?",
+      deleteDialogBody:
+        "Vamos apagar o seu perfil, os consentimentos e todas as suas conversas, e encerrar a sessão. Não dá para desfazer.",
+      deleteConfirmLabel: "Digite EXCLUIR para confirmar",
+      deleteConfirmWord: "EXCLUIR",
+      deleteCancel: "Cancelar",
+      deleteConfirm: "Excluir para sempre",
+      deleting: "Excluindo…",
+      requestsLink: "Fazer um pedido ao encarregado de dados",
+    },
+  },
+  legalAccept: {
+    lead: "Atualizamos os Termos de Uso e o Aviso de Privacidade (versão {version}). Leia e aceite para continuar.",
+    accept: "Aceitar e continuar",
+    accepting: "Aceitando…",
+    upToDate: "Você já aceitou a versão vigente.",
+    continue: "Continuar",
+  },
 } as const

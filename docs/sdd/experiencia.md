@@ -34,7 +34,7 @@ Parte da [especificação do Atrium](../sdd.md). A numeração das seções é a
 
 ### 13.3 Rotas e guardas
 
-Os loaders de rotas protegidas chamam `queryClient.ensureQueryData` para `GET /v1/me`. Um membro sem sessão vai para `/sign-in` com `returnTo`. Uma rota de admin com usuário comum mostra a página 403. Um membro com documento legal novo vai para a tela de novo aceite antes de continuar.
+Os loaders de rotas protegidas chamam `queryClient.ensureQueryData` para `GET /v1/me`. Um membro sem sessão vai para `/sign-in` com `returnTo`. Uma rota de admin com usuário comum mostra a página 403. Um membro com documento legal novo vai para `/legal/accept?returnTo=...` antes de continuar, na rota protegida ou logo depois de entrar. A tela de novo aceite grava o aceite com `PUT /v1/me/consents/terms_and_privacy_notice` e volta para o `returnTo`.
 
 Cada rota tem um error boundary com a mensagem amigável e o `request_id` copiável.
 
@@ -334,8 +334,8 @@ E-mail, senha e o link para cadastro. O erro é sempre "E-mail ou senha incorret
 
 Abas **Perfil**, **Conversas** e **Privacidade**.
 
-- **Perfil:** edição dos campos, com os opcionais sensíveis só visíveis se a personalização estiver ativa.
-- **Conversas:** lista com data e primeira pergunta. Vazio: "Nenhuma conversa ainda."
+- **Perfil:** edição de nome e telefone, com os opcionais sensíveis só visíveis se a personalização estiver ativa. O e-mail é só de leitura, porque é o acesso da conta. A preferência Reduce motion (System, On, Off) fica nesta aba.
+- **Conversas:** lista com data e primeira pergunta, cada uma levando à conversa. Vazio: "Nenhuma conversa ainda."
 - **Privacidade:** interruptores de consentimento com a data de cada aceite, Exportar meus dados, Excluir minha conta com `AlertDialog` que exige digitar EXCLUIR, e o link para o canal de pedidos.
 
 #### Privacidade `/privacy`

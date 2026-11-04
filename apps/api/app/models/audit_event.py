@@ -3,7 +3,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Text, Uuid, text
+from sqlalchemy import DateTime, Text, Uuid, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base
@@ -17,11 +17,8 @@ class AuditEvent(Base):
         primary_key=True,
         server_default=text("gen_random_uuid()"),
     )
-    actor_user_id: Mapped[uuid.UUID] = mapped_column(
-        Uuid(as_uuid=True),
-        ForeignKey("users.id"),
-        nullable=False,
-    )
+    # Sem chave estrangeira: a auditoria sobrevive à exclusão da conta. Seção 11.6.
+    actor_user_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
     action: Mapped[str] = mapped_column(Text, nullable=False)
     target_type: Mapped[str] = mapped_column(Text, nullable=False)
     target_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)

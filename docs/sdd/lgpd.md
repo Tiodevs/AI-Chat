@@ -96,7 +96,7 @@ A tarefa agendada `retention-job` roda todo dia às 06:00 UTC na Railway e execu
 | Logs de aplicação | Retenção da plataforma, sem dado pessoal direto |
 | Backups do banco | Ciclo da plataforma. Um dado eliminado some dos backups quando eles expiram. |
 
-`DELETE /v1/me` revoga as sessões e apaga, numa transação, consentimentos, sessões de cadastro, feedback, mensagens, conversas e o usuário. A auditoria grava `account.delete` só com o id. Os rastros do LangSmith usam um pseudônimo derivado do id do usuário com uma chave secreta, então perdem o vínculo com a pessoa quando a conta some.
+`DELETE /v1/me` revoga as sessões e apaga, numa transação, consentimentos, sessões de cadastro, feedback, mensagens, conversas e o usuário. A auditoria grava `account.delete` só com o id, e a tabela `audit_events` não tem chave estrangeira para `users` justamente para esse registro sobreviver. Os rastros do LangSmith usam um pseudônimo derivado do id do usuário com uma chave secreta, então perdem o vínculo com a pessoa quando a conta some.
 
 O Marco Civil da Internet, art. 15, obriga provedores de aplicação constituídos como pessoa jurídica, com fins econômicos, a guardar registros de acesso por 6 meses. Uma implantação de estudo não se enquadra. Se o projeto virar produto, os registros de acesso passam a ser guardados por 6 meses num local com acesso restrito.
 

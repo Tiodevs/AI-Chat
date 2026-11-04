@@ -24,6 +24,18 @@ class UserRepository:
             update(User).where(User.id == user_id).values(last_seen_at=now, updated_at=now)
         )
 
+    async def update_profile(
+        self,
+        user_id: UUID,
+        values: dict[str, str | None],
+        now: datetime,
+    ) -> None:
+        if not values:
+            return
+        await self._session.execute(
+            update(User).where(User.id == user_id).values(**values, updated_at=now)
+        )
+
     async def count_by_role(self, role: str) -> int:
         value = await self._session.scalar(
             select(func.count()).select_from(User).where(User.role == role)

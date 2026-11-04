@@ -187,6 +187,26 @@ class ConversationRepository:
         )
         await self._session.flush()
 
+    async def first_questions(self, conversation_ids: Sequence[UUID]) -> dict[UUID, str]:
+        """Primeira pergunta gravada de cada conversa. Seção 15.5, aba Conversas."""
+        if not conversation_ids:
+            return {}
+        rows = await self._session.execute(
+            select(Message.conversation_id, Message.content)
+            .where(Message.conversation_id.in_(conversation_ids), Message.role == "user")
+            .order_by(Message.created_at.desc(), Message.id.desc())
+        )
+        # A ordem decrescente deixa a primeira pergunta como última atribuição.
+        return {conversation_id: content for conversation_id, content in rows}
+
+    async def feedback_ratings(self, message_ids: Sequence[UUID]) -> dict[UUID, int]:
+        if not message_ids:
+            return {}
+        rows = await self._session.execute(
+            select(Feedback.message_id, Feedback.rating).where(Feedback.message_id.in_(message_ids))
+        )
+        return {message_id: rating for message_id, rating in rows}
+
     async def insert_feedback(self, message_id: UUID, rating: int, created_at: datetime) -> None:
         self._session.add(Feedback(message_id=message_id, rating=rating, created_at=created_at))
         await self._session.flush()

@@ -1,6 +1,6 @@
 import { createBrowserRouter, type RouteObject } from "react-router"
 
-import { requireAdmin, requireUser } from "@/app/guards.ts"
+import { requireAdmin, requireSession, requireUser } from "@/app/guards.ts"
 import { pt } from "@/i18n/pt.ts"
 
 function ShellFallback() {
@@ -31,7 +31,11 @@ export const routes: RouteObject[] = [
           },
           { path: "privacy", lazy: () => import("./routes/privacy.tsx") },
           { path: "terms", lazy: () => import("./routes/terms.tsx") },
-          { path: "legal/accept", lazy: () => import("./routes/legal-accept.tsx") },
+          {
+            path: "legal/accept",
+            lazy: () => import("./routes/legal-accept.tsx"),
+            loader: requireSession,
+          },
           {
             path: "admin",
             lazy: () => import("./routes/admin.tsx"),

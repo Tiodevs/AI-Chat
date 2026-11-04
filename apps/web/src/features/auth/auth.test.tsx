@@ -19,7 +19,7 @@ const admin = {
   visitor_type: null,
   visit_reason: null,
   role: "admin" as const,
-  needs_legal_acceptance: true,
+  needs_legal_acceptance: false,
 }
 
 const member = { ...admin, id: "00000000-0000-0000-0000-000000000002", role: "member" as const }
