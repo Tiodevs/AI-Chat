@@ -9,6 +9,7 @@ from ulid import ULID
 
 from app.core.context import current_request_id, request_id_var
 from app.core.logging import log_http_request
+from app.core.metrics import HTTP_DURATION, HTTP_REQUESTS
 from app.domain.auth import origin_is_allowed
 from app.domain.errors import BadOrigin
 from app.prompts.auth import BAD_ORIGIN
@@ -55,7 +56,9 @@ class RequestIdMiddleware:
         try:
             await self.app(scope, receive, send_wrapper)
         finally:
-            duration_ms = int((time.perf_counter() - started) * 1000)
+            elapsed = time.perf_counter() - started
+            duration_ms = int(elapsed * 1000)
+            _observe_http(scope, status_code, elapsed)
             try:
                 log_http_request(
                     request_id=request_id,
@@ -66,6 +69,18 @@ class RequestIdMiddleware:
             finally:
                 request_id_var.reset(token)
                 structlog.contextvars.clear_contextvars()
+
+
+def _observe_http(scope: Scope, status_code: int, elapsed: float) -> None:
+    route = getattr(scope.get("route"), "path", None)
+    label = route if isinstance(route, str) else "unmatched"
+    method = scope.get("method")
+    HTTP_REQUESTS.labels(
+        route=label,
+        method=method if isinstance(method, str) else "GET",
+        status=str(status_code),
+    ).inc()
+    HTTP_DURATION.labels(route=label).observe(elapsed)
 
 
 def cast_message(message: Message) -> MutableMapping[str, object]:

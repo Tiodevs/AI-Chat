@@ -5,6 +5,8 @@ from uuid import UUID, uuid4
 
 import structlog
 
+from app.core.metrics import INGESTION_VERSIONS
+from app.core.telemetry import traced_span
 from app.db.session import open_session
 from app.db.unit_of_work import UnitOfWork
 from app.domain.chunking import split_markdown
@@ -55,33 +57,44 @@ class IngestionService:
         )
         body = ""
         try:
-            body = await self._extractor.extract(data, media_type)
+            with traced_span("ingestion.extract", media_type=media_type, byte_size=len(data)):
+                body = await self._extractor.extract(data, media_type)
             drafts = split_markdown(body)
             if not body.strip() or not drafts:
                 await self._fail(version_id, EMPTY_DOCUMENT, body)
+                INGESTION_VERSIONS.labels(status="failed").inc()
                 return "failed"
             texts = [
                 document_embedding_text(title, draft.heading, draft.content) for draft in drafts
             ]
-            vectors = await self._embeddings.embed_documents(texts)
+            with traced_span(
+                "ingestion.embed",
+                chunk_count=len(texts),
+                model=self._embeddings.model_name,
+            ):
+                vectors = await self._embeddings.embed_documents(texts)
             if len(vectors) != len(drafts):
                 await self._fail(version_id, EMBED_FAILED, body)
+                INGESTION_VERSIONS.labels(status="failed").inc()
                 return "failed"
             chunks = [
                 NewChunk(index, draft.heading, draft.content, vector)
                 for index, (draft, vector) in enumerate(zip(drafts, vectors, strict=True))
             ]
-            await self._publish(
-                slug=slug,
-                version_id=version_id,
-                title=title,
-                body_text=body,
-                chunks=chunks,
-            )
+            with traced_span("ingestion.publish", document_id=slug):
+                await self._publish(
+                    slug=slug,
+                    version_id=version_id,
+                    title=title,
+                    body_text=body,
+                    chunks=chunks,
+                )
         except Exception:
             _log("warning", "ingestion.failed", slug=slug, error_type="embedding")
             await self._fail(version_id, EMBED_FAILED, body)
+            INGESTION_VERSIONS.labels(status="failed").inc()
             return "failed"
+        INGESTION_VERSIONS.labels(status="embedded").inc()
         try:
             self._tracer.record_many(
                 (
