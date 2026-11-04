@@ -1,7 +1,7 @@
 """Saudação, frases modelo e erros do cadastro. Seções 7.2 e 10.2."""
 
 EXTRACT_PROMPT_VERSION = "registration-extract@2026-10-28.2"
-PHRASE_PROMPT_VERSION = "registration-phrase@2026-10-28.2"
+PHRASE_PROMPT_VERSION = "registration-phrase@2026-11-04.1"
 
 EXTRACT_INSTRUCTIONS = (
     "Você extrai campos de cadastro da mensagem do visitante.\n"
@@ -32,9 +32,11 @@ TOOL_PROPERTY_DESCRIPTIONS = {
 
 PHRASE_INSTRUCTIONS = (
     "Você escreve uma resposta curta, em português, para o passo do cadastro informado.\n"
+    "O passo informado é o dado que falta agora. Peça só esse dado, nunca outro.\n"
     "Se a mensagem do visitante for uma dúvida, responda em uma ou duas frases simples "
     "e depois peça o dado desse passo.\n"
-    "Se a mensagem já trouxe o dado, faça só a pergunta do próximo passo.\n"
+    "Se a mensagem trouxe o dado de um passo anterior, ele já foi gravado: "
+    "faça só a pergunta do passo informado.\n"
     "Não invente dados do visitante e não repita uma senha.\n"
     "Não peça a senha. Se o passo for password, diga que a senha vai direto ao servidor "
     "e que você não a vê.\n"
@@ -61,7 +63,7 @@ STEP_PROMPTS = {
         "Crie uma senha de 12 a 72 caracteres. "
         "Sua senha vai direto para o nosso servidor. A IA não a vê."
     ),
-    "review": "Revise os dados ao lado. Se estiver certo, confirme.",
+    "review": "Revise os dados no resumo. Se estiver certo, confirme.",
     "acceptance": (
         "Para criar a conta, aceite os Termos e o Aviso de Privacidade "
         "e confirme que você tem 18 anos ou mais."
@@ -69,6 +71,10 @@ STEP_PROMPTS = {
 }
 
 EMAIL_TAKEN = "Este e-mail já tem uma conta. Entre para continuar."
+EMAIL_TAKEN_REPLY = (
+    "Este e-mail já tem uma conta no Atrium. Se a conta é sua, use o botão Entrar. "
+    "Se não, me passe outro e-mail."
+)
 COMPLETION_FAILED = "Não foi possível concluir o cadastro."
 WRONG_STEP = "Este passo ainda não está disponível."
 EXPIRED = "Este cadastro expirou. Comece de novo."
@@ -105,6 +111,21 @@ def prompt_for(step: str, *, correcting: bool) -> str:
 
 def message_for(field: str, code: str) -> str:
     return _FIELD_MESSAGES.get((field, code), "Não foi possível usar este valor.")
+
+
+def issue_reply(issues: tuple[tuple[str, str], ...], step: str, *, correcting: bool) -> str:
+    """Resposta fixa quando a mensagem trouxe um valor recusado. O modelo não a reescreve."""
+    parts: list[str] = []
+    asks_again = False
+    for field, code in issues:
+        if (field, code) == ("email", "taken"):
+            parts.append(EMAIL_TAKEN_REPLY)
+            asks_again = asks_again or step == "email"
+        else:
+            parts.append(message_for(field, code))
+    if not asks_again:
+        parts.append(prompt_for(step, correcting=correcting))
+    return " ".join(parts)
 
 
 def extract_prompt_text() -> str:

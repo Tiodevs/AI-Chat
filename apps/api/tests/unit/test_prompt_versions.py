@@ -22,8 +22,8 @@ _LOCKED_HASHES = {
     "registration-extract@2026-10-28.2": (
         "03cd33e663ce500186035ebba129850be9262c43c2eb67b496ef46f8875bbf85"
     ),
-    "registration-phrase@2026-10-28.2": (
-        "2cdce6a66414e1741a6b4dd94536d3b2c451bc8b57ecf07a0a57ca6a695a455a"
+    "registration-phrase@2026-11-04.1": (
+        "a4606d4b7285d771a5cd8eaddbb03b02c5ae3f692cf29c7587ac09dd197b1ec9"
     ),
 }
 

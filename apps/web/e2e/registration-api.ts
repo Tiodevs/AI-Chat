@@ -83,7 +83,7 @@ export async function installRegistrationApi(page: Page) {
         status = "awaiting_review"
         push(
           "assistant",
-          "Revise os dados ao lado. Se estiver certo, confirme."
+          "Revise os dados no resumo. Se estiver certo, confirme."
         )
       }
       await fulfill(route, 200, snapshot())

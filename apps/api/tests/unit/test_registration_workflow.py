@@ -6,7 +6,7 @@ from app.adapters.fake_chat import FakeChatProvider
 from app.domain.errors import ProviderUnavailable
 from app.domain.registration import FieldSet, Machine, Status, Step, new_machine
 from app.ports.chat import ToolResult
-from app.prompts.registration import prompt_for
+from app.prompts.registration import EMAIL_TAKEN_REPLY, message_for, prompt_for
 from app.workflows.registration import PhraseText, RegistrationWorkflow
 
 
@@ -78,3 +78,49 @@ def test_registration_question_without_a_field_stays_in_the_chat() -> None:
     sent = chat.structured_calls[0][0][-1].content
     assert question in sent
     assert "passo: email" in sent
+
+
+def _email_step() -> Machine:
+    return Machine(
+        status=Status.COLLECTING_REQUIRED,
+        fields=FieldSet(full_name="Felipe Santos"),
+        password_set=False,
+        correcting=False,
+        field_errors=(),
+        next_step=Step.EMAIL,
+    )
+
+
+def test_registration_taken_email_explains_and_asks_again_without_the_model() -> None:
+    chat = FakeChatProvider(
+        tool_result=ToolResult(name="set_fields", arguments={"email": "ana@example.com"}),
+        structured=PhraseText(text="Qual é o seu nome completo?"),
+    )
+
+    async def taken(_email: str) -> bool:
+        return True
+
+    result = asyncio.run(
+        RegistrationWorkflow(chat).turn(
+            _email_step(), "ana@example.com", request_id="req", email_taken=taken
+        )
+    )
+    assert result.machine.fields.email is None
+    assert result.machine.next_step == Step.EMAIL
+    assert result.prompt == EMAIL_TAKEN_REPLY
+    assert chat.structured_calls == []
+
+
+def test_registration_invalid_value_names_the_problem_and_the_step() -> None:
+    chat = FakeChatProvider(
+        tool_result=ToolResult(name="set_fields", arguments={"email": "sem-arroba"}),
+        structured=PhraseText(text="Qual é o seu nome completo?"),
+    )
+    result = asyncio.run(
+        RegistrationWorkflow(chat).turn(_email_step(), "sem-arroba", request_id="req")
+    )
+    assert result.machine.next_step == Step.EMAIL
+    assert result.prompt == (
+        f"{message_for('email', 'invalid')} {prompt_for('email', correcting=False)}"
+    )
+    assert chat.structured_calls == []
