@@ -54,10 +54,10 @@ class _Embeddings:
     probe: Any = None
     seen_during: list[list[str]] = field(default_factory=list)
     model_name: str = "same"
+    dimensions: int = 0
 
-    @property
-    def dimensions(self) -> int:
-        return len(self.vector)
+    def __post_init__(self) -> None:
+        self.dimensions = len(self.vector)
 
     async def embed_documents(self, texts: list[str]) -> list[list[float]]:
         if self.probe is not None:
@@ -160,7 +160,8 @@ def test_during_a_replacement_the_previous_version_keeps_answering(harness: _Har
         return await _searchable(harness, slug)
 
     harness.embeddings.probe = probe
-    replaced = _replace(harness.client, document["id"], "vagas.md", b"# Vagas\n\nVersao nova: Rua B.")
+    new_text = b"# Vagas\n\nVersao nova: Rua B."
+    replaced = _replace(harness.client, document["id"], "vagas.md", new_text)
     assert replaced.status_code == 202, replaced.text
     assert replaced.json()["active_version"]["version"] == 1
     assert replaced.json()["latest_version"]["ingestion_status"] == "processing"
@@ -184,7 +185,8 @@ def test_a_failed_replacement_keeps_the_previous_version_and_retry_recovers(
     """CA-2 (FR-11), ação Retry e CA-4 (document.retry)."""
     document = _upload(harness.client, "guia.txt", "Guia antigo: café às 9h.".encode()).json()
     harness.embeddings.fail = True
-    assert _replace(harness.client, document["id"], "guia.txt", b"Guia novo: cafe as 10h.").status_code == 202
+    replaced = _replace(harness.client, document["id"], "guia.txt", b"Guia novo: cafe as 10h.")
+    assert replaced.status_code == 202
 
     failed = _find(harness.client, document["id"])
     assert failed["latest_version"]["ingestion_status"] == "failed"
@@ -302,7 +304,8 @@ def _find(client: TestClient, document_id: str) -> dict[str, Any]:
     assert response.status_code == 200, response.text
     matches = [item for item in response.json()["documents"] if item["id"] == document_id]
     assert len(matches) == 1
-    return matches[0]
+    found: dict[str, Any] = matches[0]
+    return found
 
 
 def _login(client: TestClient, email: str) -> None:
