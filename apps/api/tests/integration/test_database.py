@@ -274,7 +274,7 @@ async def _assert_schema(database_url: str) -> None:
             )
             assert extension == 1
             revision = await connection.scalar(text("SELECT version_num FROM alembic_version"))
-            assert revision == "0008_retention_runs"
+            assert revision == "0009_message_request_id"
             await _assert_columns(connection)
             await _assert_constraints(connection)
         await _exercise_rows(engine)
