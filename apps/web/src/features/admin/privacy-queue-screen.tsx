@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react"
+import { useEffect, useRef, useState, type FormEvent } from "react"
 
 import { PageHeading } from "@/app/page-heading.tsx"
 import { DataTable, type DataTableColumn } from "@/components/patterns/data-table.tsx"
@@ -31,6 +31,7 @@ import { fill, formatDateTime } from "./documents-model.ts"
 import {
   counts,
   isClosed,
+  mailtoHref,
   needsNote,
   requestStatuses,
   resolutionNoteMaxChars,
@@ -197,6 +198,18 @@ function RequestDetail({
 }) {
   const [notice, setNotice] = useState<Notice | null>(null)
   const closed = isClosed(request.status)
+  const mailto = mailtoHref(request.contact_email)
+  const closedHeading = useRef<HTMLHeadingElement>(null)
+  const wasClosed = useRef(closed)
+
+  // Ao concluir ou recusar, o botão Salvar some: o foco vai para a nota gravada.
+  useEffect(() => {
+    if (closed && !wasClosed.current) {
+      closedHeading.current?.focus()
+    }
+    wasClosed.current = closed
+  }, [closed])
+
   return (
     <>
       <SheetHeader>
@@ -211,12 +224,13 @@ function RequestDetail({
         <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-body">
           <dt className="text-muted-foreground">{d.contact}</dt>
           <dd className="break-all text-foreground">
-            <a
-              href={`mailto:${request.contact_email}`}
-              className="underline underline-offset-4"
-            >
-              {request.contact_email}
-            </a>
+            {mailto ? (
+              <a href={mailto} className="underline underline-offset-4">
+                {request.contact_email}
+              </a>
+            ) : (
+              request.contact_email
+            )}
           </dd>
           <dt className="text-muted-foreground">{d.receivedAt}</dt>
           <dd className="text-foreground">{formatDateTime(request.received_at)}</dd>
@@ -254,7 +268,12 @@ function RequestDetail({
 
         {closed ? (
           <section aria-labelledby="dsr-resolution-title" className="flex flex-col gap-2">
-            <h3 id="dsr-resolution-title" className="text-label text-foreground-strong">
+            <h3
+              id="dsr-resolution-title"
+              ref={closedHeading}
+              tabIndex={-1}
+              className="text-label text-foreground-strong"
+            >
               {d.note}
             </h3>
             <p className="text-body whitespace-pre-wrap text-foreground">
@@ -287,10 +306,13 @@ function UpdateForm({
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [pending, setPending] = useState(false)
 
+  const storedNote = request.resolution_note ?? ""
+
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     onNotice(null)
-    if (needsNote(status) && note.trim() === "") {
+    // Mesma regra do servidor: nota em branco mantém a gravada, e fechar exige alguma.
+    if (needsNote(status) && note.trim() === "" && storedNote.trim() === "") {
       setErrors({ resolution_note: d.noteRequired })
       return
     }
@@ -327,11 +349,13 @@ function UpdateForm({
             value={status}
             aria-labelledby="dsr-status-label"
             aria-describedby={statusError ? "dsr-status-error" : undefined}
+            aria-invalid={statusError ? true : undefined}
             disabled={pending}
             onValueChange={(value) => {
               if ((requestStatuses as readonly string[]).includes(value)) {
                 setStatus(value as RequestStatus)
                 setErrors({})
+                onNotice(null)
               }
             }}
           >
@@ -354,9 +378,15 @@ function UpdateForm({
             aria-describedby={noteError ? "dsr-note-hint dsr-note-error" : "dsr-note-hint"}
             onChange={(event) => {
               setNote(event.target.value)
+              if (noteError) {
+                setErrors((current) => ({ ...current, resolution_note: "" }))
+              }
+              onNotice(null)
             }}
           />
-          <FieldDescription id="dsr-note-hint">{d.noteHint}</FieldDescription>
+          <FieldDescription id="dsr-note-hint">
+            {storedNote ? `${d.noteHint} ${d.noteKeep}` : d.noteHint}
+          </FieldDescription>
           {noteError ? <FieldError id="dsr-note-error">{noteError}</FieldError> : null}
         </Field>
       </FieldGroup>

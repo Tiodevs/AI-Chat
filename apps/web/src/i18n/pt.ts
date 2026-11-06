@@ -784,6 +784,7 @@ export const pt = {
       note: "Nota de resolução",
       noteHint: "Até 2.000 caracteres. Obrigatória para concluir ou recusar. Não inclua dados de saúde.",
       noteRequired: "Escreva a nota de resolução para concluir ou recusar o pedido.",
+      noteKeep: "Em branco, a nota atual continua gravada.",
       save: "Salvar",
       saving: "Salvando…",
       saved: "Pedido atualizado: {status}.",

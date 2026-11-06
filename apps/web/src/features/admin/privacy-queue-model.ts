@@ -34,6 +34,14 @@ export const statusVariant = {
   rejected: "secondary",
 } as const
 
+/** Mesmo critério do servidor (SDD 12): um endereço só, sem `?`, `,` ou `;` que um
+ * cliente de e-mail trataria como cabeçalho ou cópia. Fora disso, o contato fica em texto. */
+const safeEmail = /^[a-z0-9._+-]+@[a-z0-9-]+(?:[.][a-z0-9-]+)+$/i
+
+export function mailtoHref(email: string): string | null {
+  return safeEmail.test(email) ? `mailto:${email}` : null
+}
+
 export function isClosed(status: string) {
   return status === "done" || status === "rejected"
 }

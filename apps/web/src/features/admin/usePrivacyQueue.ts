@@ -17,6 +17,9 @@ export const privacyQueueQuery = {
   queryFn: loadQueue,
 }
 
+/** Relê a fila a cada minuto: um prazo pode vencer com a tela aberta (FR-16). */
+export const queueRefetchMs = 60_000
+
 export type UpdateResult =
   | { ok: true; request: PrivacyQueueItem }
   | {
@@ -36,7 +39,7 @@ async function loadQueue(): Promise<PrivacyQueue> {
 
 /** Fila de pedidos de titular do admin. SDD 11.5, 12 e 15.5. */
 export function usePrivacyQueue() {
-  const queue = useQuery(privacyQueueQuery)
+  const queue = useQuery({ ...privacyQueueQuery, refetchInterval: queueRefetchMs })
   const [openId, setOpenId] = useState<string | null>(null)
 
   async function update(
@@ -51,6 +54,8 @@ export function usePrivacyQueue() {
         body: { status: change.status, resolution_note: note === "" ? null : note },
       })
       if (!result.response.ok || !result.data) {
+        // Outro admin pode ter fechado o pedido (409): relê para o detalhe não ficar velho.
+        await queryClient.invalidateQueries({ queryKey: privacyQueueQuery.queryKey })
         return {
           ok: false,
           message: messageFrom(result.error, pt.couldNotContinue),

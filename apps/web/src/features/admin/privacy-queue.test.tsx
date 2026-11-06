@@ -9,7 +9,7 @@ import { routes } from "@/app/router.tsx"
 import { dueState } from "@/components/patterns/due-date-badge.tsx"
 import { pt } from "@/i18n/pt.ts"
 
-import type { PrivacyQueue, PrivacyQueueItem } from "./privacy-queue-model.ts"
+import { mailtoHref, type PrivacyQueue, type PrivacyQueueItem } from "./privacy-queue-model.ts"
 
 const t = pt.privacyQueue
 const d = pt.privacyQueue.detail
@@ -179,6 +179,15 @@ describe("prazo do pedido de titular", () => {
   })
 })
 
+describe("contato do titular", () => {
+  it("só vira link mailto um endereço que o cliente de e-mail não pode partir", () => {
+    expect(mailtoHref("ana.souza+dsr@example.com")).toBe("mailto:ana.souza+dsr@example.com")
+    expect(mailtoHref("vitima@example.com?bcc=atacante@evil.com")).toBeNull()
+    expect(mailtoHref("vitima@example.com,atacante@evil.com")).toBeNull()
+    expect(mailtoHref("vitima@example.com;atacante@evil.com")).toBeNull()
+  })
+})
+
 describe("pedidos de titular", () => {
   it("mostra os atrasados primeiro, com texto e não só cor (FR-16)", async () => {
     installApi()
@@ -196,11 +205,20 @@ describe("pedidos de titular", () => {
     )
     expect(within(first).getByText(pt.dueDate.overdueMany.replace("{n}", "5"))).toBeInTheDocument()
     expect(first.querySelector("[data-due]")).toHaveAttribute("data-due", "overdue")
+    // Atrasado em --danger e prazo próximo em --warning, sempre com o texto ao lado.
+    expect(first.querySelector("[data-due] [data-slot=badge]")).toHaveAttribute("data-variant", "danger")
     expect(within(rows[1] as HTMLElement).getByText(pt.dueDate.dueMany.replace("{n}", "2"))).toBeInTheDocument()
     expect(rows[1]?.querySelector("[data-due]")).toHaveAttribute("data-due", "soon")
+    expect(rows[1]?.querySelector("[data-due] [data-slot=badge]")).toHaveAttribute("data-variant", "warning")
+    expect(rows[2]?.querySelector("[data-due] [data-slot=badge]")).toHaveAttribute("data-variant", "secondary")
     expect(within(rows[3] as HTMLElement).getByText(t.status.done)).toBeInTheDocument()
     const summary = screen.getByRole("region", { name: t.summary.label })
-    expect(within(summary).getByText(t.summary.overdue).closest("div")).toHaveTextContent("1")
+    expect(within(summary).getByText(t.summary.overdue).closest("div")).toHaveTextContent(
+      new RegExp(`^${t.summary.overdue}1$`),
+    )
+    expect(within(summary).getByText(t.summary.open).closest("div")).toHaveTextContent(
+      new RegExp(`^${t.summary.open}2$`),
+    )
   })
 
   it("muda para em andamento e conclui com nota, sem nota não envia", async () => {
@@ -238,13 +256,16 @@ describe("pedidos de titular", () => {
       status: "done",
       resolution_note: "Conversa apagada e titular avisado.",
     })
-    // Fechado, o pedido mostra a nota e não oferece mais o formulário.
+    // Fechado, o pedido mostra a nota e não oferece mais o formulário. O foco vai para a nota.
     expect(await within(sheet).findByText(d.closedNotice)).toBeInTheDocument()
     expect(within(sheet).queryByRole("button", { name: d.save })).not.toBeInTheDocument()
+    await waitFor(() => {
+      expect(within(sheet).getByRole("heading", { name: d.note })).toHaveFocus()
+    })
   })
 
   it("mostra o erro de campo do servidor e o request_id de outras falhas", async () => {
-    installApi((call) =>
+    const calls = installApi((call) =>
       (call.body as { status: string }).status === "rejected"
         ? json(
             {
@@ -269,10 +290,17 @@ describe("pedidos de titular", () => {
     await user.click(within(sheet).getByRole("button", { name: d.save }))
     expect(await within(sheet).findByText("Nota recusada pelo servidor.")).toBeInTheDocument()
 
+    const reads = () =>
+      calls.filter((call) => call.method === "GET" && call.path === "/v1/admin/privacy/requests").length
+    const before = reads()
     await user.click(within(sheet).getByRole("radio", { name: t.status.in_progress }))
     await user.click(within(sheet).getByRole("button", { name: d.save }))
     expect(await within(sheet).findByRole("alert")).toHaveTextContent("Este pedido já foi fechado.")
     expect(within(sheet).getByText("01REQ")).toBeInTheDocument()
+    // Depois de um 409, a fila é relida para o detalhe não ficar velho.
+    await waitFor(() => {
+      expect(reads()).toBeGreaterThan(before)
+    })
   })
 
   it("um pedido fechado abre só para leitura", async () => {
@@ -282,6 +310,10 @@ describe("pedidos de titular", () => {
     await screen.findByRole("table", { name: t.table.caption })
     await user.click(await openButton(pt.privacyRequest.types.objection, "oposicao@example.com"))
     const sheet = await screen.findByRole("dialog")
+    expect(within(sheet).getByRole("link", { name: "oposicao@example.com" })).toHaveAttribute(
+      "href",
+      "mailto:oposicao@example.com",
+    )
     expect(within(sheet).getByText("Tratamento encerrado.")).toBeInTheDocument()
     expect(within(sheet).getByText(d.closedNotice)).toBeInTheDocument()
     expect(within(sheet).queryByRole("radio")).not.toBeInTheDocument()
