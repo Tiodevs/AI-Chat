@@ -98,7 +98,7 @@ Composição do JavaScript inicial no fim da etapa, com gzip:
 | Textos em português (`pt`) | 11,9 |
 | Os 21 arquivos das rotas de `/` e dos componentes que elas usam | 41,0 |
 
-Para a próxima redução, os candidatos são o plugin Flip, registrado na entrada sem nenhum uso hoje (veja as pendências), e os textos das telas de admin dentro de `pt`.
+Para a próxima redução, os candidatos eram o plugin Flip, registrado na entrada sem nenhum uso, e os textos das telas de admin dentro de `pt`. O Flip já saiu da entrada (veja as pendências).
 
 ## Tempo até o primeiro token
 
@@ -114,7 +114,7 @@ Em 2026-11-06, a produção ainda não tinha `GEMINI_API_KEY`, e o CA-4 fica par
 
 ## Pendências
 
-- **M13 sem o Flip.** A seção 16.3 pede que o Flip anime as posições ao recolher a barra lateral. Hoje a barra anima a largura com uma transição de CSS, o que vai contra a regra de animar só `transform` e `opacity`, e o Flip fica registrado em `src/motion/gsap.ts` sem uso. A correção é trocar a transição pelo Flip nos ícones e registrar o plugin só com a barra lateral. Fica para uma PR própria.
+- **M13 sem o Flip. Resolvida depois da etapa.** A barra lateral animava a largura com uma transição de CSS, contra a regra de animar só `transform` e `opacity`, e o Flip ficava registrado em `src/motion/gsap.ts` sem uso. Agora a largura troca direto e o Flip move os ícones só com `transform`, como pede a seção 16.3. O plugin é registrado em `src/motion/flip.ts`, que vai junto da barra lateral sob demanda. No build, o Flip tirou 8,6 KB com gzip do arquivo de entrada, que caiu de 145,5 para 136,9 KB, e passou para o arquivo da barra lateral, que o visitante sem sessão não baixa.
 - **CA-4.** Depende da chave do Gemini em produção.
 
 ## O que falta fazer à mão

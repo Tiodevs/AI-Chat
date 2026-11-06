@@ -439,7 +439,7 @@ A taxa de abstenção soma `abstained` e `grounding_failed`. A intenção é der
 | `stagger.list` | 0,05 s | Cards e listas |
 | `distance.enter` | 8 px | Deslocamento vertical de entrada |
 
-`src/motion/gsap.ts` registra `useGSAP` e `Flip` uma vez e chama `gsap.defaults({ duration: 0.28, ease: "power2.out" })`.
+`src/motion/gsap.ts` registra `useGSAP` uma vez e chama `gsap.defaults({ duration: 0.28, ease: "power2.out" })`. O Flip, que só a M13 usa, é registrado em `src/motion/flip.ts`. Só a barra lateral importa esse arquivo, e ela carrega sob demanda, então o plugin fica fora do JavaScript inicial de `/` (seção 5.3). Os presets importam só o tipo do Flip e recebem o plugin como argumento.
 
 ### 16.3 Catálogo
 
@@ -457,7 +457,7 @@ A taxa de abstenção soma `abstained` e `grounding_failed`. A intenção é der
 | M10 | Campo entendido no `ProfileSummaryCard` | Turno do cadastro com campo novo | Uma camada de destaque vai a 1 e volta a 0 em opacidade, e o ícone de confirmação vai de `scale` 0,6 a 1 com `ease.confirm` | Ícone aparece direto, sem destaque |
 | M11 | `RegistrationStepper`, hoje fora da tela | Troca de passo | A barra de progresso muda `scaleX` com `ease.move` | Muda direto |
 | M12 | `PasswordCard` | `next_step = password` | `autoAlpha` e `y` de 12 a 0 em `duration.slow`. O foco vai para o campo no `onComplete`. | Aparece direto e recebe o foco |
-| M13 | `AppSidebar` | Recolher e expandir | Flip registra o estado, a classe muda e Flip anima as posições com `ease.move`. Rótulos entram com `autoAlpha` ao expandir; ao recolher, ficam em `sr-only`, sem `visibility: hidden`. | Muda direto |
+| M13 | `AppSidebar` | Recolher e expandir | A largura troca direto. No clique, o Flip registra o estado dos ícones, a classe muda e o Flip leva cada ícone à posição nova em `duration.base` com `ease.move`, só com `transform` (`scale: true`). Os ícones são casados pelo `data-flip-id`, porque os links ganham o tooltip ao recolher e viram outros elementos. Rótulos entram com `autoAlpha` ao expandir; ao recolher, ficam em `sr-only`, sem `visibility: hidden`. | Muda direto |
 | M14 | Paleta de comandos, diálogos, sheets e menus | Abrir e fechar | Hook `useGsapPresence`, com `forceMount` nos componentes do Radix; o menu do visitante usa o mesmo hook, sem Radix. Entrada com `autoAlpha` e `scale` de 0,98 a 1, saída em `duration.fast` com `ease.exit` antes de desmontar | Aparece e some direto |
 | M15 | `SegmentedStatusCard` | Mudança de contagem | Segmentos mudam `scaleX` com `ease.move` | Muda direto |
 | M16 | Botões | Pressionar | `scale` 0,98 em `duration.instant` | Sem escala |
