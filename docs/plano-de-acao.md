@@ -645,8 +645,9 @@ Cada etapa traz: objetivo, seções do SDD, entregas, critérios de aceite (CA) 
 **Seções.** 11.5 e 12 (`/v1/admin/privacy/requests`) e 15.5 (Pedidos de titular).
 
 **Entregas.**
-- `GET` e `PATCH /v1/admin/privacy/requests`, com `dsr.update`.
-- `/admin/privacy` com `DataTable`, `DueDateBadge` e o detalhe com status e nota.
+- `GET` e `PATCH /v1/admin/privacy/requests`, com `dsr.update`. Fechar exige nota de resolução, e um pedido fechado não muda mais.
+- `/admin/privacy` com `DataTable`, `DueDateBadge`, os contadores em `StatTile` e o detalhe com status e nota.
+- Testes: `tests/integration/test_admin_privacy.py`, `tests/unit/test_privacy_queue_rules.py`, `src/features/admin/privacy-queue.test.tsx` e `e2e/admin-privacy.spec.ts`.
 
 **Critérios de aceite.**
 - CA-1. Os atrasados aparecem primeiro, em `--danger` e com texto, não só cor (FR-16).
@@ -817,7 +818,7 @@ A IA atualiza esta tabela em cada PR.
 | 6.2 | Canal do titular, retenção e documentos de privacidade | Aprovada |
 | 7.1 | Gestão de documentos | Aprovada |
 | 7.2 | Visão geral e qualidade | Aprovada |
-| 7.3 | Fila de pedidos de titular | Pendente |
+| 7.3 | Fila de pedidos de titular | Em revisão |
 | 8.1 | Rastros de sistema e métricas | Aprovada |
 | 8.2 | Painéis, alertas e fila de anotação | Aprovada |
 | 9.1 | Acessibilidade, movimento e desempenho | Pendente |

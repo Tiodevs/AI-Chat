@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import axe from "axe-core"
 import { createMemoryRouter, RouterProvider } from "react-router"
-import { beforeEach, describe, expect, it, vi } from "vitest"
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
 
 import { AppProviders } from "@/app/providers.tsx"
 import { queryClient } from "@/app/query-client.ts"
@@ -10,6 +10,12 @@ import { routes } from "@/app/router.tsx"
 import { ApiRequestError } from "@/features/auth/api-error.ts"
 import { limitMessage, safeReturnTo } from "@/features/auth/return-to.ts"
 import { pt } from "@/i18n/pt.ts"
+
+// A rota /admin carrega o Recharts sob demanda. Compilar o módulo na primeira
+// importação passa de 3 s com a suíte inteira rodando; o teste mede o redirecionamento.
+beforeAll(async () => {
+  await import("@/app/routes/admin.tsx")
+}, 30_000)
 
 const admin = {
   id: "00000000-0000-0000-0000-000000000001",

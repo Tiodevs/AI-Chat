@@ -49,6 +49,7 @@ O job padrão usa `FakeChatProvider`, `DeterministicEmbeddingProvider` e `NoopFe
 | Durante a substituição, a busca devolve a versão anterior | FR-11 |
 | Cada ação de documento grava o evento de auditoria | Seção 8.1 |
 | Abrir uma conversa grava `conversation.view` e revelar sem motivo falha sem gravar | FR-15 |
+| A fila de titular põe os atrasados primeiro, mudar o status grava `dsr.update` e fechar sem nota falha sem gravar | FR-16 |
 | O inspetor não lista nem abre conversa de membro sem consentimento de melhoria | Seção 11.8 |
 | Arquivar tira um chunk dos resultados | FR-12 |
 | Semear duas vezes embeda uma vez, e duas semeaduras simultâneas não duplicam | FR-13, seção 6.4 |

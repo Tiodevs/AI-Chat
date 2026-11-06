@@ -72,7 +72,7 @@ O texto da mensagem ainda passa pelo Gemini para ser classificado. Isso é um tr
 | Revogação do consentimento | Interruptores em Account, Privacy | Imediato |
 | Oposição e revisão | Pedido no canal | 15 dias |
 
-Pedidos feitos pelo canal geram uma linha em `data_subject_requests` com `due_at` em 15 dias corridos. O painel do admin mostra os pedidos atrasados primeiro. Convidados sem conta usam o canal, porque a API não consegue provar quem é o dono de uma conversa anônima depois que o cookie se perde.
+Pedidos feitos pelo canal geram uma linha em `data_subject_requests` com `due_at` em 15 dias corridos. O painel do admin mostra os pedidos atrasados primeiro. Concluir ou recusar um pedido exige uma nota de resolução, e um pedido fechado não muda mais: se o titular voltar, um pedido novo abre um prazo novo. Cada mudança grava `dsr.update`. Convidados sem conta usam o canal, porque a API não consegue provar quem é o dono de uma conversa anônima depois que o cookie se perde.
 
 A exportação contém perfil, consentimentos com versões, conversas com mensagens e citações, e feedback. Ela não contém hashes, ids internos de rastro nem dados de outros titulares.
 

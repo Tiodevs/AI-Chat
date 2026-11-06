@@ -1,5 +1,6 @@
-"""Pedidos de titular pelo canal de privacidade. Seções 8.1, 10.4 e 11.5 do SDD."""
+"""Pedidos de titular pelo canal de privacidade. Seções 8.1, 10.4, 11.5 e 12 do SDD."""
 
+import re
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import StrEnum
@@ -18,6 +19,16 @@ PRIVACY_REQUEST_WINDOW = timedelta(days=1)
 PRIVACY_REQUEST_IP_PURPOSE = "privacy_request_ip"
 DESCRIPTION_MAX_CHARS = 2000
 CONTACT_EMAIL_MAX_CHARS = 320
+RESOLUTION_NOTE_MAX_CHARS = 2000
+# A fila mostra todos os pedidos abertos e só os mais recentes entre os fechados.
+CLOSED_REQUEST_PAGE = 50
+DSR_UPDATE_ACTION = "dsr.update"
+DSR_TARGET_TYPE = "data_subject_request"
+# O admin responde ao contato por e-mail. Só letras, números e . _ + - antes do @, para um
+# endereço como `a@b.com?bcc=c@d.com` ou `a@b.com,c@d.com` não virar cópia num cliente de e-mail.
+_SAFE_CONTACT_EMAIL = re.compile(r"^[a-z0-9._+-]+@[a-z0-9-]+(?:\.[a-z0-9-]+)+$")
+# O PostgreSQL não grava o caractere nulo. Os outros de controle também não têm uso num pedido.
+_ALLOWED_CONTROL = frozenset({chr(9), chr(10), chr(13)})  # tab, LF e CR
 
 
 class RequestType(StrEnum):
@@ -59,16 +70,25 @@ def validate_request(
     """Devolve o rascunho limpo ou os códigos de erro por campo."""
     issues: dict[str, str] = {}
     email = normalize_email(contact_email)
-    if not email or len(email) > CONTACT_EMAIL_MAX_CHARS or not email_is_valid(email):
+    if not email or len(email) > CONTACT_EMAIL_MAX_CHARS or not contact_email_is_safe(email):
         issues["contact_email"] = "invalid"
     if request_type not in {item.value for item in RequestType}:
         issues["request_type"] = "invalid"
     text = description.strip()
-    if not text or len(text) > DESCRIPTION_MAX_CHARS:
+    if not text or len(text) > DESCRIPTION_MAX_CHARS or has_control_characters(text):
         issues["description"] = "invalid"
     if issues:
         return None, issues
     return RequestDraft(contact_email=email, request_type=request_type, description=text), {}
+
+
+def contact_email_is_safe(email: str) -> bool:
+    """Um endereço só, sem caractere que um link `mailto:` trate como cabeçalho ou lista."""
+    return email_is_valid(email) and _SAFE_CONTACT_EMAIL.fullmatch(email) is not None
+
+
+def has_control_characters(text: str) -> bool:
+    return any(ord(char) < 32 and char not in _ALLOWED_CONTROL for char in text)
 
 
 def due_at(received_at: datetime) -> datetime:
@@ -87,3 +107,74 @@ def privacy_rate_decision(*, count: int, now: datetime, window_start: datetime) 
         limited=True,
         retry_after_seconds=retry_after_seconds(now, window_start, PRIVACY_REQUEST_WINDOW),
     )
+
+
+OPEN_STATUSES = frozenset({RequestStatus.OPEN.value, RequestStatus.IN_PROGRESS.value})
+CLOSED_STATUSES = frozenset({RequestStatus.DONE.value, RequestStatus.REJECTED.value})
+
+
+def is_overdue(*, status: str, due_at: datetime, now: datetime) -> bool:
+    """Atrasado é o pedido ainda aberto cujo prazo já passou. Fechado nunca atrasa."""
+    return status in OPEN_STATUSES and due_at < now
+
+
+class UpdateProblem(StrEnum):
+    """Por que uma mudança de status não pode ser aplicada."""
+
+    CLOSED = "closed"
+    STATUS_INVALID = "status_invalid"
+    NOTE_TOO_LONG = "note_too_long"
+    NOTE_INVALID = "note_invalid"
+    NOTE_REQUIRED = "note_required"
+
+
+@dataclass(frozen=True, slots=True)
+class RequestUpdate:
+    status: str
+    resolution_note: str | None
+    closed_at: datetime | None
+    # Sem mudança de status nem de nota, o pedido fica igual e nada vai para a auditoria.
+    changed: bool
+
+
+def plan_update(
+    *,
+    current_status: str,
+    current_note: str | None,
+    status: str,
+    resolution_note: str | None,
+    now: datetime,
+) -> tuple[RequestUpdate | None, UpdateProblem | None]:
+    """Regras do PATCH do admin. Seções 11.5 e 12 do SDD.
+
+    Um pedido fechado (`done` ou `rejected`) não muda mais. Fechar exige uma nota de
+    resolução, nova ou já gravada. Uma nota só com espaços conta como ausente e mantém
+    a nota atual.
+    """
+    if current_status in CLOSED_STATUSES:
+        return None, UpdateProblem.CLOSED
+    if status not in {item.value for item in RequestStatus}:
+        return None, UpdateProblem.STATUS_INVALID
+    note = None if resolution_note is None else resolution_note.strip() or None
+    if note is not None and len(note) > RESOLUTION_NOTE_MAX_CHARS:
+        return None, UpdateProblem.NOTE_TOO_LONG
+    if note is not None and has_control_characters(note):
+        return None, UpdateProblem.NOTE_INVALID
+    final_note = current_note if note is None else note
+    closing = status in CLOSED_STATUSES
+    if closing and not final_note:
+        return None, UpdateProblem.NOTE_REQUIRED
+    return (
+        RequestUpdate(
+            status=status,
+            resolution_note=final_note,
+            closed_at=now if closing else None,
+            changed=status != current_status or final_note != current_note,
+        ),
+        None,
+    )
+
+
+def transition_reason(previous: str, new: str) -> str:
+    """O motivo gravado em `dsr.update`: só a troca de status, nunca a nota nem o e-mail."""
+    return f"{previous}->{new}"

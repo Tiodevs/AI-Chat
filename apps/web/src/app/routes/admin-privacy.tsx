@@ -1,6 +1,7 @@
-import { PageHeading } from "@/app/page-heading.tsx"
-import { pt } from "@/i18n/pt.ts"
+import { PrivacyQueueScreen } from "@/features/admin/privacy-queue-screen.tsx"
+import { usePrivacyQueue } from "@/features/admin/usePrivacyQueue.ts"
 
 export function Component() {
-  return <PageHeading title={pt.pages.privacyRequests} />
+  const model = usePrivacyQueue()
+  return <PrivacyQueueScreen {...model} />
 }

@@ -198,7 +198,7 @@ Componentes sem equivalente na imagem:
 | `FileDropzone` | Upload de documentos |
 | `DataTable` | Tabelas do admin |
 | `PseudonymBadge` | Identidade pseudonimizada com a ação de revelar |
-| `DueDateBadge` | Prazo de pedido de titular |
+| `DueDateBadge` | Prazo de pedido de titular, com texto e a data: atrasado em `--danger`, 3 dias ou menos em `--warning`, no prazo e fechado em neutro |
 | `RequestIdCopy` | Copia o `request_id` nas telas de erro |
 
 ### 14.7 Estados de interação
@@ -366,7 +366,7 @@ A taxa de abstenção soma `abstained` e `grounding_failed`. A intenção é der
 
 #### Pedidos de titular `/admin/privacy`
 
-`DataTable` com tipo, contato, recebido em e `DueDateBadge`. Atrasados primeiro, em `--danger`. A linha abre o detalhe com status e nota de resolução.
+`DataTable` com tipo, contato, recebido em, `DueDateBadge` e status. Atrasados primeiro, com o `DueDateBadge` em `--danger` e o texto "Atrasado há N dias", nunca só a cor. Um prazo de 3 dias ou menos fica em `--warning`. Acima da tabela, três `StatTile` contam atrasados, abertos e em andamento. A ação Abrir pedido abre um `Sheet` com o contato, as datas, se o pedido veio com sessão de membro, o texto do pedido e o formulário de status e nota de resolução. Concluir ou recusar exige a nota antes de chamar a API. Um pedido fechado abre só para leitura, e o foco vai para a nota gravada logo depois de fechar. A nota em branco mantém a gravada, como no servidor. O contato vira link `mailto:` só quando é um endereço seguro, e fica em texto nos outros casos. A fila é relida a cada 60 segundos, para um prazo que vence com a tela aberta mudar de estado, e também depois de uma falha, como o 409 de um pedido que outro admin fechou. O resultado de cada mudança é anunciado numa região `aria-live`.
 
 ### 15.6 Padrões de experiência com IA
 

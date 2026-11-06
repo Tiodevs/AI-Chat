@@ -104,6 +104,28 @@ def test_invalid_requests_return_field_errors_and_store_nothing(api: TestClient)
     }
 
 
+def test_a_contact_email_with_mailto_headers_is_refused(api: TestClient) -> None:
+    """O admin responde pelo contato: `?bcc=` ou `,` virariam cópia no cliente de e-mail."""
+    for email in ("vitima@example.com?bcc=atacante%40evil.com", "vitima@example.com,a@evil.com"):
+        response = _submit(api, ip=_ip(), email=email)
+        assert response.status_code == 422, email
+        assert set(response.json()["error"]["field_errors"]) == {"contact_email"}
+
+
+def test_a_description_with_a_null_character_is_refused(api: TestClient) -> None:
+    response = api.post(
+        "/v1/privacy/requests",
+        headers={"Origin": ORIGIN, "X-Forwarded-For": _ip()},
+        json={
+            "contact_email": "titular@example.com",
+            "request_type": "deletion",
+            "description": "Apaguem meus dados" + chr(0),
+        },
+    )
+    assert response.status_code == 422
+    assert set(response.json()["error"]["field_errors"]) == {"description"}
+
+
 def test_a_signed_in_member_request_is_linked_and_survives_account_deletion(
     api: TestClient, migrated_database: str
 ) -> None:
