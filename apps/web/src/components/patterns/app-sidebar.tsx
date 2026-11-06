@@ -12,7 +12,8 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet.tsx"
 import { pt } from "@/i18n/pt.ts"
-import { Flip, useGSAP } from "@/motion/gsap.ts"
+import { Flip } from "@/motion/flip.ts"
+import { useGSAP } from "@/motion/gsap.ts"
 import { useMotion } from "@/motion/MotionProvider.tsx"
 import { presets, type FlipState } from "@/motion/presets.ts"
 import { useGsapPresence } from "@/motion/useGsapPresence.ts"

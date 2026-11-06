@@ -24,12 +24,11 @@ vi.mock("gsap", () => ({
   },
 }))
 
-vi.mock("gsap/Flip", () => ({
-  Flip: {
-    getState: vi.fn(),
-    from: vi.fn(),
-  },
-}))
+// O Flip vai junto da barra lateral, em `flip.ts`. Se os presets ou `gsap.ts` voltarem a
+// carregá-lo, o plugin entra no JavaScript inicial de `/` e este arquivo nem carrega.
+vi.mock("gsap/Flip", () => {
+  throw new Error("Os presets não carregam o Flip: ele chega pelo argumento de moveSidebar.")
+})
 
 vi.mock("@gsap/react", () => ({
   useGSAP: () => ({
