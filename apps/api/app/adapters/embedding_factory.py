@@ -2,6 +2,7 @@
 
 from app.adapters.deterministic_embedding import DeterministicEmbeddingProvider
 from app.adapters.gemini_embedding import GeminiEmbeddingProvider
+from app.adapters.unavailable import UnavailableEmbeddingProvider
 from app.core.config import Settings
 from app.ports.embedding import EmbeddingProvider
 
@@ -11,6 +12,11 @@ def build_embedding_provider(settings: Settings) -> EmbeddingProvider:
         return DeterministicEmbeddingProvider(
             dimensions=settings.embedding_dimensions,
             model_name=settings.embedding_model,
+        )
+    if not settings.gemini_api_key:
+        return UnavailableEmbeddingProvider(
+            model_name=settings.embedding_model,
+            dimensions=settings.embedding_dimensions,
         )
     return GeminiEmbeddingProvider(
         api_key=settings.gemini_api_key,
