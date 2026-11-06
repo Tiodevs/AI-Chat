@@ -171,6 +171,11 @@ export function AppShell() {
         </Suspense>
       ) : null}
       <div className="flex min-w-0 flex-1 flex-col">
+        {me.isPending && isMobile ? (
+          // No celular, o visitante e o membro têm a mesma barra de 56 px no topo. Ela ocupa o
+          // lugar enquanto a sessão não chega, e o conteúdo não pula (CLS, seção 5.3).
+          <div aria-hidden="true" className="h-14 shrink-0 border-b border-border bg-shell" />
+        ) : null}
         {guest ? <GuestHeader compact={isMobile} /> : null}
         {showSidebar && isMobile ? (
           <Suspense
