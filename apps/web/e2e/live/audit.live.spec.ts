@@ -151,5 +151,12 @@ test("telas do admin", async ({ page }) => {
   if (await openNavigation(page)) {
     await audit(page, "menu do admin")
     await closeDialog(page)
+  } else {
+    // Entre 768 e 1023 px a barra já começa recolhida, e os controles só com ícone precisam
+    // continuar com nome para o leitor de tela.
+    await page.getByRole("button", { name: pt.sidebar.collapse }).click()
+    await expect(page.getByRole("button", { name: pt.sidebar.expand })).toBeVisible()
+    await audit(page, "barra lateral recolhida")
+    await page.getByRole("button", { name: pt.sidebar.expand }).click()
   }
 })
