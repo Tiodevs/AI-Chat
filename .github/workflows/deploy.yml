@@ -1,0 +1,122 @@
+name: deploy
+
+# Publicação em development e, com aprovação, em production. Seções 19, 22.1, 22.2 e 22.3 do SDD.
+#
+# Roda depois de o ci.yml passar num push para a main, sempre com o commit que a CI testou.
+# Cada GitHub Environment guarda os próprios segredos e variáveis:
+#   segredos:  RAILWAY_TOKEN (token do projeto, do ambiente), VERCEL_TOKEN
+#   variáveis: VERCEL_ORG_ID, VERCEL_PROJECT_ID, API_URL (origem https da API),
+#              WEB_HOST (host do frontend, sem https://)
+# O ambiente production exige a aprovação de quem opera antes do primeiro passo.
+#
+# A variável de repositório DEPLOY_ENABLED liga o pipeline. Ela fica desligada até os
+# segredos acima existirem, para um push na main não falhar por falta de token.
+
+on:
+  workflow_run:
+    workflows: [ci]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  RAILWAY_CLI_VERSION: 5.71.0
+  VERCEL_CLI_VERSION: 65.2.0
+
+jobs:
+  development:
+    name: development
+    if: >-
+      vars.DEPLOY_ENABLED == 'true' &&
+      (github.event_name == 'workflow_dispatch' ||
+       (github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.event == 'push'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment:
+      name: development
+      url: https://${{ vars.WEB_HOST }}
+    env:
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+      API_URL: ${{ vars.API_URL }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Instalar as CLIs da Railway e da Vercel
+        run: npm install --global "@railway/cli@${RAILWAY_CLI_VERSION}" "vercel@${VERCEL_CLI_VERSION}"
+      # Sem --detach, o comando espera o estado final do deploy (pré-deploy e /ready).
+      # Uma falha deixa a versão anterior no ar e para o pipeline aqui.
+      - name: Deploy da API em development
+        run: railway up --service api --environment development
+      - name: Deploy do retention-job em development
+        run: railway up --service retention-job --environment development
+      - name: Build e deploy de preview na Vercel
+        run: |
+          vercel pull --yes --environment=preview --token="$VERCEL_TOKEN"
+          vercel build --token="$VERCEL_TOKEN"
+          url="$(vercel deploy --prebuilt --token="$VERCEL_TOKEN")"
+          echo "Preview: $url"
+          # O alias estável é a origem que a API de development aceita (WEB_ORIGIN).
+          vercel alias set "$url" "${{ vars.WEB_HOST }}" --token="$VERCEL_TOKEN"
+      - name: Testes de fumaça em development
+        run: node .github/scripts/smoke.mjs "https://${{ vars.WEB_HOST }}"
+
+  production:
+    name: production
+    needs: development
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment:
+      name: production
+      url: https://${{ vars.WEB_HOST }}
+    env:
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+      API_URL: ${{ vars.API_URL }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Instalar as CLIs da Railway e da Vercel
+        run: npm install --global "@railway/cli@${RAILWAY_CLI_VERSION}" "vercel@${VERCEL_CLI_VERSION}"
+      - name: Deploy da API em production
+        run: railway up --service api --environment production
+      - name: Deploy do retention-job em production
+        run: railway up --service retention-job --environment production
+      # Prometheus e Grafana existem só em production. Painéis e alertas vêm do repositório.
+      - name: Deploy do Prometheus e do Grafana
+        run: |
+          railway up ops/prometheus --path-as-root --service prometheus --environment production
+          railway up ops/grafana --path-as-root --service grafana --environment production
+      - name: Build e deploy de produção na Vercel
+        run: |
+          vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+          vercel build --prod --token="$VERCEL_TOKEN"
+          vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN"
+      - name: Testes de fumaça em production
+        run: node .github/scripts/smoke.mjs "https://${{ vars.WEB_HOST }}"
