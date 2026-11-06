@@ -11,6 +11,7 @@ import { Separator } from "@/components/ui/separator.tsx"
 import {
   Tooltip,
   TooltipContent,
+  TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip.tsx"
 import { navigationFor, type NavItem, type Viewer } from "@/app/navigation.ts"
@@ -71,7 +72,7 @@ function SidebarLink({
   )
 }
 
-export function SidebarBody({
+function SidebarContent({
   collapsed,
   onSearch,
   onNavigate,
@@ -223,5 +224,16 @@ export function SidebarBody({
         <ProfileButton collapsed={collapsed} {...account} />
       </div>
     </div>
+  )
+}
+
+type SidebarBodyProps = Parameters<typeof SidebarContent>[0]
+
+/** O provider vive aqui, e não na raiz: o visitante sem sessão não baixa o tooltip. */
+export function SidebarBody(props: SidebarBodyProps) {
+  return (
+    <TooltipProvider>
+      <SidebarContent {...props} />
+    </TooltipProvider>
   )
 }
