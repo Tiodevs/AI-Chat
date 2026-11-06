@@ -114,8 +114,13 @@ export function AppShell() {
     setSearchOpen(true)
   }
 
-  // A paleta chega quando o navegador fica livre, para o ⌘K abrir sem espera.
+  // No desktop, a paleta chega quando o navegador fica livre, para o ⌘K abrir sem espera. No
+  // celular não há atalho de teclado: ela só baixa quando alguém abre a busca, e a rede móvel
+  // do visitante fica para a primeira tela (seção 5.3).
   useEffect(() => {
+    if (isMobile) {
+      return
+    }
     const prefetch = () => {
       void loadSearch()
     }
@@ -129,7 +134,7 @@ export function AppShell() {
     return () => {
       window.clearTimeout(timer)
     }
-  }, [])
+  }, [isMobile])
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
