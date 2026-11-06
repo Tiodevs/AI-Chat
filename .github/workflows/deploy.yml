@@ -114,8 +114,16 @@ jobs:
           vercel build
           url="$(vercel deploy --prebuilt)"
           echo "Preview: $url"
-          # O alias estável é a origem que a API de development aceita (WEB_ORIGIN).
-          vercel alias set "$url" "$WEB_HOST"
+          # O alias estável é a origem que a API de development aceita (WEB_ORIGIN). Ele vai pela
+          # API REST, com o time explícito: o `vercel alias set` procura o usuário dono do token,
+          # e um token de time não tem usuário ("User not found").
+          deployment="https://api.vercel.com/v13/deployments/${url#https://}?teamId=${VERCEL_ORG_ID}"
+          id="$(curl -sS --fail-with-body -H "Authorization: Bearer ${VERCEL_TOKEN}" "$deployment" | jq -r .id)"
+          curl -sS --fail-with-body -o /dev/null -X POST \
+            -H "Authorization: Bearer ${VERCEL_TOKEN}" -H "Content-Type: application/json" \
+            -d "{\"alias\":\"${WEB_HOST}\"}" \
+            "https://api.vercel.com/v2/deployments/${id}/aliases?teamId=${VERCEL_ORG_ID}"
+          echo "Alias: https://${WEB_HOST} -> ${id}"
       - name: Testes de fumaça em development
         run: node .github/scripts/smoke.mjs "https://${WEB_HOST}" "$SHA"
 
