@@ -2,7 +2,7 @@ import { render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import axe from "axe-core"
 import { createMemoryRouter, RouterProvider } from "react-router"
-import { describe, expect, it, vi } from "vitest"
+import { beforeAll, describe, expect, it, vi } from "vitest"
 
 import { AppProviders } from "@/app/providers.tsx"
 import { routes } from "@/app/router.tsx"
@@ -12,6 +12,12 @@ import { delta, type Overview, type Quality } from "./insights-model.ts"
 
 const t = pt.insights
 const q = pt.quality
+
+// As rotas de admin carregam o Recharts sob demanda. Compilar os módulos na primeira
+// importação passa de 3 s com a suíte inteira rodando; os testes medem a tela.
+beforeAll(async () => {
+  await Promise.all([import("@/app/routes/admin.tsx"), import("@/app/routes/admin-quality.tsx")])
+}, 30_000)
 
 const admin = {
   id: "00000000-0000-4000-8000-0000000000ad",
