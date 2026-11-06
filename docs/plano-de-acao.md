@@ -750,10 +750,10 @@ Cada etapa traz: objetivo, seções do SDD, entregas, critérios de aceite (CA) 
 **Seções.** 13.4 (`vercel.ts` e cabeçalhos), 19, 22.1, 22.2 e 22.3 (`deploy.yml` e job `e2e`).
 
 **Entregas.**
-- `apps/api/railway.json` com Railpack, pré-deploy, comando de início, health check em `/ready` e 1 réplica.
+- Serviços `api` e `retention-job` na Railway, configurados pela API da Railway com o Dockerfile, o pré-deploy, o health check em `/ready` e 1 réplica (o `railway.json` foi descontinuado, ADR-013).
 - `apps/web/vercel.ts` com os rewrites e os cabeçalhos da seção 13.4.
 - `.github/workflows/deploy.yml` até os testes de fumaça de development.
-- Job `e2e` no `ci.yml`.
+- Job `e2e` no `ci.yml`, com a API real no adaptador `demo` (ADR-014).
 - `retention-job` agendado na Railway.
 
 **Critérios de aceite.**
@@ -823,7 +823,7 @@ A IA atualiza esta tabela em cada PR.
 | 8.2 | Painéis, alertas e fila de anotação | Aprovada |
 | 9.1 | Acessibilidade, movimento e desempenho | Pendente |
 | 9.2 | Teste de usabilidade | Pendente |
-| 10.1 | Pipeline de deploy e ambiente de development | Pendente |
+| 10.1 | Pipeline de deploy e ambiente de development | Em revisão |
 | 10.2 | Produção e rollback | Pendente |
 
 Valores possíveis: Pendente, Em andamento, Em revisão, Ajustes pedidos, Aprovada.

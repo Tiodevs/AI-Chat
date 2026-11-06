@@ -11,7 +11,7 @@ Parte da [especificação do Atrium](../sdd.md). A numeração das seções é a
 | `API_URL` | sem uso, o Vite faz proxy | sem uso | sem uso | sem uso | Origem da API de cada ambiente, no build |
 | `WEB_ORIGIN` | `http://localhost:5173` | `http://localhost:4173` | URL de preview da Vercel | Domínio de produção | sem uso |
 | `GEMINI_API_KEY` | Chave de desenvolvimento | ausente | Chave de development | Chave de produção, projeto com faturamento | ausente |
-| `APP_AI_ADAPTER` | `gemini` ou `fake` | `fake` | `gemini` | `gemini` | sem uso |
+| `APP_AI_ADAPTER` | `gemini`, `fake` ou `demo` | `fake` nos testes, `demo` na e2e | `gemini` | `gemini` | sem uso |
 | `LANGSMITH_API_KEY` | Opcional | ausente | Chave de development | Chave de produção | ausente |
 
 As chaves de cada ambiente são diferentes, para uma poder ser revogada sem afetar as outras.
@@ -90,7 +90,7 @@ Os testes de integração rodam contra PostgreSQL com `CREATE EXTENSION vector`.
 - os presets de movimento usam `gsap.set` com movimento reduzido
 - o contraste de cada par de tokens passa em AA
 
-**Frontend, ponta a ponta,** com Playwright. A CI sobe a API com o adaptador falso e o PostgreSQL de serviço, e o frontend com `vite preview` e proxy para a API. Cobre J1, J2, J3, J4 e J5, com axe em cada página.
+**Frontend, ponta a ponta,** com Playwright, em duas suítes. A do job `web` roda as jornadas com as respostas da API simuladas por `page.route`, em celular com movimento reduzido e uma vez com movimento, e pega quebras de interface depressa. A do job `e2e` (`playwright.live.config.ts`, pasta `e2e/live`) sobe a API de verdade com o adaptador `demo` sobre o PostgreSQL de serviço, com migrações, admin e semente, e o frontend com `vite preview`, o mesmo proxy de `/backend` e os cabeçalhos de produção da seção 13.4. Ela cobre J1, J2, J3, J4, J5 e J8, com axe em cada página, e falha se o navegador registrar uma violação de CSP. Não há nova tentativa, porque o backend é determinístico.
 
 **Estáticos:** Ruff e mypy na API. ESLint, `tsc --noEmit` e o build do Storybook no frontend.
 
@@ -133,30 +133,37 @@ Um projeto Railway, dois ambientes: `development` e `production`. Em cada ambien
 
 | Serviço | Origem | Observação |
 |---|---|---|
-| `postgres` | PostgreSQL da Railway | Extensão `vector` ligada na configuração do banco. Se a imagem não tiver a extensão, usar o template pgvector antes da primeira migração. |
-| `api` | `apps/api`, construída com Railpack | Configuração em `apps/api/railway.json` |
-| `retention-job` | `apps/api`, mesma imagem | Tarefa agendada, `0 6 * * *`, comando `python -m app.scripts.retention` |
+| `postgres` | Template PostgreSQL da Railway, com a imagem trocada por `pgvector/pgvector:pg18` antes do primeiro boot | A mesma imagem da CI. A Railway gera a senha. Sem proxy TCP público: só a rede privada. |
+| `api` | O repositório inteiro, com `apps/api/Dockerfile` | A semente lê `content/corpus`, fora de `apps/api`, então o contexto do build é a raiz |
+| `retention-job` | O mesmo Dockerfile | Tarefa agendada, `0 6 * * *`, comando `python -m app.scripts.retention`, sem nova tentativa |
 | `prometheus` | `ops/prometheus`, com Dockerfile e volume em `/prometheus` | Só em `production` |
 | `grafana` | `ops/grafana`, com Dockerfile, painéis e alertas provisionados e volume para os dados | Só em `production` |
 
-Configuração do serviço `api` em `railway.json`:
+Configuração do serviço `api`, gravada pela API da Railway (ADR-013):
 
 | Campo | Valor |
 |---|---|
-| Builder | `RAILPACK` |
-| Pré-deploy | `alembic upgrade head && python -m app.scripts.bootstrap_admin && python -m app.scripts.seed` |
-| Início | `opentelemetry-instrument uvicorn app.main:app --host :: --port $PORT --proxy-headers --forwarded-allow-ips="*"` |
+| Build | Dockerfile `apps/api/Dockerfile`, contexto na raiz do repositório |
+| Pré-deploy | `sh -c "alembic upgrade head && python -m app.scripts.bootstrap_admin && python -m app.scripts.seed --skip-without-key"` |
+| Início | O `CMD` da imagem: `opentelemetry-instrument uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --proxy-headers --forwarded-allow-ips='*'` |
+| `PORT` | `8080`, fixo, para o domínio público e o Prometheus usarem a mesma porta |
 | Health check | `/ready` |
 | Réplicas | 1 |
-| Python | `RAILPACK_PYTHON_VERSION=3.12` |
+| Rastros | Tracing da Railway ligado: o deploy recebe as variáveis do exportador OpenTelemetry |
 
-O Nixpacks, citado na versão 0.2, é o builder legado da Railway. O Railpack é o padrão atual.
+A Railway descontinuou o Config as Code (`railway.json`): serviços novos não o aceitam, e ele para de valer em 2026-12-01. Por isso a configuração fica nos próprios serviços, e esta tabela é a referência. O Railpack não serve à `api`, porque a semente precisa de `content/corpus`. O Dockerfile é o mesmo do `docker-compose.yml`, então a imagem local e a da Railway são uma só.
+
+A API escuta em `0.0.0.0`. O asyncio abre `::` só em IPv6 e recusaria IPv4, e os ambientes da Railway criados depois de 16/10/2025 resolvem a rede privada também em IPv4.
+
+`--skip-without-key` adia a semente quando falta `GEMINI_API_KEY`, sem falhar o deploy. Semear com outro embedding deixaria vetores que a semente, que pula checksums iguais, não refaz depois. O primeiro deploy sobe antes de a chave existir: `/health` e `/ready` respondem, e as perguntas recebem a resposta de indisponibilidade até a chave entrar e um novo deploy semear o corpus.
+
+Variáveis do `api`: as das seções 17 e 19. `DATABASE_URL` é a referência `${{Postgres.DATABASE_URL}}`. `RATE_LIMIT_HMAC_KEY`, `PSEUDONYM_KEY`, `METRICS_TOKEN` e `ADMIN_PASSWORD` são gerados pela Railway com `${{ secret(...) }}` na primeira gravação e ficam estáveis entre deploys; quem opera lê `ADMIN_PASSWORD` no painel. `GEMINI_API_KEY` e `LANGSMITH_API_KEY` são postas por quem opera, também no painel. No primeiro login, o admin passa pelo novo aceite dos Termos (seção 13.3).
 
 Migrações seguem expand and contract: uma migração nunca quebra a versão anterior do código. Remover uma coluna acontece no deploy seguinte ao que parou de usá-la. Isso permite voltar o código sem voltar o banco.
 
 ### 22.2 Vercel
 
-O projeto Vercel usa o diretório raiz `apps/web`, com o preset Vite e saída `dist`. A publicação por Git fica desligada no `vercel.ts`. O deploy de development é uma implantação de preview apontada para a API de development. O deploy de produção aponta para a API de produção.
+O projeto Vercel usa o diretório raiz `apps/web`, com o preset Vite e saída `dist`. A publicação por Git fica desligada no `vercel.ts`. O deploy de development é uma implantação de preview apontada para a API de development, e recebe um alias estável (`WEB_HOST` do ambiente), porque a URL de cada preview muda e a API de development só aceita a origem do `WEB_ORIGIN`. O deploy de produção aponta para a API de produção. A proteção de deployments da Vercel fica desligada: os dois ambientes são públicos, com dados fictícios, e os testes de fumaça precisam chegar a eles sem login.
 
 ### 22.3 GitHub Actions
 
@@ -167,7 +174,7 @@ O projeto Vercel usa o diretório raiz `apps/web`, com o preset Vite e saída `d
 | `api` | Instalar com `uv`, Ruff, mypy, Pytest com o contêiner pgvector |
 | `web` | Instalar com `pnpm`, ESLint, `tsc --noEmit`, Vitest, build, build do Storybook |
 | `contract` | Gerar OpenAPI e tipos e comparar com os commitados |
-| `e2e` | API com adaptador falso, PostgreSQL de serviço, `vite preview`, Playwright com axe |
+| `e2e` | API com o adaptador `demo`, PostgreSQL de serviço, `vite preview` com os cabeçalhos de produção, Playwright com axe e checagem de CSP |
 
 **`deploy.yml`,** em pushes para `main`, depois de `ci.yml` passar:
 
@@ -184,12 +191,13 @@ flowchart LR
 
 | Etapa | Comando |
 |---|---|
-| Deploy da API | `railway up --service api --environment <env> --ci`, com `RAILWAY_TOKEN` do ambiente |
+| Deploy da API | `railway up --service api --environment <env>`, com o `RAILWAY_TOKEN` do ambiente. Sem `--detach` nem `--ci`, o comando espera o estado final do deploy, então a fumaça testa a versão nova e não a anterior. O `retention-job` recebe o mesmo comando. |
+| Prometheus e Grafana | Só em produção: `railway up ops/prometheus --path-as-root --service prometheus` e o mesmo para `ops/grafana` |
 | Build da Vercel | `vercel pull --environment=<preview ou production>`, `vercel build`, com `API_URL` do ambiente |
-| Deploy da Vercel | `vercel deploy --prebuilt`, com `--prod` em produção |
-| Fumaça | `GET /backend/health`, `GET /backend/ready`, `GET /backend/v1/legal/versions` e `GET /backend/v1/diagnostics/stream`, conferindo que o primeiro evento chega antes do fim do fluxo |
+| Deploy da Vercel | `vercel deploy --prebuilt`, com `--prod` em produção. Em development, `vercel alias set` liga a implantação ao `WEB_HOST`. |
+| Fumaça | `node .github/scripts/smoke.mjs https://<WEB_HOST>`: `GET /backend/health`, `GET /backend/ready`, `GET /backend/v1/legal/versions` com `no-store` e sem `HIT` no cache da Vercel, os cabeçalhos de segurança da seção 13.4 em `/`, uma rota da SPA, e `GET /backend/v1/diagnostics/stream`, conferindo que o primeiro evento chega pelo menos 1 s antes do fim do fluxo |
 
-Os segredos `RAILWAY_TOKEN`, `VERCEL_TOKEN`, `VERCEL_ORG_ID` e `VERCEL_PROJECT_ID` ficam em GitHub Environments `development` e `production`. O ambiente `production` exige aprovação de quem opera.
+O `deploy.yml` roda por `workflow_run`, depois de o `ci.yml` passar num push para a `main`, e faz checkout do commit que a CI testou. Os segredos `RAILWAY_TOKEN` (token do projeto, do ambiente) e `VERCEL_TOKEN`, e as variáveis `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`, `API_URL` e `WEB_HOST`, ficam nos GitHub Environments `development` e `production`. O ambiente `production` exige aprovação de quem opera. A variável de repositório `DEPLOY_ENABLED` liga o pipeline: ela fica desligada até os tokens existirem, para um push na `main` não falhar por falta deles.
 
 **Rollback.** Na Railway, `railway redeploy` da implantação anterior. Na Vercel, `vercel rollback` para a implantação de produção anterior. Expand and contract garante que o banco não precisa voltar.
 
@@ -228,6 +236,8 @@ Cada ADR também vive em `docs/adr/NNN-titulo.md`, com contexto, decisão, conse
 | ADR-010 | shadcn/ui sobre Radix com tokens próprios | Biblioteca de componentes fechada. Componentes do zero. | Acessibilidade do Radix e controle total do código dos componentes. |
 | ADR-011 | GSAP como motor único de movimento, com exceções do Sonner e do Skeleton | Animações em CSS. Outra biblioteca de animação para React. | Tokens e movimento reduzido num só lugar. Uma dependência a mais. |
 | ADR-012 | Uma réplica da API na versão 1 | Várias réplicas desde o início | Simplicidade. A seção 6.5 descreve a mudança. |
+| ADR-013 | Serviços da Railway configurados pela API, com a API construída pelo Dockerfile do repositório | `railway.json` (descontinuado). Railpack. IaC em `.railway/railway.ts` nesta versão. | A tabela da seção 22.1 é a referência da configuração. A imagem é a mesma do `docker-compose.yml`. |
+| ADR-014 | Adaptador `demo` por regras para a e2e com a API real | E2e só com respostas simuladas. Gemini de verdade na CI. | A CI percorre as jornadas sem chave, sem custo e sem variação. A qualidade da IA continua medida no LangSmith. |
 
 ## 25. Riscos
 

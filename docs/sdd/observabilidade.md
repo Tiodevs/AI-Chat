@@ -38,10 +38,13 @@ class FeedbackSink(Protocol):
 | `FakeChatProvider` | Testes. Valores estruturados, chamadas de ferramenta e fluxos de token escritos no teste. |
 | `DeterministicEmbeddingProvider` | Testes. Vetor unitário de 768 dimensões gerado por hash. O mesmo texto devolve sempre o mesmo vetor. |
 | `NoopFeedbackSink` | Testes e ambiente sem LangSmith. |
+| `UnavailableChatProvider` e `UnavailableEmbeddingProvider` | `APP_AI_ADAPTER=gemini` sem `GEMINI_API_KEY`. Falham na chamada como provedor indisponível, nunca ao montar o workflow: a pergunta recebe a resposta fixa de indisponibilidade, o cadastro oferece o formulário, a ingestão marca a versão como falha, e as rotas que não usam o modelo, como o fluxo de diagnóstico, continuam respondendo. É o estado do primeiro deploy, antes de a chave existir. |
+| `DemoChatProvider` | `APP_AI_ADAPTER=demo`, sem modelo nem rede. Palavras de sintoma, dose ou remédio viram `medical_advice`; tempo e clima perto de um dia viram `other`; o resto é `public_info`. A resposta é a primeira frase do bloco de contexto de melhor posição, com a citação dele. No cadastro, o passo atual decide o campo e "pular" pula um opcional. As frases do cadastro caem nas perguntas fixas. |
+| `LexicalEmbeddingProvider` | `APP_AI_ADAPTER=demo`. Cada palavra sem acento, fora das palavras vazias e cortada nos 6 primeiros caracteres, cai numa dimensão por hash; textos com palavras em comum ficam próximos. |
 
 **Contrato de embedding.** O `gemini-embedding-2` agrega várias entradas enviadas juntas num único embedding. Por isso o `GeminiEmbeddingProvider.embed_documents` envia um texto por pedido, com no máximo 4 pedidos simultâneos e nova tentativa em 429. Um teste de contrato, com HTTP simulado, confere que N textos geram N pedidos e N vetores de 768 dimensões.
 
-`APP_AI_ADAPTER=gemini` é o padrão. `APP_AI_ADAPTER=fake` serve para trabalhar a interface localmente sem chave. Os testes de integração injetam os falsos explicitamente, para uma variável esquecida não chamar o Gemini.
+`APP_AI_ADAPTER=gemini` é o padrão. `APP_AI_ADAPTER=fake` serve para trabalhar a interface localmente sem chave, e toda pergunta recebe a resposta de indisponibilidade. `APP_AI_ADAPTER=demo` percorre as jornadas de verdade sem modelo, com as regras acima: é o modo da e2e da CI (seção 21.1) e da demonstração local sem chave. Com o embedding lexical, o piso de similaridade da e2e fica em 0,3. A configuração recusa `demo` com `APP_ENV` `development` ou `production`, para ele nunca chegar à Railway. Os testes de integração injetam os falsos explicitamente, para uma variável esquecida não chamar o Gemini.
 
 A configuração é lida uma vez com Pydantic Settings:
 
