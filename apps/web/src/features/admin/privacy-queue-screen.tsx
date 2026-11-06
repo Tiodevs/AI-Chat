@@ -1,0 +1,369 @@
+import { useState, type FormEvent } from "react"
+
+import { PageHeading } from "@/app/page-heading.tsx"
+import { DataTable, type DataTableColumn } from "@/components/patterns/data-table.tsx"
+import { DueDateBadge, formatDate } from "@/components/patterns/due-date-badge.tsx"
+import { RequestIdCopy } from "@/components/patterns/request-id-copy.tsx"
+import { StatTile } from "@/components/patterns/stat-tile.tsx"
+import { Badge } from "@/components/ui/badge.tsx"
+import { Button } from "@/components/ui/button.tsx"
+import {
+  Field,
+  FieldDescription,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field.tsx"
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet.tsx"
+import { Skeleton } from "@/components/ui/skeleton.tsx"
+import { Spinner } from "@/components/ui/spinner.tsx"
+import { Textarea } from "@/components/ui/textarea.tsx"
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group.tsx"
+import { pt } from "@/i18n/pt.ts"
+
+import { fill, formatDateTime } from "./documents-model.ts"
+import {
+  counts,
+  isClosed,
+  needsNote,
+  requestStatuses,
+  resolutionNoteMaxChars,
+  statusLabel,
+  statusVariant,
+  typeLabel,
+  type PrivacyQueueItem,
+  type RequestStatus,
+} from "./privacy-queue-model.ts"
+import type { PrivacyQueueModel } from "./usePrivacyQueue.ts"
+
+const t = pt.privacyQueue
+const d = pt.privacyQueue.detail
+
+function StatusTag({ status }: { status: string }) {
+  const variant = (statusVariant as Record<string, (typeof statusVariant)[RequestStatus]>)[status]
+  return <Badge variant={variant ?? "secondary"}>{statusLabel(status)}</Badge>
+}
+
+/** Fila de pedidos de titular: atrasados primeiro, com texto e não só cor. SDD 15.5 (FR-16). */
+export function PrivacyQueueScreen(model: PrivacyQueueModel) {
+  const data = model.queue
+  const now = data?.generated_at ?? new Date().toISOString()
+  const selected = data?.requests.find((item) => item.id === model.openId) ?? null
+  const summary = counts(data?.requests)
+
+  const columns: DataTableColumn<PrivacyQueueItem>[] = [
+    {
+      key: "type",
+      header: t.table.type,
+      rowHeader: true,
+      cell: (row) => typeLabel(row.request_type),
+    },
+    {
+      key: "contact",
+      header: t.table.contact,
+      cell: (row) => <span className="break-all">{row.contact_email}</span>,
+    },
+    {
+      key: "received",
+      header: t.table.receivedAt,
+      cell: (row) => formatDateTime(row.received_at),
+    },
+    {
+      key: "deadline",
+      header: t.table.deadline,
+      cell: (row) => <DueDateBadge dueAt={row.due_at} closedAt={row.closed_at} now={now} />,
+    },
+    {
+      key: "status",
+      header: t.table.status,
+      cell: (row) => <StatusTag status={row.status} />,
+    },
+    {
+      key: "actions",
+      header: t.table.actions,
+      cell: (row) => (
+        <Button
+          size="sm"
+          variant="outline"
+          aria-label={`${t.table.open}: ${typeLabel(row.request_type)}, ${row.contact_email}`}
+          onClick={() => {
+            model.open(row.id)
+          }}
+        >
+          {t.table.open}
+        </Button>
+      ),
+    },
+  ]
+
+  return (
+    <div className="flex flex-col gap-6">
+      <header className="flex flex-col gap-2">
+        <PageHeading title={pt.pages.privacyRequests} />
+        <p className="text-body text-muted-foreground">{t.lead}</p>
+      </header>
+
+      {data ? (
+        <section aria-label={t.summary.label} className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+          <StatTile
+            label={t.summary.overdue}
+            value={String(summary.overdue)}
+            tone={summary.overdue > 0 ? "danger" : "neutral"}
+          />
+          <StatTile label={t.summary.open} value={String(summary.open)} />
+          <StatTile label={t.summary.inProgress} value={String(summary.inProgress)} tone="info" />
+        </section>
+      ) : model.loadError ? null : (
+        <Skeleton className="h-16 w-full" />
+      )}
+
+      {model.loadError ? (
+        <p role="alert" className="text-body text-destructive">
+          {t.table.loadFailed}
+        </p>
+      ) : (
+        <DataTable
+          caption={t.table.caption}
+          columns={columns}
+          rows={data?.requests}
+          rowKey={(row) => row.id}
+          loading={model.loading}
+          empty={t.table.empty}
+        />
+      )}
+
+      <RequestSheet
+        request={selected}
+        now={now}
+        update={model.update}
+        onClose={() => {
+          model.open(null)
+        }}
+      />
+    </div>
+  )
+}
+
+type Notice = { text: string; failed: boolean; requestId: string | null }
+
+function RequestSheet({
+  request,
+  now,
+  update,
+  onClose,
+}: {
+  request: PrivacyQueueItem | null
+  now: string
+  update: PrivacyQueueModel["update"]
+  onClose: () => void
+}) {
+  return (
+    <Sheet
+      open={request !== null}
+      onOpenChange={(next) => {
+        if (!next) {
+          onClose()
+        }
+      }}
+    >
+      <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-xl">
+        {request ? (
+          <RequestDetail key={request.id} request={request} now={now} update={update} />
+        ) : (
+          <SheetHeader>
+            <SheetTitle>{pt.pages.privacyRequests}</SheetTitle>
+            <SheetDescription>{d.description}</SheetDescription>
+          </SheetHeader>
+        )}
+      </SheetContent>
+    </Sheet>
+  )
+}
+
+function RequestDetail({
+  request,
+  now,
+  update,
+}: {
+  request: PrivacyQueueItem
+  now: string
+  update: PrivacyQueueModel["update"]
+}) {
+  const [notice, setNotice] = useState<Notice | null>(null)
+  const closed = isClosed(request.status)
+  return (
+    <>
+      <SheetHeader>
+        <SheetTitle>{fill(d.title, { type: typeLabel(request.request_type) })}</SheetTitle>
+        <SheetDescription>{d.description}</SheetDescription>
+      </SheetHeader>
+      <div className="flex flex-col gap-5 px-4 pb-6">
+        <div className="flex flex-wrap items-start gap-3">
+          <DueDateBadge dueAt={request.due_at} closedAt={request.closed_at} now={now} />
+          <StatusTag status={request.status} />
+        </div>
+        <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-body">
+          <dt className="text-muted-foreground">{d.contact}</dt>
+          <dd className="break-all text-foreground">
+            <a
+              href={`mailto:${request.contact_email}`}
+              className="underline underline-offset-4"
+            >
+              {request.contact_email}
+            </a>
+          </dd>
+          <dt className="text-muted-foreground">{d.receivedAt}</dt>
+          <dd className="text-foreground">{formatDateTime(request.received_at)}</dd>
+          {request.closed_at ? (
+            <>
+              <dt className="text-muted-foreground">{d.closedAt}</dt>
+              <dd className="text-foreground">{formatDate(request.closed_at)}</dd>
+            </>
+          ) : null}
+          <dt className="text-muted-foreground">{d.account}</dt>
+          <dd className="text-foreground">{request.linked_account ? d.linked : d.notLinked}</dd>
+        </dl>
+        <section aria-labelledby="dsr-request-title" className="flex flex-col gap-2">
+          <h3 id="dsr-request-title" className="text-label text-foreground-strong">
+            {d.request}
+          </h3>
+          <p className="rounded-lg bg-muted px-3 py-2 text-body whitespace-pre-wrap text-foreground">
+            {request.description}
+          </p>
+        </section>
+
+        <div aria-live="polite" className="flex flex-col gap-2">
+          {notice ? (
+            <>
+              <p
+                role={notice.failed ? "alert" : "status"}
+                className={notice.failed ? "text-body text-destructive" : "text-body text-foreground"}
+              >
+                {notice.text}
+              </p>
+              {notice.requestId ? <RequestIdCopy requestId={notice.requestId} /> : null}
+            </>
+          ) : null}
+        </div>
+
+        {closed ? (
+          <section aria-labelledby="dsr-resolution-title" className="flex flex-col gap-2">
+            <h3 id="dsr-resolution-title" className="text-label text-foreground-strong">
+              {d.note}
+            </h3>
+            <p className="text-body whitespace-pre-wrap text-foreground">
+              {request.resolution_note ?? d.noNote}
+            </p>
+            <p className="text-caption text-muted-foreground">{d.closedNotice}</p>
+          </section>
+        ) : (
+          <UpdateForm request={request} update={update} onNotice={setNotice} />
+        )}
+      </div>
+    </>
+  )
+}
+
+function UpdateForm({
+  request,
+  update,
+  onNotice,
+}: {
+  request: PrivacyQueueItem
+  update: PrivacyQueueModel["update"]
+  onNotice: (notice: Notice | null) => void
+}) {
+  const initial = (requestStatuses as readonly string[]).includes(request.status)
+    ? (request.status as RequestStatus)
+    : "open"
+  const [status, setStatus] = useState<RequestStatus>(initial)
+  const [note, setNote] = useState(request.resolution_note ?? "")
+  const [errors, setErrors] = useState<Record<string, string>>({})
+  const [pending, setPending] = useState(false)
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    onNotice(null)
+    if (needsNote(status) && note.trim() === "") {
+      setErrors({ resolution_note: d.noteRequired })
+      return
+    }
+    setErrors({})
+    setPending(true)
+    const result = await update(request.id, { status, resolutionNote: note })
+    setPending(false)
+    if (result.ok) {
+      onNotice({
+        text: fill(d.saved, { status: statusLabel(result.request.status) }),
+        failed: false,
+        requestId: null,
+      })
+      return
+    }
+    setErrors(result.fieldErrors)
+    if (Object.keys(result.fieldErrors).length === 0) {
+      onNotice({ text: result.message, failed: true, requestId: result.requestId })
+    }
+  }
+
+  const noteError = errors.resolution_note
+  const statusError = errors.status
+
+  return (
+    <form noValidate className="flex flex-col gap-4" onSubmit={(event) => void submit(event)}>
+      <FieldGroup>
+        <Field data-invalid={statusError ? true : undefined}>
+          <span id="dsr-status-label" className="text-label text-foreground">
+            {d.statusLabel}
+          </span>
+          <ToggleGroup
+            type="single"
+            value={status}
+            aria-labelledby="dsr-status-label"
+            aria-describedby={statusError ? "dsr-status-error" : undefined}
+            disabled={pending}
+            onValueChange={(value) => {
+              if ((requestStatuses as readonly string[]).includes(value)) {
+                setStatus(value as RequestStatus)
+                setErrors({})
+              }
+            }}
+          >
+            {requestStatuses.map((value) => (
+              <ToggleGroupItem key={value} value={value}>
+                {statusLabel(value)}
+              </ToggleGroupItem>
+            ))}
+          </ToggleGroup>
+          {statusError ? <FieldError id="dsr-status-error">{statusError}</FieldError> : null}
+        </Field>
+        <Field data-invalid={noteError ? true : undefined}>
+          <FieldLabel htmlFor="dsr-note">{d.note}</FieldLabel>
+          <Textarea
+            id="dsr-note"
+            value={note}
+            maxLength={resolutionNoteMaxChars}
+            disabled={pending}
+            aria-invalid={noteError ? true : undefined}
+            aria-describedby={noteError ? "dsr-note-hint dsr-note-error" : "dsr-note-hint"}
+            onChange={(event) => {
+              setNote(event.target.value)
+            }}
+          />
+          <FieldDescription id="dsr-note-hint">{d.noteHint}</FieldDescription>
+          {noteError ? <FieldError id="dsr-note-error">{noteError}</FieldError> : null}
+        </Field>
+      </FieldGroup>
+      <Button type="submit" className="w-fit" disabled={pending}>
+        {pending ? <Spinner aria-hidden="true" data-icon="inline-start" /> : null}
+        {pending ? d.saving : d.save}
+      </Button>
+    </form>
+  )
+}
