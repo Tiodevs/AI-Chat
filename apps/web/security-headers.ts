@@ -6,6 +6,9 @@
  */
 export const contentSecurityPolicy = [
   "default-src 'self'",
+  // O Radix trava a rolagem de diálogos e sheets com um <style> injetado
+  // (react-remove-scroll). Estilo em linha não executa código; script-src continua 'self'.
+  "style-src 'self' 'unsafe-inline'",
   "connect-src 'self'",
   "img-src 'self' data:",
   "frame-ancestors 'none'",
