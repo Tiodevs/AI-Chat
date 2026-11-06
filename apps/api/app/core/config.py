@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Literal
 
-from pydantic import field_validator
+from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 _ENV_FILE = ".env" if Path(".env").is_file() else None
@@ -28,7 +28,7 @@ class Settings(BaseSettings):
     chat_model: str = "gemini-2.5-flash"
     embedding_model: str = "gemini-embedding-2"
     embedding_dimensions: int = 768
-    app_ai_adapter: Literal["gemini", "fake"] = "gemini"
+    app_ai_adapter: Literal["gemini", "fake", "demo"] = "gemini"
     web_origin: str = "http://localhost:5173"
     admin_email: str = ""
     admin_password: str = ""
@@ -53,3 +53,10 @@ class Settings(BaseSettings):
         if isinstance(value, str):
             return rewrite_database_url(value)
         return value
+
+    @model_validator(mode="after")
+    def _demo_only_off_the_cloud(self) -> "Settings":
+        """O modo `demo` responde por regras. Ele não pode chegar a um ambiente da Railway."""
+        if self.app_ai_adapter == "demo" and self.app_env in ("development", "production"):
+            raise ValueError("APP_AI_ADAPTER=demo só vale com APP_ENV local ou test.")
+        return self
