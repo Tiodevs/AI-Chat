@@ -11,8 +11,9 @@ import { expect, test } from "./fixtures.ts"
  *
  * Celular emulado (Pixel 5) com a rede do perfil "Slow 4G" do Lighthouse (150 ms de ida e
  * volta, 1,6 Mbps de descida, 750 kbps de subida) e a CPU 4 vezes mais lenta. O `vite preview`
- * não comprime, então o tamanho do JavaScript é medido com gzip no próprio teste; a Vercel
- * entrega com brotli, que fica menor. O resultado vai para `test-results/desempenho.json`.
+ * entrega com gzip, como a meta mede; o teste comprime cada corpo de novo para somar os
+ * tamanhos, com gzip e com brotli, que é o que a Vercel entrega. O resultado vai para
+ * `test-results/desempenho.json`.
  */
 const budgets = { lcpMs: 2500, cls: 0.1, inpMs: 200, initialJsKb: 200 }
 
@@ -74,13 +75,11 @@ test("a página inicial cumpre LCP, CLS, INP e o orçamento de JavaScript", asyn
   await page.goto("/")
   await expect(page.getByRole("heading", { name: pt.home.title })).toBeVisible()
   await expect(page.getByLabel(pt.ask.questionLabel)).toBeEditable()
-  // O JavaScript inicial é o que chegou até a primeira tela ficar pronta. O que o navegador
-  // busca depois, no tempo ocioso (a paleta de comandos), fica de fora.
-  const initialScripts = [...scripts.entries()]
   await page.waitForLoadState("networkidle")
-  const initialJsKb = initialScripts.reduce((sum, [, bytes]) => sum + bytes, 0) / 1024
-  const initialJsBrotliKb =
-    initialScripts.reduce((sum, [url]) => sum + (brotli.get(url) ?? 0), 0) / 1024
+  // O JavaScript inicial é tudo o que a página pediu ao abrir, até a rede parar e antes de
+  // qualquer interação. No celular, a paleta de comandos não entra: ela só baixa quando alguém
+  // abre a busca.
+  const initialScripts = [...scripts.entries()]
 
   // Uma interação típica: abrir o campo e digitar. O INP é a maior latência de evento.
   const composer = page.getByLabel(pt.ask.questionLabel)
@@ -91,6 +90,15 @@ test("a página inicial cumpre LCP, CLS, INP e o orçamento de JavaScript", asyn
   const metrics = await page.evaluate(
     () => (window as unknown as { __metrics: { lcp: number; cls: number; inp: number } }).__metrics,
   )
+
+  // Sem LCP ou sem o arquivo de entrada na conta, a medida não valeria nada.
+  expect(metrics.lcp, "LCP medido").toBeGreaterThan(0)
+  expect(initialScripts.map(([url]) => new URL(url).pathname)).toContainEqual(
+    expect.stringMatching(/^\/assets\/index-[^/]+[.]js$/),
+  )
+  const initialJsKb = initialScripts.reduce((sum, [, bytes]) => sum + bytes, 0) / 1024
+  const initialJsBrotliKb =
+    initialScripts.reduce((sum, [url]) => sum + (brotli.get(url) ?? 0), 0) / 1024
 
   const result = {
     measuredAt: new Date().toISOString(),
@@ -109,15 +117,16 @@ test("a página inicial cumpre LCP, CLS, INP e o orçamento de JavaScript", asyn
   writeFileSync("test-results/desempenho.json", `${JSON.stringify(result, null, 2)}\n`)
   console.log(JSON.stringify(result, null, 2))
 
-  // O tamanho do JavaScript não depende da máquina: ele barra uma regressão em qualquer lugar.
-  expect(result.initialJsKb, "JavaScript inicial de / em KB com gzip").toBeLessThanOrEqual(
+  // O tamanho do JavaScript e o deslocamento do layout não dependem da velocidade da máquina:
+  // eles barram uma regressão em qualquer lugar, inclusive na CI.
+  expect.soft(result.initialJsKb, "JavaScript inicial de / em KB com gzip").toBeLessThanOrEqual(
     budgets.initialJsKb,
   )
+  expect.soft(result.cls, "CLS").toBeLessThan(budgets.cls)
   // Tempos dependem da máquina. Na CI eles ficam registrados no relatório do teste; localmente
   // e na medição da etapa eles também reprovam.
   const timings: [number, number, string][] = [
     [result.lcpMs, budgets.lcpMs, "LCP em ms"],
-    [result.cls, budgets.cls, "CLS"],
     [result.inpMs, budgets.inpMs, "maior latência de interação em ms"],
   ]
   for (const [value, budget, label] of timings) {
