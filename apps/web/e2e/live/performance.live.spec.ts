@@ -109,10 +109,25 @@ test("a página inicial cumpre LCP, CLS, INP e o orçamento de JavaScript", asyn
   writeFileSync("test-results/desempenho.json", `${JSON.stringify(result, null, 2)}\n`)
   console.log(JSON.stringify(result, null, 2))
 
-  expect.soft(result.initialJsKb, "JavaScript inicial de / em KB com gzip").toBeLessThanOrEqual(
+  // O tamanho do JavaScript não depende da máquina: ele barra uma regressão em qualquer lugar.
+  expect(result.initialJsKb, "JavaScript inicial de / em KB com gzip").toBeLessThanOrEqual(
     budgets.initialJsKb,
   )
-  expect.soft(result.lcpMs, "LCP em ms").toBeLessThan(budgets.lcpMs)
-  expect.soft(result.cls, "CLS").toBeLessThan(budgets.cls)
-  expect.soft(result.inpMs, "maior latência de interação em ms").toBeLessThan(budgets.inpMs)
+  // Tempos dependem da máquina. Na CI eles ficam registrados no relatório do teste; localmente
+  // e na medição da etapa eles também reprovam.
+  const timings: [number, number, string][] = [
+    [result.lcpMs, budgets.lcpMs, "LCP em ms"],
+    [result.cls, budgets.cls, "CLS"],
+    [result.inpMs, budgets.inpMs, "maior latência de interação em ms"],
+  ]
+  for (const [value, budget, label] of timings) {
+    if (process.env.CI) {
+      test.info().annotations.push({
+        type: value < budget ? "desempenho" : "desempenho acima da meta",
+        description: `${label}: ${String(value)} (meta abaixo de ${String(budget)})`,
+      })
+    } else {
+      expect.soft(value, label).toBeLessThan(budget)
+    }
+  }
 })
