@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
+import type { FlipState } from "./presets.ts"
 import { motionTokens } from "./tokens.ts"
 
 const set = vi.fn()
@@ -23,12 +24,11 @@ vi.mock("gsap", () => ({
   },
 }))
 
-vi.mock("gsap/Flip", () => ({
-  Flip: {
-    getState: vi.fn(),
-    from: vi.fn(),
-  },
-}))
+// O Flip vai junto da barra lateral, em `flip.ts`. Se os presets ou `gsap.ts` voltarem a
+// carregá-lo, o plugin entra no JavaScript inicial de `/` e este arquivo nem carrega.
+vi.mock("gsap/Flip", () => {
+  throw new Error("Os presets não carregam o Flip: ele chega pelo argumento de moveSidebar.")
+})
 
 vi.mock("@gsap/react", () => ({
   useGSAP: () => ({
@@ -214,5 +214,32 @@ describe("presets com movimento reduzido", () => {
       { autoAlpha: 0 },
       expect.objectContaining({ autoAlpha: 1, clearProps: "opacity,visibility" })
     )
+  })
+
+  it("M13 move os ícones com o Flip só por transform e fica direta com movimento reduzido", () => {
+    const icons = [document.createElement("span"), document.createElement("span")]
+    const state = {} as FlipState
+    const flip = { from: vi.fn() }
+
+    presets.moveSidebar(icons, false, state, flip)
+    // Sem `scale: true`, o Flip anima `width` e `height` (seção 16.1).
+    expect(flip.from).toHaveBeenCalledExactlyOnceWith(state, {
+      targets: icons,
+      duration: motionTokens.duration.base,
+      ease: motionTokens.ease.move,
+      scale: true,
+      simple: true,
+    })
+    expect(set).not.toHaveBeenCalled()
+
+    flip.from.mockClear()
+    presets.moveSidebar(icons, true, state, flip)
+    expect(set).toHaveBeenCalledWith(icons, { clearProps: "transform" })
+    expect(flip.from).not.toHaveBeenCalled()
+
+    set.mockClear()
+    presets.moveSidebar(icons, false, undefined, flip)
+    expect(set).toHaveBeenCalledWith(icons, { clearProps: "transform" })
+    expect(flip.from).not.toHaveBeenCalled()
   })
 })

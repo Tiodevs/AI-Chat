@@ -53,7 +53,12 @@ function SidebarLink({
       onClick={onNavigate}
       className={({ isActive }) => itemClass(collapsed, isActive)}
     >
-      <Icon className="size-4 shrink-0" strokeWidth={1.75} aria-hidden="true" />
+      <Icon
+        className="size-4 shrink-0"
+        strokeWidth={1.75}
+        aria-hidden="true"
+        data-flip-id={`nav:${item.to}`}
+      />
       <span data-sidebar-label className={cn("truncate", collapsed && "sr-only")}>
         {item.label}
       </span>
@@ -113,6 +118,7 @@ function SidebarContent({
         >
           <span
             aria-hidden="true"
+            data-flip-id="logo"
             className="flex size-4 shrink-0 items-center justify-center rounded-md bg-primary text-[10px] leading-none font-medium text-primary-foreground"
           >
             A
@@ -132,9 +138,9 @@ function SidebarContent({
             onClick={onToggle}
           >
             {collapsed ? (
-              <PanelLeftOpen className="size-4" strokeWidth={1.75} />
+              <PanelLeftOpen className="size-4" strokeWidth={1.75} data-flip-id="collapse" />
             ) : (
-              <PanelLeftClose className="size-4" strokeWidth={1.75} />
+              <PanelLeftClose className="size-4" strokeWidth={1.75} data-flip-id="collapse" />
             )}
           </Button>
         ) : null}
@@ -154,6 +160,7 @@ function SidebarContent({
           className="size-4"
           strokeWidth={1.75}
           data-icon={collapsed ? undefined : "inline-start"}
+          data-flip-id="search"
         />
         <span
           data-sidebar-label

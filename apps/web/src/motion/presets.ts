@@ -1,5 +1,10 @@
+// Só o tipo: o plugin chega pelo argumento de moveSidebar, e este arquivo não o carrega.
+import type { Flip } from "gsap/Flip"
+
 import { gsap } from "./gsap.ts"
 import { motionTokens } from "./tokens.ts"
+
+export type FlipState = ReturnType<typeof Flip.getState>
 
 function canAnimate(target: gsap.TweenTarget) {
   if (typeof target === "string") {
@@ -83,6 +88,33 @@ export function showSidebarLabels(
       clearProps: "opacity,visibility",
     }
   )
+}
+
+/**
+ * Ícones da barra lateral em M13. A largura troca direto, e o Flip leva cada ícone do estado
+ * registrado no clique à posição nova. Com `scale`, o Flip usa só `transform`: sem ele, o
+ * plugin anima `width` e `height` (seção 16.1).
+ */
+export function moveSidebar(
+  target: gsap.DOMTarget,
+  reduced: boolean,
+  state?: FlipState,
+  flip?: Pick<typeof Flip, "from">
+) {
+  if (!canAnimate(target)) {
+    return
+  }
+  if (reduced || !state || !flip) {
+    gsap.set(target, { clearProps: "transform" })
+    return
+  }
+  flip.from(state, {
+    targets: target,
+    duration: motionTokens.duration.base,
+    ease: motionTokens.ease.move,
+    scale: true,
+    simple: true,
+  })
 }
 
 export function enterPresence(target: gsap.TweenTarget, reduced: boolean) {
@@ -504,6 +536,7 @@ export function moveSegments(target: gsap.TweenTarget, reduced: boolean) {
 export const presets = {
   enterRoute,
   showSidebarLabels,
+  moveSidebar,
   enterPresence,
   enterFromSide,
   exitPresence,
