@@ -29,6 +29,7 @@ from app.domain.privacy import (
 from app.models.data_subject_request import DataSubjectRequest
 from app.ports.clock import Clock
 from app.prompts.privacy import (
+    NOTE_INVALID,
     NOTE_REQUIRED,
     NOTE_TOO_LONG,
     RATE_LIMITED,
@@ -139,6 +140,7 @@ class Queue:
 _UPDATE_FIELD = {
     UpdateProblem.STATUS_INVALID: ("status", STATUS_INVALID),
     UpdateProblem.NOTE_TOO_LONG: ("resolution_note", NOTE_TOO_LONG),
+    UpdateProblem.NOTE_INVALID: ("resolution_note", NOTE_INVALID),
     UpdateProblem.NOTE_REQUIRED: ("resolution_note", NOTE_REQUIRED),
 }
 
@@ -157,11 +159,7 @@ class PrivacyQueueService:
         """
         now = self._clock.now()
         async with open_session(self._database_url) as session, UnitOfWork(session):
-            repository = PrivacyRequestRepository(session)
-            rows = [
-                *await repository.open_queue(),
-                *await repository.recently_closed(CLOSED_REQUEST_PAGE),
-            ]
+            rows = await PrivacyRequestRepository(session).queue(closed_limit=CLOSED_REQUEST_PAGE)
             items = [_item(row, now) for row in rows]
         return Queue(generated_at=now, requests=items)
 

@@ -1,5 +1,6 @@
 """Pedidos de titular pelo canal de privacidade. Seções 8.1, 10.4, 11.5 e 12 do SDD."""
 
+import re
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import StrEnum
@@ -23,6 +24,11 @@ RESOLUTION_NOTE_MAX_CHARS = 2000
 CLOSED_REQUEST_PAGE = 50
 DSR_UPDATE_ACTION = "dsr.update"
 DSR_TARGET_TYPE = "data_subject_request"
+# O admin responde ao contato por e-mail. Só letras, números e . _ + - antes do @, para um
+# endereço como `a@b.com?bcc=c@d.com` ou `a@b.com,c@d.com` não virar cópia num cliente de e-mail.
+_SAFE_CONTACT_EMAIL = re.compile(r"^[a-z0-9._+-]+@[a-z0-9-]+(?:\.[a-z0-9-]+)+$")
+# O PostgreSQL não grava o caractere nulo. Os outros de controle também não têm uso num pedido.
+_ALLOWED_CONTROL = frozenset({chr(9), chr(10), chr(13)})  # tab, LF e CR
 
 
 class RequestType(StrEnum):
@@ -64,16 +70,25 @@ def validate_request(
     """Devolve o rascunho limpo ou os códigos de erro por campo."""
     issues: dict[str, str] = {}
     email = normalize_email(contact_email)
-    if not email or len(email) > CONTACT_EMAIL_MAX_CHARS or not email_is_valid(email):
+    if not email or len(email) > CONTACT_EMAIL_MAX_CHARS or not contact_email_is_safe(email):
         issues["contact_email"] = "invalid"
     if request_type not in {item.value for item in RequestType}:
         issues["request_type"] = "invalid"
     text = description.strip()
-    if not text or len(text) > DESCRIPTION_MAX_CHARS:
+    if not text or len(text) > DESCRIPTION_MAX_CHARS or has_control_characters(text):
         issues["description"] = "invalid"
     if issues:
         return None, issues
     return RequestDraft(contact_email=email, request_type=request_type, description=text), {}
+
+
+def contact_email_is_safe(email: str) -> bool:
+    """Um endereço só, sem caractere que um link `mailto:` trate como cabeçalho ou lista."""
+    return email_is_valid(email) and _SAFE_CONTACT_EMAIL.fullmatch(email) is not None
+
+
+def has_control_characters(text: str) -> bool:
+    return any(ord(char) < 32 and char not in _ALLOWED_CONTROL for char in text)
 
 
 def due_at(received_at: datetime) -> datetime:
@@ -109,6 +124,7 @@ class UpdateProblem(StrEnum):
     CLOSED = "closed"
     STATUS_INVALID = "status_invalid"
     NOTE_TOO_LONG = "note_too_long"
+    NOTE_INVALID = "note_invalid"
     NOTE_REQUIRED = "note_required"
 
 
@@ -142,6 +158,8 @@ def plan_update(
     note = None if resolution_note is None else resolution_note.strip() or None
     if note is not None and len(note) > RESOLUTION_NOTE_MAX_CHARS:
         return None, UpdateProblem.NOTE_TOO_LONG
+    if note is not None and has_control_characters(note):
+        return None, UpdateProblem.NOTE_INVALID
     final_note = current_note if note is None else note
     closing = status in CLOSED_STATUSES
     if closing and not final_note:
