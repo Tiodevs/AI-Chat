@@ -3,7 +3,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import case, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domain.privacy import CLOSED_STATUSES, OPEN_STATUSES
@@ -38,25 +38,31 @@ class PrivacyRequestRepository:
         await self._session.flush()
         return row
 
-    async def open_queue(self) -> list[DataSubjectRequest]:
-        """Abertos e em andamento, do prazo mais antigo ao mais novo.
+    async def queue(self, *, closed_limit: int) -> list[DataSubjectRequest]:
+        """Abertos e em andamento, do prazo mais antigo ao mais novo, e os fechados mais recentes.
 
-        Os atrasados são os de prazo mais antigo, então ficam primeiro.
+        Os atrasados têm o prazo mais antigo, então ficam primeiro. Uma consulta só, para os
+        abertos e os fechados saírem do mesmo instante do banco: um pedido fechado no meio da
+        leitura não aparece duas vezes.
         """
-        result = await self._session.scalars(
-            select(DataSubjectRequest)
-            .where(DataSubjectRequest.status.in_(OPEN_STATUSES))
-            .order_by(DataSubjectRequest.due_at, DataSubjectRequest.received_at)
+        request = DataSubjectRequest
+        is_open = request.status.in_(OPEN_STATUSES)
+        recent_closed = (
+            select(request.id)
+            .where(request.status.in_(CLOSED_STATUSES))
+            .order_by(request.closed_at.desc().nulls_last(), request.id)
+            .limit(closed_limit)
         )
-        return list(result.all())
-
-    async def recently_closed(self, limit: int) -> list[DataSubjectRequest]:
-        """Os fechados mais recentes, do fechamento mais novo ao mais antigo."""
         result = await self._session.scalars(
-            select(DataSubjectRequest)
-            .where(DataSubjectRequest.status.in_(CLOSED_STATUSES))
-            .order_by(DataSubjectRequest.closed_at.desc().nulls_last(), DataSubjectRequest.id)
-            .limit(limit)
+            select(request)
+            .where(or_(is_open, request.id.in_(recent_closed)))
+            .order_by(
+                case((is_open, 0), else_=1),
+                case((is_open, request.due_at), else_=None).asc().nulls_last(),
+                request.closed_at.desc().nulls_last(),
+                request.received_at,
+                request.id,
+            )
         )
         return list(result.all())
 
