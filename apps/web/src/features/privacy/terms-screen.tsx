@@ -37,7 +37,7 @@ export function TermsScreen({ version }: { version: string | null }) {
       ))}
       <Link
         to="/privacy"
-        className="w-fit text-body text-foreground underline underline-offset-4"
+        className="inline-flex min-h-11 w-fit items-center text-body text-foreground underline underline-offset-4 md:min-h-6"
       >
         {pt.termsOfUse.privacyLink}
       </Link>

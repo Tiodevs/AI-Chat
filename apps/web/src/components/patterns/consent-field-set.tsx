@@ -45,10 +45,16 @@ export function ConsentFieldSet({
           onCheckedChange={(checked) => update({ accept_terms: checked })}
           description={
             <span className="flex flex-wrap gap-3">
-              <Link to="/terms" className="underline underline-offset-4">
+              <Link
+                to="/terms"
+                className="inline-flex min-h-11 items-center underline underline-offset-4 md:min-h-6"
+              >
                 {pt.registration.termsLink}
               </Link>
-              <Link to="/privacy" className="underline underline-offset-4">
+              <Link
+                to="/privacy"
+                className="inline-flex min-h-11 items-center underline underline-offset-4 md:min-h-6"
+              >
                 {pt.registration.privacyLink}
               </Link>
             </span>
@@ -135,7 +141,9 @@ function ConsentCheck({
         onCheckedChange={(next) => onCheckedChange(next === true)}
       />
       <FieldContent>
-        <Label htmlFor={id}>{label}</Label>
+        <Label htmlFor={id} className="max-md:min-h-11">
+          {label}
+        </Label>
         {description ? (
           <FieldDescription id={descriptionId}>{description}</FieldDescription>
         ) : null}
