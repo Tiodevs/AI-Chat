@@ -61,9 +61,17 @@ function RouteTransition() {
       const skip = skipFocus.current
       skipFocus.current = false
       presets.enterRoute(target, reduced || skip, () => {
-        if (!skip) {
-          focusPageTitle()
+        if (skip) {
+          return
         }
+        // Durante a entrada (M1) o conteúdo fica invisível e o título não recebe foco; ele o
+        // recebe no fim. Se nesse meio-tempo a pessoa já entrou na página nova, clicando ou
+        // digitando num campo, o foco fica onde ela o pôs (SDD 15.8).
+        const active = document.activeElement
+        if (active && active !== document.body && root.contains(active)) {
+          return
+        }
+        focusPageTitle()
       })
     },
     { dependencies: [pathname, reduced], scope: rootRef }
