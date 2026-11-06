@@ -49,17 +49,18 @@ export function RegistrationScreen({
   const navigate = useNavigate()
   const [draft, setDraft] = useState("")
   // Ir para o formulário com uma mensagem a caminho perderia o campo que ela traz (J4):
-  // o clique espera o turno terminar e só então abre o formulário com a sessão.
+  // o clique espera só a mensagem em andamento e então abre o formulário com a sessão.
+  // Outras ações, como a criação da conta, não seguram o link.
   const leavingForForm = useRef(false)
   useEffect(() => {
-    if (leavingForForm.current && !pending) {
+    if (leavingForForm.current && outgoing === null) {
       leavingForForm.current = false
       void navigate(formPath(session?.id ?? null))
     }
-  }, [pending, navigate, session?.id])
+  }, [outgoing, navigate, session?.id])
 
   function openForm(event: MouseEvent<HTMLAnchorElement>) {
-    if (pending) {
+    if (outgoing !== null) {
       event.preventDefault()
       leavingForForm.current = true
     }
