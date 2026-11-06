@@ -24,7 +24,7 @@ def test_health_returns_200_without_a_valid_database_url(
     client = _client_with_database_url(monkeypatch, "not-a-database")
     response = client.get("/health")
     assert response.status_code == 200
-    assert response.json() == {"status": "ok"}
+    assert response.json() == {"status": "ok", "build": None}
 
 
 def test_loading_the_app_for_health_does_not_import_the_database_driver() -> None:
@@ -102,3 +102,23 @@ def test_route_log_uses_the_path_template(capsys: pytest.CaptureFixture[str]) ->
         if line.startswith("{") and f'"request_id": "{request_id}"' in line
     ]
     assert lines[-1]["route"] == "/_test/items/{item_id}"
+
+
+def test_health_reports_the_build_written_by_the_deploy(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """O deploy.yml grava o commit em app/BUILD_SHA; a fumaça espera esse valor (SDD 22.3)."""
+    from app.core import build
+
+    marker = tmp_path / "BUILD_SHA"
+    marker.write_text("3f2c1ab9d4e5" + chr(10), encoding="utf-8")
+    monkeypatch.setattr(build, "_BUILD_FILE", marker)
+    build.build_sha.cache_clear()
+    try:
+        client = _client_with_database_url(monkeypatch, "not-a-database")
+        assert client.get("/health").json() == {"status": "ok", "build": "3f2c1ab9d4e5"}
+        marker.write_text("../../etc/passwd", encoding="utf-8")
+        build.build_sha.cache_clear()
+        assert build.build_sha() is None
+    finally:
+        build.build_sha.cache_clear()
