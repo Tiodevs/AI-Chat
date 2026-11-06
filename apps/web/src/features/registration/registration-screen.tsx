@@ -1,6 +1,6 @@
 import { PanelRightClose, PanelRightOpen, SendHorizontal } from "lucide-react"
-import { useEffect, useId, useRef, useState } from "react"
-import { Link } from "react-router"
+import { useEffect, useId, useRef, useState, type MouseEvent } from "react"
+import { Link, useNavigate } from "react-router"
 
 import { PageHeading } from "@/app/page-heading.tsx"
 import { AssistantBubble } from "@/components/patterns/assistant-bubble.tsx"
@@ -46,7 +46,25 @@ export function RegistrationScreen({
   accept,
 }: Chat) {
   const { isDesktop } = useMotion()
+  const navigate = useNavigate()
   const [draft, setDraft] = useState("")
+  // Ir para o formulário com uma mensagem a caminho perderia o campo que ela traz (J4):
+  // o clique espera só a mensagem em andamento e então abre o formulário com a sessão.
+  // Outras ações, como a criação da conta, não seguram o link.
+  const leavingForForm = useRef(false)
+  useEffect(() => {
+    if (leavingForForm.current && outgoing === null) {
+      leavingForForm.current = false
+      void navigate(formPath(session?.id ?? null))
+    }
+  }, [outgoing, navigate, session?.id])
+
+  function openForm(event: MouseEvent<HTMLAnchorElement>) {
+    if (outgoing !== null) {
+      event.preventDefault()
+      leavingForForm.current = true
+    }
+  }
   const summaryId = useId()
   const [summaryOpen, setSummaryOpen] = useState(false)
   const summary = session ? (
@@ -97,7 +115,7 @@ export function RegistrationScreen({
               )}
         </Button>
         <Button asChild variant="link" className="h-11 px-0 md:h-8">
-          <Link to={formPath(session?.id ?? null)}>
+          <Link to={formPath(session?.id ?? null)} onClick={openForm}>
             {pt.registration.useForm}
           </Link>
         </Button>

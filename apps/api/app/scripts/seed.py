@@ -1,5 +1,10 @@
-"""Semeia o corpus fictício. Seções 6.4 e 7.3 do SDD."""
+"""Semeia o corpus fictício. Seções 6.4, 7.3 e 22.1 do SDD.
 
+`--skip-without-key` é o modo do pré-deploy da Railway: sem `GEMINI_API_KEY`, a semente
+é adiada com um aviso e o deploy segue. O próximo deploy com a chave semeia o corpus.
+"""
+
+import argparse
 import asyncio
 import sys
 from pathlib import Path
@@ -12,19 +17,29 @@ from app.core.logging import configure_logging
 from app.domain.errors import DomainError
 from app.ports.tracing import NullTracer
 from app.prompts.auth import DATABASE_URL_MISSING
-from app.prompts.corpus import MISSING_EMBEDDING_KEY, seed_message
+from app.prompts.corpus import MISSING_EMBEDDING_KEY, SEED_POSTPONED, seed_message
 from app.services.ingestion import IngestionService
 from app.services.seed import SeedReport, SeedService
 
 
 def main(argv: list[str] | None = None) -> None:
-    del argv
+    parser = argparse.ArgumentParser(prog="python -m app.scripts.seed")
+    parser.add_argument(
+        "--skip-without-key",
+        action="store_true",
+        help="Sem GEMINI_API_KEY, adia a semente e sai com sucesso (pré-deploy).",
+    )
+    options = parser.parse_args(argv)
     settings = Settings()
     configure_logging(settings.log_level)
     if not settings.database_url:
         print(DATABASE_URL_MISSING, file=sys.stderr)
         raise SystemExit(1)
     if settings.app_ai_adapter == "gemini" and not settings.gemini_api_key:
+        if options.skip_without_key:
+            # Embedar com o falso deixaria vetores errados que a semente não refaz depois.
+            print(SEED_POSTPONED, file=sys.stderr)
+            return
         print(MISSING_EMBEDDING_KEY, file=sys.stderr)
         raise SystemExit(1)
     try:

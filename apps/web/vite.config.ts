@@ -3,6 +3,8 @@ import tailwindcss from "@tailwindcss/vite"
 import react from "@vitejs/plugin-react"
 import { defineConfig } from "vitest/config"
 
+import { securityHeaders } from "./security-headers.ts"
+
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   resolve: {
@@ -18,6 +20,10 @@ export default defineConfig({
         rewrite: (path) => path.replace(/^\/backend/, ""),
       },
     },
+  },
+  // O preview usa o mesmo proxy do dev e os cabeçalhos de produção da seção 13.4.
+  preview: {
+    headers: securityHeaders,
   },
   test: {
     environment: "jsdom",

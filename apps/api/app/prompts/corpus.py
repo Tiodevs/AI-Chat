@@ -8,6 +8,10 @@ NONE_EMBEDDED = "Nenhum documento foi embedado."
 EMBEDDED_COUNT = "Documentos embedados:"
 NO_ADMIN = "Não há admin. Rode bootstrap_admin antes da semente."
 MISSING_EMBEDDING_KEY = "Defina GEMINI_API_KEY ou use APP_AI_ADAPTER=fake."
+SEED_POSTPONED = (
+    "Semente adiada: GEMINI_API_KEY não está definida. "
+    "Defina a chave e faça um novo deploy para semear o corpus."
+)
 NO_SEARCH_RESULTS = "Nenhum chunk acima do piso de similaridade."
 NO_SECTION = "sem seção"
 CORPUS_MISSING = "A pasta do corpus não existe."

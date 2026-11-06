@@ -113,7 +113,7 @@ No frontend, uma regra `no-restricted-imports` do ESLint impede que componentes 
 apps/
   api/
     pyproject.toml
-    railway.json
+    Dockerfile        a mesma imagem no docker-compose e na Railway (ADR-013)
     app/
       main.py
       core/            config, logging, telemetry, security, errors, container

@@ -2,7 +2,7 @@
 
 Painéis, fonte de dados e alertas em arquivos. Seção 18.3 do SDD.
 
-Serviço `grafana` do ambiente `production`, com raiz em `ops/grafana` e um volume em `/var/lib/grafana`.
+Serviço `grafana` do ambiente `production`, construído pelo `Dockerfile` desta pasta e publicado com `railway up ops/grafana --path-as-root --service grafana` (seção 22.3), com um volume em `/var/lib/grafana`. A configuração do serviço fica na Railway (ADR-013).
 
 | Variável | Valor |
 |---|---|

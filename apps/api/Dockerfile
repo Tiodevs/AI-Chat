@@ -20,4 +20,7 @@ COPY content /repo/content
 RUN uv sync --frozen --no-dev
 
 EXPOSE 8000
-CMD ["opentelemetry-instrument", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers"]
+# Na Railway a porta vem em $PORT. Ambientes criados depois de 16/10/2025 resolvem a rede
+# privada também em IPv4, e o asyncio abre `::` só em IPv6; por isso 0.0.0.0.
+# O docker-compose.yml define o próprio comando. Seção 22.1 do SDD.
+CMD ["sh", "-c", "exec opentelemetry-instrument uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --proxy-headers --forwarded-allow-ips='*'"]

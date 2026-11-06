@@ -111,3 +111,58 @@ jobs:
         run: pnpm openapi-types
       - name: Conferir o contrato
         run: git diff --exit-code -- apps/web/src/lib/api/openapi.json apps/web/src/lib/api/schema.ts
+
+  e2e:
+    name: e2e
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: pgvector/pgvector:pg18
+        env:
+          POSTGRES_USER: atrium
+          POSTGRES_PASSWORD: atrium
+          POSTGRES_DB: atrium
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U atrium -d atrium -p 5432"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      # Banco descartável do runner. A API sobe com o adaptador demo, sem chave e sem rede.
+      DATABASE_URL: postgresql://atrium:atrium@127.0.0.1:5432/atrium
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.2
+        with:
+          python-version: "3.12"
+          working-directory: apps/api
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: apps/web/pnpm-lock.yaml
+      - name: Instalar a API
+        working-directory: apps/api
+        run: uv sync --frozen
+      - name: Instalar o frontend
+        working-directory: apps/web
+        run: pnpm install --frozen-lockfile
+      - name: Instalar o Chromium
+        working-directory: apps/web
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Jornadas com a API, vite preview e axe
+        working-directory: apps/web
+        run: pnpm exec playwright test -c playwright.live.config.ts
+      - name: Guardar os rastros das falhas
+        if: failure()
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: e2e-traces
+          path: apps/web/test-results
+          retention-days: 7

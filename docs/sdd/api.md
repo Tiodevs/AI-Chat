@@ -22,7 +22,7 @@ Erros de validação usam `validation_error` e HTTP 422. Falhas de autorização
 
 | Método e caminho | Quem | Comportamento |
 |---|---|---|
-| `GET /health` | Qualquer um | O processo está no ar. Não toca no banco. |
+| `GET /health` | Qualquer um | O processo está no ar. Não toca no banco. Devolve `{ "status": "ok", "build" }`, com o commit que o `deploy.yml` grava em `app/BUILD_SHA` antes do upload, ou `null` fora de um deploy. A fumaça espera esse commit (seção 22.3). |
 | `GET /ready` | Qualquer um | Banco responde, `vector` está instalada e a dimensão confere. |
 | `GET /v1/legal/versions` | Qualquer um | Versão vigente dos Termos e do Aviso |
 | `GET /v1/diagnostics/stream` | Qualquer um, limitado | Emite três eventos `tick`, com `{ "index": 1 }`, `{ "index": 2 }` e `{ "index": 3 }`, um por segundo. O limite é 60 por hora por IP. |

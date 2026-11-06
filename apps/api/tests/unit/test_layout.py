@@ -70,13 +70,16 @@ def test_repository_directories_match_section_6_3() -> None:
     assert missing == []
 
 
-def test_twelve_adrs_have_the_four_sections() -> None:
+def test_every_adr_has_the_four_sections_and_is_in_section_24() -> None:
     adrs = sorted((ROOT / "docs/adr").glob("[0-9][0-9][0-9]-*.md"))
-    assert len(adrs) == 12
+    assert len(adrs) >= 12
     for adr in adrs:
         text = adr.read_text(encoding="utf-8")
         for heading in ADR_HEADINGS:
             assert heading in text, adr.name
+    table = (ROOT / "docs/sdd/entrega.md").read_text(encoding="utf-8")
+    listed = re.findall(r"^\| ADR-(\d{3}) \|", table, flags=re.MULTILINE)
+    assert listed == [adr.name[:3] for adr in adrs]
 
 
 def test_claude_rules_cite_their_sdd_sections() -> None:
