@@ -192,9 +192,12 @@ jobs:
         if: steps.tip.outputs.current == 'true'
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        # O repositório inteiro sobe, como na API. O diretório raiz de cada serviço na Railway
+        # (/ops/prometheus e /ops/grafana) escolhe a pasta, o mesmo que vale num deploy pelo
+        # repositório. Com --path-as-root, a pasta virava a raiz e o build não a achava.
         run: |
-          railway up ops/prometheus --path-as-root --service prometheus --environment production
-          railway up ops/grafana --path-as-root --service grafana --environment production
+          railway up --service prometheus --environment production
+          railway up --service grafana --environment production
       - name: Instalar o frontend
         if: steps.tip.outputs.current == 'true'
         working-directory: apps/web
