@@ -601,6 +601,72 @@ describe("telas do cadastro", () => {
     ).not.toBeChecked()
   })
 
+  it("Usar o formulário com a mensagem a caminho espera o turno e leva o nome (J4)", async () => {
+    const user = userEvent.setup()
+    const greeting = "Olá. Eu sou o Atrium. Qual é o seu nome completo?"
+    let processed = false
+    let release: () => void = () => undefined
+    const turn = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) => {
+        const request = input instanceof Request ? input : new Request(String(input))
+        const path = new URL(request.url).pathname
+        if (path.endsWith("/v1/legal/versions")) {
+          return json({ terms: version, privacy_notice: version }, 200)
+        }
+        if (request.method === "POST" && path.endsWith("/v1/registration/sessions")) {
+          return json(
+            session({ nextStep: "full_name", messages: [{ role: "assistant", text: greeting }] }),
+            201,
+          )
+        }
+        if (request.method === "POST" && path.endsWith("/messages")) {
+          await turn
+          processed = true
+          return json(
+            session({
+              fields: { full_name: "Ana Costa" },
+              nextStep: "email",
+              messages: [
+                { role: "assistant", text: greeting },
+                { role: "user", text: "Ana Costa" },
+                { role: "assistant", text: "Qual é o seu e-mail?" },
+              ],
+            }),
+            200,
+          )
+        }
+        if (request.method === "GET" && path.includes("/sessions/")) {
+          return json(
+            session({
+              fields: processed ? { full_name: "Ana Costa" } : {},
+              nextStep: processed ? "email" : "full_name",
+              messages: [{ role: "assistant", text: greeting }],
+            }),
+            200,
+          )
+        }
+        return json({ error: { code: "unauthenticated", message: "Entre", request_id: "01" } }, 401)
+      }),
+    )
+    const { router } = renderAt("/register")
+    await user.type(await screen.findByLabelText(pt.registration.messageLabel), "Ana Costa")
+    await user.click(screen.getByRole("button", { name: pt.registration.send }))
+    await user.click(screen.getByRole("link", { name: pt.registration.useForm }))
+    // Com a mensagem a caminho, o link espera: o formulário ainda não abriu.
+    expect(router.state.location.pathname).toBe("/register")
+
+    release()
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe("/register/form")
+    })
+    expect(router.state.location.search).toContain(sessionId)
+    expect(await screen.findByLabelText(pt.registration.fields.full_name)).toHaveValue("Ana Costa")
+  })
+
   it("não tem violação grave nas telas de cadastro", async () => {
     installPasswordStep()
     const registered = renderAt("/register")
