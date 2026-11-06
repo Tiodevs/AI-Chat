@@ -2,7 +2,10 @@ name: deploy
 
 # Publicação em development e, com aprovação, em production. Seções 19, 22.1, 22.2 e 22.3 do SDD.
 #
-# Roda depois de o ci.yml passar num push para a main, sempre com o commit que a CI testou.
+# Roda depois de o ci.yml passar num push para a main, sempre com o commit que a CI testou, e
+# só se esse commit ainda for o topo da main: uma CI antiga que termine depois de uma nova não
+# devolve código velho ao ar. O disparo manual vale só na main.
+#
 # Cada GitHub Environment guarda os próprios segredos e variáveis:
 #   segredos:  RAILWAY_TOKEN (token do projeto, do ambiente), VERCEL_TOKEN
 #   variáveis: VERCEL_ORG_ID, VERCEL_PROJECT_ID, API_URL (origem https da API),
@@ -19,10 +22,6 @@ on:
     branches: [main]
   workflow_dispatch:
 
-concurrency:
-  group: deploy
-  cancel-in-progress: false
-
 permissions:
   contents: read
 
@@ -31,92 +30,178 @@ env:
   VERCEL_CLI_VERSION: 65.2.0
 
 jobs:
-  development:
-    name: development
+  gate:
+    name: gate
     if: >-
       vars.DEPLOY_ENABLED == 'true' &&
-      (github.event_name == 'workflow_dispatch' ||
-       (github.event.workflow_run.conclusion == 'success' &&
+      ((github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
+       (github.event_name == 'workflow_run' &&
+        github.event.workflow_run.conclusion == 'success' &&
         github.event.workflow_run.event == 'push'))
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    outputs:
+      sha: ${{ steps.tip.outputs.sha }}
+      current: ${{ steps.tip.outputs.current }}
+    steps:
+      - name: Conferir que o commit é o topo da main
+        id: tip
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+        run: |
+          tip="$(gh api "repos/${REPO}/commits/main" --jq .sha)"
+          echo "sha=${SHA}" >> "$GITHUB_OUTPUT"
+          if [ "$tip" = "$SHA" ]; then
+            echo "current=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "current=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::A main já está em ${tip}. O deploy de ${SHA} fica de fora; o mais novo publica."
+          fi
+
+  development:
+    name: development
+    needs: gate
+    if: needs.gate.outputs.current == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    # Um grupo por ambiente: uma aprovação de produção pendente não segura o development.
+    concurrency:
+      group: deploy-development
+      cancel-in-progress: false
     environment:
       name: development
       url: https://${{ vars.WEB_HOST }}
     env:
-      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-      VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
-      VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
-      API_URL: ${{ vars.API_URL }}
+      SHA: ${{ needs.gate.outputs.sha }}
+      WEB_HOST: ${{ vars.WEB_HOST }}
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          ref: ${{ needs.gate.outputs.sha }}
       - uses: pnpm/action-setup@v6
         with:
           version: 10
       - uses: actions/setup-node@v7
         with:
           node-version: 22
+          cache: pnpm
+          cache-dependency-path: apps/web/pnpm-lock.yaml
       - name: Instalar as CLIs da Railway e da Vercel
         run: npm install --global "@railway/cli@${RAILWAY_CLI_VERSION}" "vercel@${VERCEL_CLI_VERSION}"
-      # Sem --detach, o comando espera o estado final do deploy (pré-deploy e /ready).
-      # Uma falha deixa a versão anterior no ar e para o pipeline aqui.
+      # O /health devolve este commit, e a fumaça espera por ele (seção 22.3).
+      - name: Gravar o commit na imagem da API
+        run: printf '%s' "$SHA" > apps/api/app/BUILD_SHA
       - name: Deploy da API em development
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
         run: railway up --service api --environment development
       - name: Deploy do retention-job em development
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
         run: railway up --service retention-job --environment development
+      - name: Instalar o frontend
+        working-directory: apps/web
+        run: pnpm install --frozen-lockfile
       - name: Build e deploy de preview na Vercel
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+          API_URL: ${{ vars.API_URL }}
         run: |
-          vercel pull --yes --environment=preview --token="$VERCEL_TOKEN"
-          vercel build --token="$VERCEL_TOKEN"
-          url="$(vercel deploy --prebuilt --token="$VERCEL_TOKEN")"
+          vercel pull --yes --environment=preview
+          vercel build
+          url="$(vercel deploy --prebuilt)"
           echo "Preview: $url"
           # O alias estável é a origem que a API de development aceita (WEB_ORIGIN).
-          vercel alias set "$url" "${{ vars.WEB_HOST }}" --token="$VERCEL_TOKEN"
+          vercel alias set "$url" "$WEB_HOST"
       - name: Testes de fumaça em development
-        run: node .github/scripts/smoke.mjs "https://${{ vars.WEB_HOST }}"
+        run: node .github/scripts/smoke.mjs "https://${WEB_HOST}" "$SHA"
 
   production:
     name: production
-    needs: development
+    needs: [gate, development]
+    if: needs.gate.outputs.current == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 40
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
     environment:
       name: production
       url: https://${{ vars.WEB_HOST }}
     env:
-      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-      VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
-      VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
-      API_URL: ${{ vars.API_URL }}
+      SHA: ${{ needs.gate.outputs.sha }}
+      WEB_HOST: ${{ vars.WEB_HOST }}
     steps:
+      # A aprovação pode levar dias: se a main andou, o deploy mais novo é que publica.
+      - name: Conferir de novo o topo da main
+        id: tip
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          tip="$(gh api "repos/${REPO}/commits/main" --jq .sha)"
+          if [ "$tip" = "$SHA" ]; then
+            echo "current=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "current=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::A main já está em ${tip}. Aprove o deploy mais novo."
+          fi
       - uses: actions/checkout@v7
+        if: steps.tip.outputs.current == 'true'
         with:
-          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          ref: ${{ needs.gate.outputs.sha }}
       - uses: pnpm/action-setup@v6
+        if: steps.tip.outputs.current == 'true'
         with:
           version: 10
       - uses: actions/setup-node@v7
+        if: steps.tip.outputs.current == 'true'
         with:
           node-version: 22
+          cache: pnpm
+          cache-dependency-path: apps/web/pnpm-lock.yaml
       - name: Instalar as CLIs da Railway e da Vercel
+        if: steps.tip.outputs.current == 'true'
         run: npm install --global "@railway/cli@${RAILWAY_CLI_VERSION}" "vercel@${VERCEL_CLI_VERSION}"
+      - name: Gravar o commit na imagem da API
+        if: steps.tip.outputs.current == 'true'
+        run: printf '%s' "$SHA" > apps/api/app/BUILD_SHA
       - name: Deploy da API em production
+        if: steps.tip.outputs.current == 'true'
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
         run: railway up --service api --environment production
       - name: Deploy do retention-job em production
+        if: steps.tip.outputs.current == 'true'
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
         run: railway up --service retention-job --environment production
       # Prometheus e Grafana existem só em production. Painéis e alertas vêm do repositório.
       - name: Deploy do Prometheus e do Grafana
+        if: steps.tip.outputs.current == 'true'
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
         run: |
           railway up ops/prometheus --path-as-root --service prometheus --environment production
           railway up ops/grafana --path-as-root --service grafana --environment production
+      - name: Instalar o frontend
+        if: steps.tip.outputs.current == 'true'
+        working-directory: apps/web
+        run: pnpm install --frozen-lockfile
       - name: Build e deploy de produção na Vercel
+        if: steps.tip.outputs.current == 'true'
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+          API_URL: ${{ vars.API_URL }}
         run: |
-          vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
-          vercel build --prod --token="$VERCEL_TOKEN"
-          vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN"
+          vercel pull --yes --environment=production
+          vercel build --prod
+          vercel deploy --prebuilt --prod
       - name: Testes de fumaça em production
-        run: node .github/scripts/smoke.mjs "https://${{ vars.WEB_HOST }}"
+        if: steps.tip.outputs.current == 'true'
+        run: node .github/scripts/smoke.mjs "https://${WEB_HOST}" "$SHA"
