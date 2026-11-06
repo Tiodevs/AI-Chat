@@ -9,7 +9,7 @@ Parte da [especificação do Atrium](../sdd.md). A numeração das seções é a
 | `APP_ENV` | `local` | `test` | `development` | `production` | sem uso |
 | `DATABASE_URL` | URL TCP pública de development | Contêiner de serviço | URL privada de development | URL privada de production | sem uso |
 | `API_URL` | sem uso, o Vite faz proxy | sem uso | sem uso | sem uso | Origem da API de cada ambiente, no build |
-| `WEB_ORIGIN` | `http://localhost:5173` | `http://localhost:4173` | URL de preview da Vercel | Domínio de produção | sem uso |
+| `WEB_ORIGIN` | `http://localhost:5173` | `http://127.0.0.1:4173` na e2e | `https://` e o alias `WEB_HOST` da Vercel | `https://` e o domínio de produção da Vercel | sem uso |
 | `GEMINI_API_KEY` | Chave de desenvolvimento | ausente | Chave de development | Chave de produção, projeto com faturamento | ausente |
 | `APP_AI_ADAPTER` | `gemini`, `fake` ou `demo` | `fake` nos testes, `demo` na e2e | `gemini` | `gemini` | sem uso |
 | `LANGSMITH_API_KEY` | Opcional | ausente | Chave de development | Chave de produção | ausente |
@@ -191,13 +191,13 @@ flowchart LR
 
 | Etapa | Comando |
 |---|---|
-| Deploy da API | `railway up --service api --environment <env>`, com o `RAILWAY_TOKEN` do ambiente. Sem `--detach` nem `--ci`, o comando espera o estado final do deploy, então a fumaça testa a versão nova e não a anterior. O `retention-job` recebe o mesmo comando. |
+| Deploy da API | Antes, o commit testado vai para `apps/api/app/BUILD_SHA`. Depois, `railway up --service api --environment <env>`, com o `RAILWAY_TOKEN` do ambiente só nesse passo. O `retention-job` recebe o mesmo comando. A Railway mantém a versão anterior no ar quando um deploy falha, e o `railway up` pode sair antes de o `/ready` da versão nova passar; por isso a fumaça espera o `/health` devolver o commit. |
 | Prometheus e Grafana | Só em produção: `railway up ops/prometheus --path-as-root --service prometheus` e o mesmo para `ops/grafana` |
 | Build da Vercel | `vercel pull --environment=<preview ou production>`, `vercel build`, com `API_URL` do ambiente |
 | Deploy da Vercel | `vercel deploy --prebuilt`, com `--prod` em produção. Em development, `vercel alias set` liga a implantação ao `WEB_HOST`. |
-| Fumaça | `node .github/scripts/smoke.mjs https://<WEB_HOST>`: `GET /backend/health`, `GET /backend/ready`, `GET /backend/v1/legal/versions` com `no-store` e sem `HIT` no cache da Vercel, os cabeçalhos de segurança da seção 13.4 em `/`, uma rota da SPA, e `GET /backend/v1/diagnostics/stream`, conferindo que o primeiro evento chega pelo menos 1 s antes do fim do fluxo |
+| Fumaça | `node .github/scripts/smoke.mjs https://<WEB_HOST> <commit>`: espera até 10 minutos o `/backend/health` devolver o commit, e então confere `GET /backend/health`, `GET /backend/ready`, `GET /backend/v1/legal/versions` com `no-store` e sem `HIT` no cache da Vercel, os cabeçalhos de segurança da seção 13.4 em `/`, uma rota da SPA, o 404 de um arquivo ausente em `/assets`, e `GET /backend/v1/diagnostics/stream`, conferindo que o primeiro evento chega pelo menos 1 s antes do fim do fluxo |
 
-O `deploy.yml` roda por `workflow_run`, depois de o `ci.yml` passar num push para a `main`, e faz checkout do commit que a CI testou. Os segredos `RAILWAY_TOKEN` (token do projeto, do ambiente) e `VERCEL_TOKEN`, e as variáveis `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`, `API_URL` e `WEB_HOST`, ficam nos GitHub Environments `development` e `production`. O ambiente `production` exige aprovação de quem opera. A variável de repositório `DEPLOY_ENABLED` liga o pipeline: ela fica desligada até os tokens existirem, para um push na `main` não falhar por falta deles.
+O `deploy.yml` roda por `workflow_run`, depois de o `ci.yml` passar num push para a `main`, e faz checkout do commit que a CI testou. Um job `gate` só deixa seguir o commit que ainda é o topo da `main`, para uma CI antiga que termine depois de uma nova não devolver código velho ao ar; o job de produção confere de novo depois da aprovação, que pode levar dias. O disparo manual vale só na `main`. Cada ambiente tem o próprio grupo de concorrência, então uma aprovação de produção pendente não segura o development. As dependências do frontend são instaladas antes do `vercel build`, que compila o `vercel.ts` com o `@vercel/config`. Os segredos `RAILWAY_TOKEN` (token do projeto, do ambiente) e `VERCEL_TOKEN`, e as variáveis `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`, `API_URL` e `WEB_HOST`, ficam nos GitHub Environments `development` e `production`. O ambiente `production` exige aprovação de quem opera. A variável de repositório `DEPLOY_ENABLED` liga o pipeline: ela fica desligada até os tokens existirem, para um push na `main` não falhar por falta deles.
 
 **Rollback.** Na Railway, `railway redeploy` da implantação anterior. Na Vercel, `vercel rollback` para a implantação de produção anterior. Expand and contract garante que o banco não precisa voltar.
 

@@ -13,7 +13,7 @@ export interface paths {
         };
         /**
          * Health
-         * @description O processo está no ar. Esta rota não abre conexão com o banco.
+         * @description O processo está no ar, com o commit da imagem. Esta rota não abre conexão com o banco.
          */
         get: operations["health_health_get"];
         put?: never;
@@ -1524,7 +1524,7 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        [key: string]: string;
+                        [key: string]: string | null;
                     };
                 };
             };

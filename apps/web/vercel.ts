@@ -10,11 +10,20 @@ import { securityHeaders } from "./security-headers.ts"
  * por Git fica desligada, porque o GitHub Actions publica (ADR-008).
  */
 function apiUrl(): string {
-  const value = process.env.API_URL?.trim().replace(/\/+$/, "")
-  if (!value || !/^https:\/\/[^/]+$/.test(value)) {
+  const raw = process.env.API_URL?.trim() ?? ""
+  const parsed = URL.canParse(raw) ? new URL(raw) : null
+  const originOnly =
+    parsed !== null &&
+    parsed.protocol === "https:" &&
+    parsed.pathname === "/" &&
+    !parsed.search &&
+    !parsed.hash &&
+    !parsed.username &&
+    !parsed.password
+  if (!parsed || !originOnly) {
     throw new Error("Defina API_URL com a origem https da API, sem caminho, antes do build.")
   }
-  return value
+  return parsed.origin
 }
 
 const everyResponse = Object.entries(securityHeaders).map(([key, value]) => ({ key, value }))
@@ -27,7 +36,9 @@ export const config: VercelConfig = {
   git: { deploymentEnabled: false },
   rewrites: [
     routes.rewrite("/backend/:path*", `${apiUrl()}/:path*`),
-    routes.rewrite("/((?!backend/).*)", "/index.html"),
+    // As rotas da SPA caem no index.html. /assets fica de fora: um arquivo ausente responde
+    // 404, em vez de devolver o index.html com o cache de um ano dos arquivos com hash.
+    routes.rewrite("/((?!backend/|assets/).*)", "/index.html"),
   ],
   headers: [
     // Respostas da API nunca ficam no cache da Vercel (a API já manda no-store).
