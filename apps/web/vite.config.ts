@@ -3,10 +3,16 @@ import tailwindcss from "@tailwindcss/vite"
 import react from "@vitejs/plugin-react"
 import { defineConfig } from "vitest/config"
 
+import { preloadRoutes } from "./route-preload.ts"
 import { securityHeaders } from "./security-headers.ts"
 
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [
+    react(),
+    tailwindcss(),
+    // As rotas que abrem `/` vêm na primeira leva do navegador (seção 5.3, LCP).
+    preloadRoutes(["src/app/shell.tsx", "src/app/route-frame.tsx", "src/app/routes/home.tsx"]),
+  ],
   resolve: {
     alias: {
       "@": resolve(import.meta.dirname, "./src"),
