@@ -8,7 +8,7 @@
     "/health": {
       "get": {
         "summary": "Health",
-        "description": "O processo está no ar. Esta rota não abre conexão com o banco.",
+        "description": "O processo está no ar, com o commit da imagem. Esta rota não abre conexão com o banco.",
         "operationId": "health_health_get",
         "responses": {
           "200": {
@@ -17,7 +17,14 @@
               "application/json": {
                 "schema": {
                   "additionalProperties": {
-                    "type": "string"
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
                   },
                   "type": "object",
                   "title": "Response Health Health Get"
