@@ -67,6 +67,7 @@ export function ProfileButton({
             className="size-4"
             strokeWidth={1.75}
             data-icon={collapsed ? undefined : "inline-start"}
+            data-flip-id="profile"
           />
           <span data-sidebar-label className={cn("truncate", collapsed && "sr-only")}>
             {name ?? pt.profile.guest}

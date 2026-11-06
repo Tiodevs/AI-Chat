@@ -12,11 +12,14 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet.tsx"
 import { pt } from "@/i18n/pt.ts"
-import { useGSAP } from "@/motion/gsap.ts"
+import { Flip, useGSAP } from "@/motion/gsap.ts"
 import { useMotion } from "@/motion/MotionProvider.tsx"
-import { presets } from "@/motion/presets.ts"
+import { presets, type FlipState } from "@/motion/presets.ts"
 import { useGsapPresence } from "@/motion/useGsapPresence.ts"
 import { cn } from "@/lib/utils.ts"
+
+/** Os ícones que existem com a barra recolhida e expandida (M13). */
+const flipTargets = "[data-flip-id]"
 
 export function AppSidebar({
   collapsed,
@@ -33,6 +36,7 @@ export function AppSidebar({
 }) {
   const rootRef = useRef<HTMLElement>(null)
   const skipMotion = useRef(true)
+  const flipState = useRef<FlipState | undefined>(undefined)
   const { reduced } = useMotion()
 
   useGSAP(
@@ -45,9 +49,26 @@ export function AppSidebar({
       const first = skipMotion.current
       skipMotion.current = false
       presets.showSidebarLabels(labels, reduced || first, !collapsed)
+      presets.moveSidebar(
+        root.querySelectorAll(flipTargets),
+        reduced || first,
+        flipState.current,
+        Flip,
+      )
+      flipState.current = undefined
     },
     { dependencies: [collapsed, reduced], scope: rootRef },
   )
+
+  // M13: o Flip registra os ícones antes de a classe mudar. Ao recolher, os links ganham o
+  // tooltip e viram outros elementos, por isso o Flip os casa pelo `data-flip-id`.
+  function toggleCollapsed() {
+    const root = rootRef.current
+    if (root) {
+      flipState.current = Flip.getState(root.querySelectorAll(flipTargets), { simple: true })
+    }
+    onToggleCollapsed()
+  }
 
   return (
     <aside
@@ -57,13 +78,12 @@ export function AppSidebar({
       className={cn(
         "flex h-full shrink-0 flex-col overflow-hidden border-r border-border bg-shell py-3",
         collapsed ? "w-16 items-center" : "w-60 px-3",
-        !reduced && "transition-[width] duration-300 ease-in-out",
       )}
     >
       <SidebarBody
         collapsed={collapsed}
         onSearch={onSearch}
-        onToggle={onToggleCollapsed}
+        onToggle={toggleCollapsed}
         showCollapse
         viewer={viewer}
         account={account}
