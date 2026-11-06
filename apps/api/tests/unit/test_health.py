@@ -113,11 +113,38 @@ def test_health_reports_the_build_written_by_the_deploy(
     marker = tmp_path / "BUILD_SHA"
     marker.write_text("3f2c1ab9d4e5" + chr(10), encoding="utf-8")
     monkeypatch.setattr(build, "_BUILD_FILE", marker)
+    monkeypatch.delenv("RAILWAY_GIT_COMMIT_SHA", raising=False)
     build.build_sha.cache_clear()
     try:
         client = _client_with_database_url(monkeypatch, "not-a-database")
         assert client.get("/health").json() == {"status": "ok", "build": "3f2c1ab9d4e5"}
         marker.write_text("../../etc/passwd", encoding="utf-8")
+        build.build_sha.cache_clear()
+        assert build.build_sha() is None
+    finally:
+        build.build_sha.cache_clear()
+
+
+def test_health_falls_back_to_the_commit_railway_reports(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """Num deploy pelo repositório não há BUILD_SHA; vale o commit da Railway (SDD 22.3)."""
+    from app.core import build
+
+    monkeypatch.setattr(build, "_BUILD_FILE", tmp_path / "ausente")
+    monkeypatch.setenv("RAILWAY_GIT_COMMIT_SHA", "a89a0d1def34a3beff7dd7af32888e33ca71f6a3")
+    build.build_sha.cache_clear()
+    try:
+        assert build.build_sha() == "a89a0d1def34a3beff7dd7af32888e33ca71f6a3"
+
+        written = tmp_path / "BUILD_SHA"
+        written.write_text("3f2c1ab9d4e5", encoding="utf-8")
+        monkeypatch.setattr(build, "_BUILD_FILE", written)
+        build.build_sha.cache_clear()
+        assert build.build_sha() == "3f2c1ab9d4e5", "o commit testado pela CI vem primeiro"
+
+        monkeypatch.setattr(build, "_BUILD_FILE", tmp_path / "ausente")
+        monkeypatch.setenv("RAILWAY_GIT_COMMIT_SHA", "a89a0d1; rm -rf /")
         build.build_sha.cache_clear()
         assert build.build_sha() is None
     finally:
