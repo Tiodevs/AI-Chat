@@ -1,8 +1,14 @@
-"""Cópias do canal do titular e da retenção. Seções 11.5 e 11.6 do SDD."""
+"""Cópias do canal do titular, da fila do admin e da retenção. Seções 11.5, 11.6 e 12."""
 
 REQUEST_INVALID = "Não foi possível enviar o pedido. Confira os campos."
 RATE_LIMITED = "Você fez muitos pedidos hoje. Tente de novo amanhã."
 RETENTION_DONE = "Retenção concluída."
+REQUEST_NOT_FOUND = "Não encontramos este pedido."
+REQUEST_CLOSED = "Este pedido já foi fechado e não muda mais."
+UPDATE_INVALID = "Não foi possível atualizar o pedido. Confira os campos."
+STATUS_INVALID = "Escolha um status válido."
+NOTE_TOO_LONG = "Escreva a nota de resolução em até 2.000 caracteres."
+NOTE_REQUIRED = "Escreva a nota de resolução para concluir ou recusar o pedido."
 
 _FIELD_MESSAGES = {
     "contact_email": "Digite um e-mail válido para a resposta.",

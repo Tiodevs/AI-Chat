@@ -142,3 +142,12 @@ def get_insights_service(
         daily_budget=settings.llm_daily_token_budget,
         run_url_template=settings.langsmith_run_url_template,
     )
+
+
+def get_privacy_queue_service(
+    settings: Annotated[Settings, Depends(get_settings)],
+    clock: Annotated[Clock, Depends(get_clock)],
+) -> Any:
+    from app.services.privacy import PrivacyQueueService
+
+    return PrivacyQueueService(database_url=settings.database_url, clock=clock)
