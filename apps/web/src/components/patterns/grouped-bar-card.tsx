@@ -49,7 +49,12 @@ export function GroupedBarCard({
         </div>
         <div aria-hidden="true">
           <ChartContainer config={config} className="aspect-auto h-56 w-full">
-            <BarChart data={rows} margin={{ top: 8, right: 8, bottom: 0, left: -16 }} barGap={4}>
+            <BarChart
+              accessibilityLayer={false}
+              data={rows}
+              margin={{ top: 8, right: 8, bottom: 0, left: -16 }}
+              barGap={4}
+            >
               <CartesianGrid vertical={false} stroke="var(--border)" />
               <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={8} />
               <YAxis allowDecimals={false} tickLine={false} axisLine={false} width={40} />

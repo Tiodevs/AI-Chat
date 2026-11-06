@@ -9,7 +9,7 @@ Parte da [especificação do Atrium](../sdd.md). A numeração das seções é a
 | Responsabilidade | Escolha |
 |---|---|
 | Linguagem e build | React 19, TypeScript estrito, Vite |
-| Rotas | React Router em modo de dados, com rotas carregadas sob demanda |
+| Rotas | React Router em modo de dados, com rotas carregadas sob demanda. As rotas que abrem `/` vão como `modulepreload` no `index.html`, pelo plugin `route-preload.ts` |
 | Estado do servidor | TanStack Query |
 | Formulários | React Hook Form com Zod. O servidor continua sendo a autoridade. |
 | Cliente da API | `openapi-fetch` com tipos gerados por `openapi-typescript` |
@@ -23,6 +23,8 @@ Parte da [especificação do Atrium](../sdd.md). A numeração das seções é a
 | Movimento | GSAP com `@gsap/react` e o plugin Flip |
 | Fonte | Geist Sans e Geist Mono, servidas pela própria origem |
 | Catálogo | Storybook com o addon de acessibilidade |
+
+O visitante sem sessão não baixa a barra lateral, o tooltip nem a paleta de comandos no primeiro carregamento. A barra lateral carrega sob demanda, com um espaço reservado do mesmo tamanho. A paleta carrega quando alguém abre a busca e, no desktop, também no tempo ocioso, para o `⌘K` abrir sem espera.
 
 ### 13.2 MVC no frontend
 
@@ -159,7 +161,7 @@ A entrelinha das mensagens é maior que a da interface porque respostas longas s
 | Chat | Coluna de até 760 px, centralizada | A mesma | Largura total, compositor fixo embaixo, com área segura |
 | Cards de indicador | Quatro por linha | Dois por linha | Um por linha, rolagem vertical |
 
-A barra lateral só aparece com sessão. Ela segue a imagem: logotipo e botão de recolher no topo, busca com `⌘K`, grupos rotulados, um card "What's new" acima do rodapé e o botão de perfil no rodapé. Com sessão, ela não mostra Entrar nem os cadastros. Operação e Sistema aparecem só para o admin. Sem sessão, o `GuestHeader` toma o lugar da barra lateral, e a busca com `⌘K` lista só as páginas públicas.
+A barra lateral só aparece com sessão. Ela segue a imagem: logotipo e botão de recolher no topo, busca com `⌘K`, grupos rotulados, um card "What's new" acima do rodapé e o botão de perfil no rodapé. Com sessão, ela não mostra Entrar nem os cadastros. Operação e Sistema aparecem só para o admin. Sem sessão, o `GuestHeader` toma o lugar da barra lateral, e a busca com `⌘K` lista só as páginas públicas. Enquanto `GET /v1/me` não responde, o celular já mostra a barra de 56 px do topo, igual para visitante e membro, e o conteúdo não pula.
 
 ### 14.6 Inventário de componentes
 
@@ -170,7 +172,7 @@ Componentes de produto em `components/patterns`, mapeados a partir da imagem:
 | Na imagem | No Atrium | Onde |
 |---|---|---|
 | Barra lateral com grupos Platform e System | `AppSidebar` com grupos Assistant e Account no membro, Operations e System no admin | Todas as telas, com sessão |
-| Cabeçalho do site | `GuestHeader` com Entrar, Criar conta e Cadastrar com IA | Todas as telas, sem sessão |
+| Cabeçalho do site | `GuestHeader` com Entrar, Criar conta e Cadastrar com IA. No celular, as ações ficam num disclosure de navegação: um botão com `aria-expanded` e uma lista de links, sem menu modal, que fecha com Esc, com um toque fora e ao escolher um link | Todas as telas, sem sessão |
 | Busca com `⌘K` | `CommandPalette` para navegar, abrir conversas e ações | Todas as telas |
 | Cards Leads, Conversion Rate e CLV | `StatCard` com `DeltaBadge`, o ponto colorido e a variação | Visão geral do admin |
 | Gráfico Revenue over time com cursor e tooltip | `TrendChartCard` com cursor vertical, tooltip e pílula de data invertida | Visão geral do admin |
@@ -395,14 +397,15 @@ A taxa de abstenção soma `abstained` e `grounding_failed`. A intenção é der
 ### 15.8 Acessibilidade
 
 - WCAG 2.2 nível AA.
-- Link para pular ao conteúdo. Foco movido para o título da página na troca de rota.
+- Link para pular ao conteúdo. Foco movido para o título da página na troca de rota, salvo quando a pessoa já pôs o foco na página nova.
 - `ChatThread` usa uma região `aria-live="polite"` que anuncia a resposta completa no `done`, não cada token. Durante a geração, a mensagem tem `aria-busy="true"`.
-- Alvos de toque de pelo menos 44 por 44 px no celular e 24 por 24 px no desktop.
+- Alvos de toque de pelo menos 44 por 44 px no celular e 24 por 24 px no desktop. Ficam de fora as exceções do WCAG 2.5.8: link dentro de uma frase e conteúdo só para leitores de tela.
+- O nome acessível de um controle contém o texto visível dele (WCAG 2.5.3). Um rótulo escondido com `sr-only` nunca recebe `visibility: hidden`, para continuar dando nome ao controle.
 - Atalhos: `⌘K` ou `Ctrl+K` para a paleta, `Esc` para fechar, `Enter` para enviar e `Shift+Enter` para quebrar linha.
 - Gráficos têm tabela equivalente acessível e resumo em texto.
 - Erros nunca dependem só da cor.
 - Movimento reduzido em toda a interface, seção 16.4.
-- Axe roda em cada página nos testes do Playwright.
+- Axe roda em cada página nos testes do Playwright. Na suíte ao vivo, `e2e/live/audit.live.spec.ts` audita todas as telas e diálogos, com axe e alvos de toque, no celular com movimento reduzido e no desktop sem redução, e `e2e/live/keyboard.live.spec.ts` faz J1 a J5 só com teclado.
 
 ### 15.9 Validação de usabilidade
 
@@ -454,8 +457,8 @@ A taxa de abstenção soma `abstained` e `grounding_failed`. A intenção é der
 | M10 | Campo entendido no `ProfileSummaryCard` | Turno do cadastro com campo novo | Uma camada de destaque vai a 1 e volta a 0 em opacidade, e o ícone de confirmação vai de `scale` 0,6 a 1 com `ease.confirm` | Ícone aparece direto, sem destaque |
 | M11 | `RegistrationStepper`, hoje fora da tela | Troca de passo | A barra de progresso muda `scaleX` com `ease.move` | Muda direto |
 | M12 | `PasswordCard` | `next_step = password` | `autoAlpha` e `y` de 12 a 0 em `duration.slow`. O foco vai para o campo no `onComplete`. | Aparece direto e recebe o foco |
-| M13 | `AppSidebar` | Recolher e expandir | Flip registra o estado, a classe muda e Flip anima as posições com `ease.move`. Rótulos saem com `autoAlpha`. | Muda direto |
-| M14 | Paleta de comandos, diálogos, sheets e menus | Abrir e fechar | Hook `useGsapPresence` com `forceMount` do Radix: entrada com `autoAlpha` e `scale` de 0,98 a 1, saída em `duration.fast` com `ease.exit` antes de desmontar | Aparece e some direto |
+| M13 | `AppSidebar` | Recolher e expandir | Flip registra o estado, a classe muda e Flip anima as posições com `ease.move`. Rótulos entram com `autoAlpha` ao expandir; ao recolher, ficam em `sr-only`, sem `visibility: hidden`. | Muda direto |
+| M14 | Paleta de comandos, diálogos, sheets e menus | Abrir e fechar | Hook `useGsapPresence`, com `forceMount` nos componentes do Radix; o menu do visitante usa o mesmo hook, sem Radix. Entrada com `autoAlpha` e `scale` de 0,98 a 1, saída em `duration.fast` com `ease.exit` antes de desmontar | Aparece e some direto |
 | M15 | `SegmentedStatusCard` | Mudança de contagem | Segmentos mudam `scaleX` com `ease.move` | Muda direto |
 | M16 | Botões | Pressionar | `scale` 0,98 em `duration.instant` | Sem escala |
 

@@ -552,7 +552,9 @@ function ConsentSwitch({
         onCheckedChange={onChange}
       />
       <FieldContent>
-        <FieldLabel htmlFor={id}>{label}</FieldLabel>
+        <FieldLabel htmlFor={id} className="max-md:min-h-11 max-md:items-center">
+          {label}
+        </FieldLabel>
         <FieldDescription id={`${id}-note`}>
           {note} {checked ? grantedOn(grantedAt) : pt.account.privacy.off}
         </FieldDescription>

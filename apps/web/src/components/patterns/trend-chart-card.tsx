@@ -98,6 +98,7 @@ export function TrendChartCard({
           <div ref={plotRef}>
             <ChartContainer config={config} className="aspect-auto h-56 w-full">
               <AreaChart
+                accessibilityLayer={false}
                 data={points}
                 margin={{ top: 8, right: 8, bottom: 0, left: -16 }}
                 onMouseMove={(state) => {

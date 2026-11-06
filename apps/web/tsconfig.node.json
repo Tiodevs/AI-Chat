@@ -19,5 +19,12 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["vite.config.ts", "vercel.ts", "security-headers.ts", "playwright.config.ts", "playwright.live.config.ts"]
+  "include": [
+    "vite.config.ts",
+    "route-preload.ts",
+    "vercel.ts",
+    "security-headers.ts",
+    "playwright.config.ts",
+    "playwright.live.config.ts"
+  ]
 }

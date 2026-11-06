@@ -1,22 +1,38 @@
 import { useQuery } from "@tanstack/react-query"
-import { useEffect, useRef, useState } from "react"
+import { lazy, Suspense, useEffect, useRef, useState } from "react"
 import { useLocation, useOutlet } from "react-router"
 
 import { viewerOf } from "@/app/navigation.ts"
 
 import { focusPageTitle } from "@/app/page-heading.tsx"
-import {
-  AppSidebar,
-  MobileSidebar,
-} from "@/components/patterns/app-sidebar.tsx"
 import { GuestHeader } from "@/components/patterns/guest-header.tsx"
-import { SearchDialog } from "@/components/patterns/search-dialog.tsx"
 import { meQuery } from "@/features/auth/useSession.ts"
 import { useSignOut } from "@/features/auth/useSignOut.ts"
 import { pt } from "@/i18n/pt.ts"
 import { useGSAP } from "@/motion/gsap.ts"
 import { useMotion } from "@/motion/MotionProvider.tsx"
 import { presets } from "@/motion/presets.ts"
+import { cn } from "@/lib/utils.ts"
+
+// O visitante sem sessão, a pessoa que mais usa a página inicial, não baixa a barra lateral
+// nem a paleta de comandos no primeiro carregamento (seção 5.3, JavaScript inicial de /).
+const loadSidebar = () => import("@/components/patterns/app-sidebar.tsx")
+const AppSidebar = lazy(() => loadSidebar().then((module) => ({ default: module.AppSidebar })))
+const MobileSidebar = lazy(() =>
+  loadSidebar().then((module) => ({ default: module.MobileSidebar })),
+)
+const loadSearch = () => import("@/components/patterns/search-dialog.tsx")
+const SearchDialog = lazy(() => loadSearch().then((module) => ({ default: module.SearchDialog })))
+
+/** Reserva o espaço da barra lateral enquanto ela carrega, sem deslocar o conteúdo. */
+function SidebarPlaceholder({ collapsed }: { collapsed: boolean }) {
+  return (
+    <div
+      aria-hidden="true"
+      className={cn("h-full shrink-0 border-r border-border bg-shell", collapsed ? "w-16" : "w-60")}
+    />
+  )
+}
 
 function RouteTransition() {
   const outlet = useOutlet()
@@ -45,9 +61,17 @@ function RouteTransition() {
       const skip = skipFocus.current
       skipFocus.current = false
       presets.enterRoute(target, reduced || skip, () => {
-        if (!skip) {
-          focusPageTitle()
+        if (skip) {
+          return
         }
+        // Durante a entrada (M1) o conteúdo fica invisível e o título não recebe foco; ele o
+        // recebe no fim. Se nesse meio-tempo a pessoa já entrou na página nova, clicando ou
+        // digitando num campo, o foco fica onde ela o pôs (SDD 15.8).
+        const active = document.activeElement
+        if (active && active !== document.body && root.contains(active)) {
+          return
+        }
+        focusPageTitle()
       })
     },
     { dependencies: [pathname, reduced], scope: rootRef }
@@ -65,6 +89,7 @@ export function AppShell() {
   const [collapsedChoice, setCollapsedChoice] = useState<boolean | null>(null)
   const collapsed = collapsedChoice ?? !isDesktop
   const [searchOpen, setSearchOpen] = useState(false)
+  const [searchMounted, setSearchMounted] = useState(false)
   const [menuPath, setMenuPath] = useState<string | null>(null)
   const { pathname } = useLocation()
   const mobileOpen = menuPath === pathname
@@ -84,6 +109,33 @@ export function AppShell() {
       }
     : undefined
 
+  function openSearch() {
+    setSearchMounted(true)
+    setSearchOpen(true)
+  }
+
+  // No desktop, a paleta chega quando o navegador fica livre, para o ⌘K abrir sem espera. No
+  // celular não há atalho de teclado: ela só baixa quando alguém abre a busca, e a rede móvel
+  // do visitante fica para a primeira tela (seção 5.3).
+  useEffect(() => {
+    if (isMobile) {
+      return
+    }
+    const prefetch = () => {
+      void loadSearch()
+    }
+    if (typeof window.requestIdleCallback === "function") {
+      const handle = window.requestIdleCallback(prefetch, { timeout: 4000 })
+      return () => {
+        window.cancelIdleCallback(handle)
+      }
+    }
+    const timer = window.setTimeout(prefetch, 2000)
+    return () => {
+      window.clearTimeout(timer)
+    }
+  }, [isMobile])
+
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key.toLowerCase() !== "k" || event.repeat) {
@@ -93,6 +145,7 @@ export function AppShell() {
         return
       }
       event.preventDefault()
+      setSearchMounted(true)
       setSearchOpen(true)
     }
     window.addEventListener("keydown", onKeyDown)
@@ -110,40 +163,47 @@ export function AppShell() {
         {pt.skipToContent}
       </a>
       {showSidebar && !isMobile ? (
-        <AppSidebar
-          viewer={viewer}
-          account={account}
-          collapsed={collapsed}
-          onSearch={() => {
-            setSearchOpen(true)
-          }}
-          onToggleCollapsed={() => {
-            setCollapsedChoice((current) => !(current ?? !isDesktop))
-          }}
-        />
-      ) : null}
-      <div className="flex min-w-0 flex-1 flex-col">
-        {guest ? <GuestHeader compact={isMobile} /> : null}
-        {showSidebar && isMobile ? (
-          <MobileSidebar
+        <Suspense fallback={<SidebarPlaceholder collapsed={collapsed} />}>
+          <AppSidebar
             viewer={viewer}
             account={account}
-            open={mobileOpen}
-            onOpenChange={(open) => {
-              setMenuPath(open ? pathname : null)
-            }}
-            onSearch={() => {
-              setSearchOpen(true)
+            collapsed={collapsed}
+            onSearch={openSearch}
+            onToggleCollapsed={() => {
+              setCollapsedChoice((current) => !(current ?? !isDesktop))
             }}
           />
+        </Suspense>
+      ) : null}
+      <div className="flex min-w-0 flex-1 flex-col">
+        {me.isPending && isMobile ? (
+          // No celular, o visitante e o membro têm a mesma barra de 56 px no topo. Ela ocupa o
+          // lugar enquanto a sessão não chega, e o conteúdo não pula (CLS, seção 5.3).
+          <div aria-hidden="true" className="h-14 shrink-0 border-b border-border bg-shell" />
+        ) : null}
+        {guest ? <GuestHeader compact={isMobile} /> : null}
+        {showSidebar && isMobile ? (
+          <Suspense
+            fallback={<div aria-hidden="true" className="h-14 border-b border-border bg-shell" />}
+          >
+            <MobileSidebar
+              viewer={viewer}
+              account={account}
+              open={mobileOpen}
+              onOpenChange={(open) => {
+                setMenuPath(open ? pathname : null)
+              }}
+              onSearch={openSearch}
+            />
+          </Suspense>
         ) : null}
         <PageMain />
       </div>
-      <SearchDialog
-        open={searchOpen}
-        onOpenChange={setSearchOpen}
-        viewer={viewer}
-      />
+      {searchMounted ? (
+        <Suspense fallback={null}>
+          <SearchDialog open={searchOpen} onOpenChange={setSearchOpen} viewer={viewer} />
+        </Suspense>
+      ) : null}
     </div>
   )
 }

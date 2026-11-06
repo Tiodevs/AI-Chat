@@ -200,4 +200,19 @@ describe("presets com movimento reduzido", () => {
     vars.onComplete?.()
     expect(done).toHaveBeenCalledOnce()
   })
+
+  it("M13 não esconde do leitor de tela os rótulos da barra recolhida", () => {
+    const labels = document.createElement("span")
+    presets.showSidebarLabels(labels, false, false)
+    expect(set).toHaveBeenCalledWith(labels, { clearProps: "opacity,visibility" })
+    expect(to).not.toHaveBeenCalled()
+    expect(fromTo).not.toHaveBeenCalled()
+
+    presets.showSidebarLabels(labels, false, true)
+    expect(fromTo).toHaveBeenCalledWith(
+      labels,
+      { autoAlpha: 0 },
+      expect.objectContaining({ autoAlpha: 1, clearProps: "opacity,visibility" })
+    )
+  })
 })

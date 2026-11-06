@@ -56,11 +56,11 @@ export function ProfileButton({
       <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
-          aria-label={pt.profile.menu}
+          aria-label={pt.profile.menuLabel.replace("{name}", name ?? pt.profile.guest)}
           className={cn(
             collapsed
               ? "grid size-8 place-items-center p-0 px-0"
-              : "h-8 w-full justify-start px-2.5",
+              : "h-11 md:h-8 w-full justify-start px-2.5",
           )}
         >
           <UserRound

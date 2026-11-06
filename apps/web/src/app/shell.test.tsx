@@ -147,12 +147,18 @@ describe("casca", () => {
     }
     const user = userEvent.setup()
     renderAt("/")
-    await user.click(
-      await screen.findByRole("button", { name: pt.sidebar.guestMenu })
-    )
+    const toggle = await screen.findByRole("button", { name: pt.sidebar.guestMenu })
+    expect(toggle).toHaveAttribute("aria-expanded", "false")
+    await user.click(toggle)
+    expect(toggle).toHaveAttribute("aria-expanded", "true")
+    const menu = await screen.findByRole("navigation", { name: pt.sidebar.guestMenu })
     expect(
-      await screen.findByRole("menuitem", { name: pt.nav.registerWithAi })
-    ).toBeInTheDocument()
+      within(menu).getByRole("link", { name: pt.nav.registerWithAi })
+    ).toHaveAttribute("href", "/register")
+    // Esc fecha o menu e devolve o foco ao botão.
+    await user.keyboard("{Escape}")
+    expect(toggle).toHaveAttribute("aria-expanded", "false")
+    expect(toggle).toHaveFocus()
     expect(
       screen.queryByRole("button", { name: pt.sidebar.openMenu })
     ).not.toBeInTheDocument()
@@ -180,7 +186,7 @@ describe("casca", () => {
     const user = userEvent.setup()
     const { router } = renderAt("/privacy")
     const profile = await screen.findByRole("button", {
-      name: pt.profile.menu,
+      name: new RegExp(pt.profile.menu, "i"),
     })
     expect(profile).toHaveTextContent("Ana")
     await user.click(profile)
@@ -207,7 +213,7 @@ describe("casca", () => {
     const user = userEvent.setup()
     renderAt("/")
     await user.click(
-      await screen.findByRole("button", { name: pt.profile.menu })
+      await screen.findByRole("button", { name: new RegExp(pt.profile.menu, "i") })
     )
     await user.click(
       await screen.findByRole("menuitem", { name: pt.profile.signOut })
@@ -266,7 +272,7 @@ describe("casca", () => {
     signIn()
     renderAt("/")
     await screen.findByRole("navigation", { name: pt.sidebar.label })
-    await user.click(screen.getByRole("button", { name: pt.profile.menu }))
+    await user.click(screen.getByRole("button", { name: new RegExp(pt.profile.menu, "i") }))
     await user.click(
       screen.getByRole("menuitemradio", { name: pt.profile.motionReduce })
     )

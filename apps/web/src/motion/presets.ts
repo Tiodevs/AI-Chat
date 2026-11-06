@@ -55,6 +55,11 @@ export function enterRoute(
   )
 }
 
+/**
+ * Rótulos da barra lateral em M13. Recolhida, a barra esconde os rótulos com `sr-only`, e
+ * eles continuam dando nome ao logotipo, à busca e aos grupos para o leitor de tela. Por isso
+ * eles nunca ficam com `visibility: hidden`: só entram com `autoAlpha` quando a barra expande.
+ */
 export function showSidebarLabels(
   target: gsap.TweenTarget,
   reduced: boolean,
@@ -63,17 +68,21 @@ export function showSidebarLabels(
   if (!canAnimate(target)) {
     return
   }
-  if (reduced) {
-    gsap.set(target, { autoAlpha: visible ? 1 : 0 })
+  if (reduced || !visible) {
+    gsap.set(target, { clearProps: "opacity,visibility" })
     return
   }
-  gsap.to(target, {
-    autoAlpha: visible ? 1 : 0,
-    duration: motionTokens.duration.fast,
-    ease: visible ? motionTokens.ease.enter : motionTokens.ease.exit,
-    overwrite: "auto",
-    clearProps: visible ? "opacity,visibility" : undefined,
-  })
+  gsap.fromTo(
+    target,
+    { autoAlpha: 0 },
+    {
+      autoAlpha: 1,
+      duration: motionTokens.duration.fast,
+      ease: motionTokens.ease.enter,
+      overwrite: "auto",
+      clearProps: "opacity,visibility",
+    }
+  )
 }
 
 export function enterPresence(target: gsap.TweenTarget, reduced: boolean) {

@@ -49,7 +49,7 @@ export function HomeScreen({
         <Button asChild variant="link" className="h-11 px-0 md:h-8">
           <Link to="/register">{pt.nav.register}</Link>
         </Button>
-        <Button asChild variant="link" className="h-11 px-0 md:h-8">
+        <Button asChild variant="link" className="h-11 min-w-11 px-0 md:h-8">
           <Link to="/sign-in">{pt.nav.signIn}</Link>
         </Button>
       </div>

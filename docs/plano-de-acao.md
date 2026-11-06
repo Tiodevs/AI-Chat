@@ -724,6 +724,8 @@ Cada etapa traz: objetivo, seções do SDD, entregas, critérios de aceite (CA) 
 
 **Como testar.** Rode o Lighthouse em `/` no modo celular. Percorra J1 a J5 só com teclado e com o VoiceOver ligado (`⌘F5`).
 
+**Resultado.** O relatório está em [docs/acessibilidade-e-desempenho.md](acessibilidade-e-desempenho.md). CA-1 a CA-3 passam na suíte ao vivo. CA-4 espera a chave do Gemini em produção e se mede com `node .github/scripts/ttft.mjs <url>`. A troca de M13 para o Flip ficou como pendência.
+
 #### Etapa 9.2 — Teste de usabilidade
 
 **Objetivo.** Validar J1 a J5 com pessoas, conforme a seção 15.9.
@@ -821,7 +823,7 @@ A IA atualiza esta tabela em cada PR.
 | 7.3 | Fila de pedidos de titular | Em revisão |
 | 8.1 | Rastros de sistema e métricas | Aprovada |
 | 8.2 | Painéis, alertas e fila de anotação | Aprovada |
-| 9.1 | Acessibilidade, movimento e desempenho | Pendente |
+| 9.1 | Acessibilidade, movimento e desempenho | Em revisão |
 | 9.2 | Teste de usabilidade | Pendente |
 | 10.1 | Pipeline de deploy e ambiente de development | Em revisão |
 | 10.2 | Produção e rollback | Pendente |

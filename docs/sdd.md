@@ -207,6 +207,8 @@ Estas são metas de aprendizado, não um SLO com acionamento de plantão.
 
 A partida a frio de uma réplica Railway adormecida fica de fora das metas de latência.
 
+O JavaScript inicial é tudo o que `/` pede até a rede parar, antes de qualquer interação, somado com gzip. As medidas da Etapa 9.1 e o método estão em [docs/acessibilidade-e-desempenho.md](acessibilidade-e-desempenho.md).
+
 
 ## Mapa da especificação
 
@@ -266,3 +268,4 @@ Não há decisões em aberto. Nenhuma decisão bloqueia as Etapas 1 a 4.
 | 1.3 | 2026-11-04 | Visão geral e qualidade do admin: contrato das rotas, `messages.request_id`, `LANGSMITH_RUN_URL_TEMPLATE`, intenção derivada do desfecho e funil pela validade da sessão. |
 | 1.4 | 2026-11-06 | Fila de pedidos de titular do admin: contrato das rotas, fechamento só com nota de resolução, pedido fechado imutável, motivo de `dsr.update` sem conteúdo e `DueDateBadge` com prazo próximo em 3 dias. |
 | 1.5 | 2026-11-06 | Publicação: serviços da Railway configurados pela API (ADR-013), API pelo Dockerfile em `0.0.0.0`, semente adiada sem a chave, provedores indisponíveis sem `GEMINI_API_KEY`, `deploy.yml` com `DEPLOY_ENABLED`, alias estável do preview, fumaça em script, adaptador `demo` e e2e com a API real (ADR-014), e CSP com `style-src` para o Radix. |
+| 1.6 | 2026-11-06 | Acabamento: alvos de toque com as exceções do WCAG 2.5.8, nome acessível com o texto visível, rótulos em `sr-only` sem `visibility: hidden`, menu do visitante como disclosure, foco da troca de rota que respeita quem já está na página, rotas de `/` como `modulepreload`, barra lateral e paleta sob demanda, barra do topo reservada no celular e auditoria, teclado e desempenho na suíte ao vivo. |

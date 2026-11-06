@@ -75,7 +75,14 @@ export default defineConfig({
   projects: [
     {
       name: "live",
+      testIgnore: /keyboard[.]live[.]spec[.]ts/,
       use: { ...devices["Pixel 5"], reducedMotion: "reduce" },
+    },
+    {
+      // A auditoria também roda no desktop e sem redução de movimento (Etapa 9.1).
+      name: "live-desktop",
+      testMatch: /(audit|keyboard)[.]live[.]spec[.]ts/,
+      use: { ...devices["Desktop Chrome"], reducedMotion: "no-preference" },
     },
   ],
 })
