@@ -800,8 +800,8 @@ A IA atualiza esta tabela em cada PR.
 | 0.1 | Revisão final da especificação | Aprovada |
 | 1.1 | Esqueleto do repositório e governança | Aprovada |
 | 1.2 | API mínima | Aprovada |
-| 1.3 | Shell do frontend e design system base | Em revisão |
-| 1.4 | CI sem banco | Em revisão |
+| 1.3 | Shell do frontend e design system base | Aprovada |
+| 1.4 | CI sem banco | Aprovada |
 | 2.1 | Banco, migrações, unidade de trabalho e prontidão | Aprovada |
 | 2.2 | Autenticação, sessão e proteções HTTP | Aprovada |
 | 3.1 | Corpus fictício e modelo de documentos | Aprovada |
@@ -810,7 +810,7 @@ A IA atualiza esta tabela em cada PR.
 | 4.1 | Pipeline de perguntas, sem HTTP | Aprovada |
 | 4.2 | API de conversas com SSE | Aprovada |
 | 4.3 | Telas de início e conversa | Aprovada |
-| 4.4 | LangSmith e linha de base de avaliação | Em revisão |
+| 4.4 | LangSmith e linha de base de avaliação | Aprovada |
 | 5.1 | Domínio e API do cadastro | Aprovada |
 | 5.2 | Telas do cadastro | Aprovada |
 | 6.1 | Página da conta | Aprovada |
@@ -818,8 +818,8 @@ A IA atualiza esta tabela em cada PR.
 | 7.1 | Gestão de documentos | Aprovada |
 | 7.2 | Visão geral e qualidade | Aprovada |
 | 7.3 | Fila de pedidos de titular | Pendente |
-| 8.1 | Rastros de sistema e métricas | Em revisão |
-| 8.2 | Painéis, alertas e fila de anotação | Em revisão |
+| 8.1 | Rastros de sistema e métricas | Aprovada |
+| 8.2 | Painéis, alertas e fila de anotação | Aprovada |
 | 9.1 | Acessibilidade, movimento e desempenho | Pendente |
 | 9.2 | Teste de usabilidade | Pendente |
 | 10.1 | Pipeline de deploy e ambiente de development | Pendente |
