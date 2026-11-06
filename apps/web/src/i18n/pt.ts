@@ -57,6 +57,7 @@ export const pt = {
   },
   profile: {
     menu: "Menu da conta",
+    menuLabel: "{name}, menu da conta",
     guest: "Visitante",
     signOut: "Sair",
     signingOut: "Saindo…",

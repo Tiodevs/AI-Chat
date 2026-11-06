@@ -29,7 +29,7 @@ function itemClass(collapsed: boolean, active = false) {
     "flex items-center rounded-nav text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground",
     collapsed
       ? "size-8 justify-center"
-      : "h-8 w-full min-w-0 gap-2 px-2.5",
+      : "h-11 md:h-8 w-full min-w-0 gap-2 px-2.5",
     active && "bg-card text-foreground hover:bg-card hover:text-foreground",
   )
 }
@@ -104,11 +104,10 @@ export function SidebarBody({
         <NavLink
           to="/"
           end
-          aria-label={pt.appName}
           onClick={onNavigate}
           className={cn(
             "flex min-w-0 items-center rounded-nav text-sm font-medium text-foreground-strong",
-            collapsed ? "size-8 justify-center" : "h-8 flex-1 gap-2 px-2.5",
+            collapsed ? "size-8 justify-center" : "h-11 md:h-8 flex-1 gap-2 px-2.5",
           )}
         >
           <span
@@ -147,7 +146,7 @@ export function SidebarBody({
         className={cn(
           collapsed
             ? "grid size-8 place-items-center p-0 px-0"
-            : "h-8 w-full justify-start px-2.5",
+            : "h-11 md:h-8 w-full justify-start px-2.5",
         )}
       >
         <Search
