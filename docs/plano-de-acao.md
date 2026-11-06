@@ -796,6 +796,8 @@ Cada etapa traz: objetivo, seções do SDD, entregas, critérios de aceite (CA) 
 2. Faça J1 a J3 na URL de produção.
 3. Siga o roteiro de rollback e confira a versão anterior no ar. Depois volte.
 
+**Resultado.** O roteiro testado está em [docs/rollback.md](rollback.md). Os Environments `development` e `production` existem no GitHub, só para a `main`, e o `production` exige a sua aprovação. O Prometheus coleta `/metrics` da API de produção a cada 30 s, e o Grafana está em `https://grafana-production-6ccd.up.railway.app`. Dependem de você: os tokens `RAILWAY_TOKEN` e `VERCEL_TOKEN` nos Environments, o ambiente `development` da Railway, a variável `DEPLOY_ENABLED`, a chave do Gemini de um projeto com faturamento (CA-4) e a conferência dos painéis do Grafana (CA-6).
+
 ## 4. Status das etapas
 
 A IA atualiza esta tabela em cada PR.
@@ -828,7 +830,7 @@ A IA atualiza esta tabela em cada PR.
 | 9.1 | Acessibilidade, movimento e desempenho | Em revisão |
 | 9.2 | Teste de usabilidade | Em andamento |
 | 10.1 | Pipeline de deploy e ambiente de development | Em revisão |
-| 10.2 | Produção e rollback | Pendente |
+| 10.2 | Produção e rollback | Em revisão |
 
 Valores possíveis: Pendente, Em andamento, Em revisão, Ajustes pedidos, Aprovada.
 
