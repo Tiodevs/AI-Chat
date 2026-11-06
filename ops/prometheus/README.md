@@ -2,7 +2,7 @@
 
 Coleta `GET /metrics` da API pela rede privada da Railway a cada 30 s. Seção 18.3 do SDD.
 
-Serviço `prometheus` do ambiente `production`, construído pelo `Dockerfile` desta pasta e publicado com `railway up ops/prometheus --path-as-root --service prometheus` (seção 22.3), com um volume em `/prometheus`. A configuração do serviço fica na Railway (ADR-013). Não há serviço em `development`.
+Serviço `prometheus` do ambiente `production`, construído pelo `Dockerfile` desta pasta e publicado com `railway up --service prometheus`, da raiz do repositório, com o diretório raiz do serviço em `/ops/prometheus` (seção 22.3), com um volume em `/prometheus`. A configuração do serviço fica na Railway (ADR-013). Não há serviço em `development`.
 
 | Variável | Valor |
 |---|---|
