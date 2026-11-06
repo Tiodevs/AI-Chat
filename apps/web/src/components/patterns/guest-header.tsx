@@ -30,7 +30,7 @@ export function GuestHeader({ compact }: { compact: boolean }) {
         {pt.appName}
       </Link>
       {compact ? (
-        <DropdownMenu>
+        <DropdownMenu modal={false}>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" className="min-h-11">
               <Menu strokeWidth={1.75} data-icon="inline-start" aria-hidden="true" />
