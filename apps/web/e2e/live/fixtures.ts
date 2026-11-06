@@ -43,9 +43,11 @@ export async function signInAsAdmin(page: Page, returnTo = "/admin/privacy") {
   await page.getByLabel(pt.signIn.email).fill(e2eAdmin.email)
   await page.getByLabel(pt.signIn.password).fill(e2eAdmin.password)
   await page.getByRole("button", { name: pt.signIn.submit }).click()
-  // O admin criado pelo script ainda não aceitou os Termos: passa pelo novo aceite (SDD 13.3).
-  await expect(page).toHaveURL(/\/legal\/accept/)
-  await page.getByRole("button", { name: pt.legalAccept.accept }).click()
+  // O admin criado pelo script entra a primeira vez pelo novo aceite dos Termos (SDD 13.3).
+  await page.waitForURL((url) => url.pathname === "/legal/accept" || url.pathname === returnTo)
+  if (new URL(page.url()).pathname === "/legal/accept") {
+    await page.getByRole("button", { name: pt.legalAccept.accept }).click()
+  }
   await expect(page).toHaveURL(new RegExp(`${returnTo}$`))
 }
 

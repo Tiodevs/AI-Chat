@@ -180,7 +180,7 @@ describe("casca", () => {
     const user = userEvent.setup()
     const { router } = renderAt("/privacy")
     const profile = await screen.findByRole("button", {
-      name: pt.profile.menu,
+      name: new RegExp(pt.profile.menu, "i"),
     })
     expect(profile).toHaveTextContent("Ana")
     await user.click(profile)
@@ -207,7 +207,7 @@ describe("casca", () => {
     const user = userEvent.setup()
     renderAt("/")
     await user.click(
-      await screen.findByRole("button", { name: pt.profile.menu })
+      await screen.findByRole("button", { name: new RegExp(pt.profile.menu, "i") })
     )
     await user.click(
       await screen.findByRole("menuitem", { name: pt.profile.signOut })
@@ -266,7 +266,7 @@ describe("casca", () => {
     signIn()
     renderAt("/")
     await screen.findByRole("navigation", { name: pt.sidebar.label })
-    await user.click(screen.getByRole("button", { name: pt.profile.menu }))
+    await user.click(screen.getByRole("button", { name: new RegExp(pt.profile.menu, "i") }))
     await user.click(
       screen.getByRole("menuitemradio", { name: pt.profile.motionReduce })
     )

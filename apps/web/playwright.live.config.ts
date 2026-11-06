@@ -77,5 +77,11 @@ export default defineConfig({
       name: "live",
       use: { ...devices["Pixel 5"], reducedMotion: "reduce" },
     },
+    {
+      // A auditoria também roda no desktop e sem redução de movimento (Etapa 9.1).
+      name: "live-desktop",
+      testMatch: /audit\.live\.spec\.ts/,
+      use: { ...devices["Desktop Chrome"], reducedMotion: "no-preference" },
+    },
   ],
 })
