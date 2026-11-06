@@ -409,7 +409,7 @@ A taxa de abstenção soma `abstained` e `grounding_failed`. A intenção é der
 
 ### 15.9 Validação de usabilidade
 
-- Antes do deploy público, um teste com 5 pessoas por persona de visitante, cobrindo J1 a J5. Cada tarefa tem critério de sucesso e tempo.
+- Antes do deploy público, um teste com 5 pessoas por persona de visitante, cobrindo J1 a J5. Cada tarefa tem critério de sucesso e tempo. A persona Marta faz J1 e J2; a persona Diego faz J1, J3, J5 e J4, nesta ordem, com dados fictícios. O roteiro, o registro e os resultados ficam em `docs/usabilidade/`.
 - Métricas acompanhadas no servidor, sem análise no navegador: conclusão do cadastro por caminho, etapa de abandono, taxa de útil, taxa de abstenção e tempo até o primeiro token.
 - Um problema de severidade alta encontrado no teste bloqueia o deploy público.
 

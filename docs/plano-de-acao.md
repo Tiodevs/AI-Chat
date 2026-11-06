@@ -741,6 +741,8 @@ Cada etapa traz: objetivo, seções do SDD, entregas, critérios de aceite (CA) 
 
 **Como testar.** É você quem executa esta etapa.
 
+**Preparação.** O roteiro, a planilha de registro e o modelo de resultados estão em [docs/usabilidade/](usabilidade/roteiro.md). A persona Marta faz J1 e J2; a persona Diego faz J1, J3, J5 e J4. O teste precisa da chave do Gemini em produção, porque sem ela o chat só responde que está indisponível.
+
 ---
 
 ### Fase 10 — Publicação (SDD 23, passo 10)
@@ -824,7 +826,7 @@ A IA atualiza esta tabela em cada PR.
 | 8.1 | Rastros de sistema e métricas | Aprovada |
 | 8.2 | Painéis, alertas e fila de anotação | Aprovada |
 | 9.1 | Acessibilidade, movimento e desempenho | Em revisão |
-| 9.2 | Teste de usabilidade | Pendente |
+| 9.2 | Teste de usabilidade | Em andamento |
 | 10.1 | Pipeline de deploy e ambiente de development | Em revisão |
 | 10.2 | Produção e rollback | Pendente |
 
