@@ -17,7 +17,8 @@ export default defineConfig({
   projects: [
     {
       name: "mobile",
-      testIgnore: /motion\.spec\.ts/,
+      // e2e/live roda com a API de verdade, em playwright.live.config.ts.
+      testIgnore: [/motion\.spec\.ts/, /[\\/]live[\\/]/],
       use: {
         ...devices["Pixel 5"],
         reducedMotion: "reduce",
