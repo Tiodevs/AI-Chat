@@ -8,12 +8,17 @@ from app.domain.privacy import (
     RESOLUTION_NOTE_MAX_CHARS,
     RequestStatus,
     UpdateProblem,
+    contact_email_is_safe,
     is_overdue,
     plan_update,
     transition_reason,
+    validate_request,
 )
 
 NOW = datetime(2031, 3, 10, 12, 0, tzinfo=UTC)
+NUL = chr(0)
+TAB = chr(9)
+LF = chr(10)
 
 
 @pytest.mark.parametrize(
@@ -139,3 +144,54 @@ def test_the_same_status_and_note_is_not_a_change() -> None:
 
 def test_the_audit_reason_carries_only_the_status_change() -> None:
     assert transition_reason("open", "in_progress") == "open->in_progress"
+
+
+@pytest.mark.parametrize(
+    "email",
+    [
+        "vitima@example.com?bcc=atacante%40evil.com",
+        "vitima@example.com,atacante@evil.com",
+        "vitima@example.com;atacante@evil.com",
+        "vitima%40example.com@evil.com",
+        "vitima@example.com/x",
+        "vitima@example.com#x",
+        '"vitima"@example.com',
+        "vitima&cc=x@example.com",
+    ],
+)
+def test_a_contact_email_that_a_mailto_link_could_split_is_refused(email: str) -> None:
+    """O admin responde pelo e-mail de contato; `?`, `,` e `;` virariam cabeçalho ou cópia."""
+    assert contact_email_is_safe(email) is False
+    draft, issues = validate_request(
+        contact_email=email, request_type="access", description="Quero meus dados."
+    )
+    assert draft is None
+    assert "contact_email" in issues
+
+
+@pytest.mark.parametrize(
+    "email", ["ana@example.com", "ana.souza+dsr@sub.example.com.br", "a_b-c@x-y.io"]
+)
+def test_an_ordinary_contact_email_is_accepted(email: str) -> None:
+    assert contact_email_is_safe(email) is True
+
+
+def test_control_characters_are_refused_in_the_description_and_the_note() -> None:
+    _, issues = validate_request(
+        contact_email="ana@example.com", request_type="access", description="Meus dados" + NUL
+    )
+    assert issues == {"description": "invalid"}
+    _, kept = validate_request(
+        contact_email="ana@example.com",
+        request_type="access",
+        description="Linha 1" + LF + "Linha 2" + TAB + "com tab",
+    )
+    assert kept == {}
+    _, problem = plan_update(
+        current_status="open",
+        current_note=None,
+        status="in_progress",
+        resolution_note="Nota" + NUL,
+        now=NOW,
+    )
+    assert problem is UpdateProblem.NOTE_INVALID

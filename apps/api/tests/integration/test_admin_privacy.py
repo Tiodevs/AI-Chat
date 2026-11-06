@@ -141,6 +141,24 @@ def test_updating_the_status_records_dsr_update(world: _World) -> None:
     assert len(_run(_audit(world.database_url, world.admin_id))) == 2
 
 
+def test_a_note_alone_is_audited_and_a_null_character_is_refused(world: _World) -> None:
+    url = f"/v1/admin/privacy/requests/{world.late_in_progress}"
+    noted = _patch(
+        world.client, url, {"status": "in_progress", "resolution_note": "Titular respondeu."}
+    )
+    assert noted.status_code == 200, noted.text
+    assert noted.json()["resolution_note"] == "Titular respondeu."
+    assert [event[3] for event in _run(_audit(world.database_url, world.admin_id))] == [
+        "in_progress->in_progress"
+    ]
+    invalid = _patch(
+        world.client, url, {"status": "in_progress", "resolution_note": "Nota" + chr(0)}
+    )
+    assert invalid.status_code == 422
+    assert set(invalid.json()["error"]["field_errors"]) == {"resolution_note"}
+    assert len(_run(_audit(world.database_url, world.admin_id))) == 1
+
+
 def test_rejecting_an_overdue_request_takes_it_off_the_overdue_list(world: _World) -> None:
     url = f"/v1/admin/privacy/requests/{world.most_late}"
     rejected = _patch(
