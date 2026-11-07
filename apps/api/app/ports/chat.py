@@ -1,7 +1,7 @@
 """Porta de chat. Seção 17 do SDD."""
 
 from collections.abc import AsyncIterator
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Literal, Protocol, TypeVar
 from uuid import UUID
 
@@ -50,6 +50,29 @@ class RunContext:
     temperature: float = 0.0
     input_tokens: int = 0
     output_tokens: int = 0
+
+
+@dataclass(slots=True)
+class UsageTally:
+    """Os `RunContext` de um pedido. Seções 6.4 e 7.1 do SDD.
+
+    O adaptador soma os tokens no `RunContext` a cada pedaço do fluxo, então a soma vale também
+    no meio de uma resposta cancelada.
+    """
+
+    runs: list[RunContext] = field(default_factory=list)
+
+    def track(self, run: RunContext) -> RunContext:
+        self.runs.append(run)
+        return run
+
+    @property
+    def input_tokens(self) -> int:
+        return sum(run.input_tokens for run in self.runs)
+
+    @property
+    def output_tokens(self) -> int:
+        return sum(run.output_tokens for run in self.runs)
 
 
 class ChatProvider(Protocol):
