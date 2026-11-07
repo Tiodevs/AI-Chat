@@ -10,9 +10,9 @@ from ulid import ULID
 from app.core.context import current_request_id, request_id_var
 from app.core.logging import log_http_request
 from app.core.metrics import HTTP_DURATION, HTTP_REQUESTS
-from app.domain.auth import origin_is_allowed
-from app.domain.errors import BadOrigin
-from app.prompts.auth import BAD_ORIGIN
+from app.domain.auth import EDGE_HEADER, edge_is_trusted, origin_is_allowed
+from app.domain.errors import BadOrigin, Forbidden
+from app.prompts.auth import BAD_ORIGIN, EDGE_FORBIDDEN
 from app.schemas.errors import ErrorBody, ErrorResponse
 
 
@@ -88,11 +88,17 @@ def cast_message(message: Message) -> MutableMapping[str, object]:
 
 
 class ApiGuardMiddleware:
-    """Origem nos métodos que mudam estado e Cache-Control nos /v1. Seções 10.3 e NFR-11."""
+    """Segredo da borda e origem nos /v1, e Cache-Control. Seções 10.3 e NFR-11.
 
-    def __init__(self, app: ASGIApp, web_origin: str) -> None:
+    Com `edge_secret`, um pedido a /v1 sem o cabeçalho da Vercel recebe 403: quem chama a
+    Railway direto não forja o `x-forwarded-for` dos limites de taxa. `/health`, `/ready` e
+    `/metrics` ficam fora, para a Railway e o Prometheus.
+    """
+
+    def __init__(self, app: ASGIApp, web_origin: str, edge_secret: str = "") -> None:
         self.app = app
         self.web_origin = web_origin
+        self.edge_secret = edge_secret
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] != "http":
@@ -103,12 +109,23 @@ class ApiGuardMiddleware:
         request_path = path if isinstance(path, str) else ""
         method = scope.get("method")
         http_method = method if isinstance(method, str) else "GET"
+        if _is_v1(request_path) and not edge_is_trusted(
+            presented=_header(scope, EDGE_HEADER.encode()),
+            secret=self.edge_secret,
+        ):
+            await _send_error(send, code=Forbidden.code, message=EDGE_FORBIDDEN, cache=True)
+            return
         if not origin_is_allowed(
             method=http_method,
             origin=_header(scope, b"origin"),
             web_origin=self.web_origin,
         ):
-            await _send_bad_origin(send, cache=_is_v1(request_path))
+            await _send_error(
+                send,
+                code=BadOrigin.code,
+                message=BAD_ORIGIN,
+                cache=_is_v1(request_path),
+            )
             return
 
         async def send_wrapper(message: Message) -> None:
@@ -137,11 +154,12 @@ def _header(scope: Scope, name: bytes) -> str | None:
     return None
 
 
-async def _send_bad_origin(send: Send, *, cache: bool) -> None:
+async def _send_error(send: Send, *, code: str, message: str, cache: bool) -> None:
+    """Responde 403 com o envelope da seção 12, antes de o pedido chegar às rotas."""
     payload = ErrorResponse(
         error=ErrorBody(
-            code=BadOrigin.code,
-            message=BAD_ORIGIN,
+            code=code,
+            message=message,
             request_id=current_request_id(),
         )
     )
