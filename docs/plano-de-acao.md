@@ -812,6 +812,8 @@ As Fases 11 a 16 vêm da auditoria de 2026-11-07 (SDD 23, passo 11). Elas fecham
 
 ### Fase 11 — Rede de proteção da entrega (SDD 23, passo 11)
 
+**Débito técnico.** Em 2026-11-07, a seu pedido, a Fase 12 começou antes das Etapas 11.2 a 11.4. Elas ficaram como débito técnico, com o risco e a mitigação de cada uma na [seção 6](#6-débitos-técnicos), e voltam para a fila quando você pedir. A Etapa 11.1 já estava aprovada.
+
 #### Etapa 11.1 — CI que não passa vazia
 
 **Objetivo.** Fazer a integração falhar, em vez de pular, quando a CI fica sem banco, e estabilizar o Vitest.
@@ -1324,9 +1326,9 @@ A IA atualiza esta tabela em cada PR.
 | 10.1 | Pipeline de deploy e ambiente de development | Aprovada |
 | 10.2 | Produção e rollback | Aprovada |
 | 11.1 | CI que não passa vazia | Aprovada |
-| 11.2 | Rollback e pré-deploy conferidos | Pendente |
-| 11.3 | CI endurecida e dependências vigiadas | Pendente |
-| 11.4 | Cobertura medida | Pendente |
+| 11.2 | Rollback e pré-deploy conferidos | Débito técnico |
+| 11.3 | CI endurecida e dependências vigiadas | Débito técnico |
+| 11.4 | Cobertura medida | Débito técnico |
 | 12.1 | Orçamento obrigatório | Pendente |
 | 12.2 | Todo token entra no orçamento | Pendente |
 | 12.3 | Histórico com janela | Pendente |
@@ -1348,7 +1350,7 @@ A IA atualiza esta tabela em cada PR.
 | 16.2 | Lint mais rigoroso | Pendente |
 | 16.3 | Produção que se recupera | Pendente |
 
-Valores possíveis: Pendente, Em andamento, Em revisão, Ajustes pedidos, Aprovada.
+Valores possíveis: Pendente, Em andamento, Em revisão, Ajustes pedidos, Aprovada, Débito técnico. Débito técnico é uma etapa adiada de propósito, com o risco escrito na seção 6.
 
 ## 5. Rastreabilidade dos requisitos
 
@@ -1392,3 +1394,13 @@ Cada requisito da seção 5 tem pelo menos uma etapa responsável. Uma etapa pos
 | NFR-16 | 2.2 |
 
 As jornadas da seção 15.3 ficam assim: J1 e J2 na 4.3, J3 e J4 na 5.2, J5 na 6.1, J6 na 7.1, J7 na 7.2 e J8 em 6.2 e 7.3.
+
+## 6. Débitos técnicos
+
+Etapas adiadas de propósito. Cada linha diz o que fica sem fazer, o risco enquanto isso e como contornar até a etapa voltar. A etapa volta para a fila quando você pedir, com o status Pendente, e a linha sai desta tabela na PR que a entrega. Os códigos dos achados são os do relatório da auditoria de 2026-11-07.
+
+| Etapa | Adiada em | O que fica sem fazer | Risco enquanto não entra | Como contornar | Achados |
+|---|---|---|---|---|---|
+| 11.2 | 2026-11-07 | Caminho das migrações no passo 2 de `docs/rollback.md` e conferência do pré-deploy da Railway no `deploy.yml` | O passo 2 procura migrações em `apps/api/migrations` e sai sempre vazio. Quem segue o roteiro pode voltar uma versão que trouxe migração, e o pré-deploy da versão anterior falha. Um pré-deploy ou health check editado no painel passa sem aviso. | Antes de um rollback, rode `git diff --stat <anterior> <novo> -- apps/api/alembic/versions`. Diff com arquivo quer dizer corrigir para frente (SDD 22.3). | ENT-01, ENT-02 |
+| 11.3 | 2026-11-07 | Dependabot, actions fixadas por SHA, `permissions` e `concurrency` no `ci.yml`, chaves do `evals.yml` só no passo das avaliações e pre-commit | Vulnerabilidade em dependência só aparece por acaso. Uma tag de action reapontada roda no job que tem `RAILWAY_TOKEN` e `VERCEL_TOKEN`. Pushes seguidos numa PR gastam minutos de CI. | Antes de cada publicação, confira `uv tree --outdated --depth 1` em `apps/api` e `pnpm outdated` e `pnpm audit` em `apps/web`. | ENT-03, SEG-04, QA-05 |
+| 11.4 | 2026-11-07 | Limiar de cobertura no pytest e no Vitest, e mais tempo para as consultas `findBy` do projeto `dom` | Uma queda de cobertura passa na revisão sem ninguém ver. Com a máquina carregada, o Vitest pode falhar sem bug. | Rode o Vitest sozinho, sem o pytest em paralelo. Uma falha por tempo numa consulta `findBy` pede uma segunda rodada antes de virar defeito. | QA-02, QA-07 |

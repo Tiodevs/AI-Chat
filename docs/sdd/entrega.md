@@ -226,7 +226,7 @@ Implementar nesta ordem. Cada passo pode ser publicado em development e deixa os
 8. **Observabilidade completa.** Spans próprios, métricas, Prometheus e Grafana, painéis, alertas, fila de anotação do LangSmith, testes de redação.
 9. **Acabamento de experiência.** Auditoria de acessibilidade, teste de usabilidade da seção 15.9, revisão de movimento com e sem redução, metas de desempenho da seção 5.3.
 10. **Publicação.** `deploy.yml`, development, aprovação, produção e verificação de rollback.
-11. **Melhorias da auditoria.** As divergências entre o código e este documento e o endurecimento encontrados na auditoria de 2026-11-07, nesta ordem: entrega, custo e disponibilidade do LLM, resiliência da API, experiência do visitante, privacidade e qualidade de IA. São as Fases 11 a 16 do plano de ação. Cada etapa que muda comportamento atualiza a seção correspondente deste documento.
+11. **Melhorias da auditoria.** As divergências entre o código e este documento e o endurecimento encontrados na auditoria de 2026-11-07, nesta ordem: entrega, custo e disponibilidade do LLM, resiliência da API, experiência do visitante, privacidade e qualidade de IA. São as Fases 11 a 16 do plano de ação. Cada etapa que muda comportamento atualiza a seção correspondente deste documento. Da entrega, só a CI que não passa vazia entrou antes do custo do LLM: o rollback conferido, a CI endurecida e a cobertura medida ficaram como débito técnico em 2026-11-07, com o risco escrito na seção 6 do plano de ação.
 
 ## 24. Registros de decisão de arquitetura
 
