@@ -958,6 +958,8 @@ As Fases 11 a 16 vêm da auditoria de 2026-11-07 (SDD 23, passo 11). Elas fecham
 
 **Como testar.** Faça 15 perguntas numa conversa e confira no LangSmith o histórico enviado.
 
+**Resultado.** A janela é `history_window`, em `domain/history.py`: as últimas 6 trocas, até 6.000 caracteres somados, com as mensagens inteiras, começando por uma pergunta do visitante. O `QaWorkflow` a aplica no início de `run`, então reescrita e geração recebem o mesmo recorte, e o script `ask` e as avaliações seguem a mesma regra. O serviço continua lendo a conversa do banco como antes. O caso `follow-up` traz uma troca só e fica dentro da janela. O resultado dele nas avaliações desta PR fica na própria PR.
+
 #### Etapa 12.4 — Provedores, breaker e banco com vida de processo
 
 **Objetivo.** Criar uma vez por processo o que hoje nasce a cada pedido: provedores, circuit breaker, grafo e engine do banco.
@@ -1335,7 +1337,7 @@ A IA atualiza esta tabela em cada PR.
 | 11.4 | Cobertura medida | Débito técnico |
 | 12.1 | Orçamento obrigatório | Em revisão |
 | 12.2 | Todo token entra no orçamento | Em revisão |
-| 12.3 | Histórico com janela | Pendente |
+| 12.3 | Histórico com janela | Em revisão |
 | 12.4 | Provedores, breaker e banco com vida de processo | Pendente |
 | 12.5 | API acessível só pela Vercel | Pendente |
 | 13.1 | Loop de eventos livre | Pendente |

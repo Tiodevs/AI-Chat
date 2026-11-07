@@ -232,14 +232,16 @@ O corpo do pedido é `{ "text": "...", "client_message_id": "<uuid>" }`. O par `
 
 A classificação termina antes da primeira transação, para uma pergunta de orientação médica ser gravada já com o marcador `[health-related message not stored]`. Essa transação grava só a mensagem do visitante. A geração, quando existe, acontece com a transação fechada. A segunda transação grava a resposta. Nenhuma chamada ao modelo corre com transação aberta. O histórico enviado ao modelo é lido do banco nesse momento, então não contém o texto de uma pergunta médica anterior.
 
+Reescrita e geração recebem só a janela do histórico, para o custo de uma pergunta não crescer com a conversa: as últimas 6 trocas, até 6.000 caracteres somados, com as mensagens inteiras e na ordem da conversa. A janela começa sempre por uma pergunta do visitante, e uma mensagem que sozinha passa do limite fica de fora. A regra mora em `domain/history.py`, e o `QaWorkflow` a aplica antes dos dois passos.
+
 Passos dentro de `QaWorkflow`:
 
-1. **Reescrever.** Uma chamada de saída estruturada devolve `standalone_question`, `intent` (`public_info`, `medical_advice` ou `other`) e `confidence` de 0 a 1. O histórico entra para uma continuação poder ficar sozinha. Se o membro deu o consentimento de personalização, o `visitor_type` também entra. Este passo é rastreado no LangSmith só com metadados, porque a pergunta original pode conter dado de saúde.
+1. **Reescrever.** Uma chamada de saída estruturada devolve `standalone_question`, `intent` (`public_info`, `medical_advice` ou `other`) e `confidence` de 0 a 1. A janela do histórico entra para uma continuação poder ficar sozinha. Se o membro deu o consentimento de personalização, o `visitor_type` também entra. Este passo é rastreado no LangSmith só com metadados, porque a pergunta original pode conter dado de saúde.
 2. **Portão.** A recuperação só roda quando `intent` é `public_info` e `confidence` é pelo menos 0,6. `medical_advice` devolve a recusa fixa da seção 10. `other`, e qualquer resultado de baixa confiança, devolve a resposta fixa de fora de tema. O gerador não é chamado.
 3. **Embedar.** O texto enviado ao modelo de embedding é exatamente `task: question answering | query: {standalone_question}`.
 4. **Recuperar.** Seção 8.4.
 5. **Abster-se.** Se nenhum candidato alcança `RETRIEVAL_MIN_SIMILARITY` (padrão `0.50`), devolver a resposta fixa de abstenção. O gerador não é chamado.
-6. **Gerar.** Uma chamada de chat em fluxo recebe as regras de sistema, a conversa e blocos de contexto numerados. O contexto é embrulhado como dado não confiável.
+6. **Gerar.** Uma chamada de chat em fluxo recebe as regras de sistema, a janela da conversa e blocos de contexto numerados. O contexto é embrulhado como dado não confiável.
 7. **Fundamentar.** Funções puras do domínio conferem o rascunho. Uma citação só fica quando o marcador corresponde a um bloco recuperado. O marcador é `[n]`; o grupo `[n, m]` (ou com `;`) conta cada índice, porque o modelo às vezes agrupa, e a interface mostra um chip por índice. Uma resposta sem citação válida vira `grounding_failed`. Qualquer telefone no rascunho precisa aparecer no texto recuperado. Um número ausente vira `grounding_failed`.
 8. **Persistir.** O serviço grava a resposta final com desfecho, citações, modelo, versão do prompt, tokens, latência e o id do rastro do LangSmith. Quando `intent` é `medical_advice`, o conteúdo da mensagem do visitante é substituído por `[health-related message not stored]` antes da gravação.
 
