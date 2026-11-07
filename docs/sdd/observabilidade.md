@@ -127,7 +127,7 @@ Painéis no Grafana, versionados como JSON em `ops/grafana/`:
 | Atrium, cadastro | Funil por etapa e por caminho, abandono |
 | Atrium, privacidade | Pedidos abertos e atrasados, eliminações por regra |
 
-Alertas, com contato por e-mail para quem opera:
+Alertas, com contato num canal do Discord de quem opera:
 
 | Alerta | Condição |
 |---|---|
@@ -140,7 +140,7 @@ Alertas, com contato por e-mail para quem opera:
 | Pedido de titular atrasado | `atrium_dsr_open{overdue="true"}` acima de 0 |
 | Retenção parada | Nenhuma execução de `retention-job` em 26 horas |
 
-Os painéis, a fonte de dados e os alertas ficam em `ops/grafana/`, e a coleta em `ops/prometheus/`. O alerta de retenção parada dispara também quando a série não existe. O contato é o e-mail de `ALERT_EMAIL`, enviado pelo SMTP configurado no serviço do Grafana. A fila do LangSmith está em `docs/langsmith-fila-de-anotacao.md`.
+Os painéis, a fonte de dados e os alertas ficam em `ops/grafana/`, e a coleta em `ops/prometheus/`. O alerta de retenção parada dispara também quando a série não existe. O contato `atrium-operacao` posta no webhook do Discord em `DISCORD_WEBHOOK_URL`, um segredo que só existe no serviço do Grafana. Sem a variável, o provisionamento recusa o contato e o Grafana não sobe, então ela entra antes do deploy. O e-mail ficou de fora porque a Railway só libera SMTP de saída no plano Pro. A fila do LangSmith está em `docs/langsmith-fila-de-anotacao.md`.
 
 A página de qualidade do admin usa agregados do banco, não o Prometheus, para funcionar mesmo sem o Grafana.
 
