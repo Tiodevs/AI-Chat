@@ -20,10 +20,15 @@ class FakeChatProvider:
         structured_usage: tuple[int, int] = (0, 0),
         stream_usage: tuple[int, int] = (0, 0),
         tool_usage: tuple[int, int] = (0, 0),
+        token_usage: tuple[int, int] = (0, 0),
         model_name: str = "fake-chat",
         stream_hook: Callable[[], Awaitable[None]] | None = None,
         pause_after: int | None = None,
     ) -> None:
+        """`token_usage` entra a cada token do fluxo, como os pedaços do Gemini.
+
+        `stream_usage` entra só no fim, quando o fluxo termina sem cancelamento.
+        """
         self.model_name = model_name
         self.structured_calls: list[tuple[tuple[Message, ...], RunContext]] = []
         self.stream_calls: list[tuple[tuple[Message, ...], RunContext]] = []
@@ -36,6 +41,7 @@ class FakeChatProvider:
         self._structured_usage = structured_usage
         self._stream_usage = stream_usage
         self._tool_usage = tool_usage
+        self._token_usage = token_usage
         self._stream_hook = stream_hook
         self._pause_after = pause_after
 
@@ -91,6 +97,8 @@ class FakeChatProvider:
             if isinstance(self._tokens, Exception):
                 raise self._tokens
             for sent, token in enumerate(self._tokens or (), start=1):
+                run.input_tokens += self._token_usage[0]
+                run.output_tokens += self._token_usage[1]
                 yield token
                 if self._pause_after is not None and sent >= self._pause_after:
                     self.paused.set()
