@@ -19,6 +19,7 @@ from app.controllers.metrics import router as metrics_router
 from app.controllers.privacy import router as privacy_router
 from app.controllers.readiness import router as readiness_router
 from app.controllers.registration import router as registration_router
+from app.core.config import require_safeguards
 from app.core.container import get_settings
 from app.core.errors import register_exception_handlers
 from app.core.logging import configure_logging
@@ -45,6 +46,7 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
 def create_app() -> FastAPI:
     settings = get_settings()
     configure_logging(settings.log_level)
+    require_safeguards(settings)
     app = FastAPI(title="Atrium", version=__version__, lifespan=lifespan)
     app.add_middleware(ApiGuardMiddleware, web_origin=settings.web_origin)
     app.add_middleware(
