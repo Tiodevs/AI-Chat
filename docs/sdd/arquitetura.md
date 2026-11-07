@@ -177,7 +177,7 @@ ops/
 - **Nenhuma chamada ao Gemini ou ao LangSmith acontece com transação aberta.** Uma pergunta usa duas transações curtas: uma grava a mensagem do visitante, outra grava a resposta. A unidade de trabalho registra um aviso no log quando fica aberta por mais de 2 segundos.
 - **Ingestão.** A extração de PDF e o divisor de chunks rodam num threadpool, fora do loop de eventos. Embeddings rodam com no máximo 4 pedidos simultâneos.
 - **Semente e criação do admin** rodam no comando de pré-implantação, nunca na inicialização da API. Os dois pegam um `pg_advisory_lock` antes de agir, então duas execuções simultâneas não duplicam nada.
-- **Desconexão do cliente.** Se o navegador fecha o fluxo, o gerador é cancelado, a resposta é gravada com desfecho `cancelled` e o conteúdo parcial é descartado.
+- **Desconexão do cliente.** Se o navegador fecha o fluxo, o gerador é cancelado, a resposta é gravada com desfecho `cancelled` e o conteúdo parcial é descartado. Os tokens que o adaptador já contou ficam: entram na mensagem, em `token_usage_days` e em `atrium_llm_tokens`, porque o Google cobra por eles.
 
 ### 6.5 Caminho de escala
 
@@ -264,6 +264,7 @@ Desfechos gravados na resposta: `answered`, `abstained`, `refused`, `off_topic`,
 
 - `LLM_DAILY_TOKEN_BUDGET` limita a soma de tokens de entrada e saída por dia UTC. O contador fica em `token_usage_days`. Zero desliga o teto, e o contador continua gravando quando há uso. Zero só vale com `APP_ENV` `local` ou `test`: em `development` e `production`, a API não sobe com o teto menor ou igual a zero, nem com `RATE_LIMIT_HMAC_KEY` ou `PSEUDONYM_KEY` vazias, e o erro diz quais variáveis faltam. A conferência fica na subida da API (`create_app`), não em todo `Settings`, porque o `retention-job` lê a mesma configuração sem essas variáveis.
 - Acima de 80% do orçamento, a API registra o log `budget.warning`. O alerta do Prometheus entra na seção 18.3. A partir de 100%, inclusive quando o uso iguala o teto, perguntas recebem a resposta fixa de indisponibilidade com o telefone da mesa, desfecho `degraded`, e o cadastro por chat oferece só o formulário.
+- Todo token entra no contador: os das perguntas, os de cada turno do cadastro por chat e os de uma resposta cancelada, quebrada ou repetida no meio. O uso de uma pergunta é a soma dos `RunContext` das chamadas daquele pedido, que o adaptador preenche a cada pedaço do fluxo, então a soma vale também quando a resposta não chega ao fim.
 - O circuit breaker do Gemini abre depois de 5 falhas seguidas e fica aberto por 60 segundos. Com o circuito aberto, o comportamento é o mesmo do orçamento estourado: desfecho `degraded`, sem chamar o gerador.
 - Uma falha do provedor com o circuito fechado grava desfecho `error` e mostra o mesmo texto de indisponibilidade. O gerador não é chamado se a falha acontece antes dele.
 
@@ -300,6 +301,8 @@ O grafo do LangGraph tem três nós e não usa checkpointer. O serviço carrega 
 1. `extract` chama o Gemini com uma ferramenta, `set_fields`. O schema da ferramenta contém só `full_name`, `email`, `phone`, `visitor_type`, `visit_reason` e `skip_current`. Chaves extras são rejeitadas. `visitor_type` e `visit_reason` são enums.
 2. O serviço valida a carga com as mesmas regras do formulário, grava os campos aceitos e registra um e-mail já usado como erro de campo, sem sobrescrever o e-mail armazenado.
 3. `decide_next` é a função do domínio que escolhe o próximo passo. `phrase` pede ao Gemini uma resposta curta para esse passo, vendo a mensagem do visitante. Se a mensagem é uma dúvida e não traz um campo, o passo não muda: a frase responde e pede o dado de novo. No passo de revisão, `phrase` também não chama o Gemini: a resposta é fixa e lista os campos entendidos, com os rótulos em português, seguida da pergunta "Está tudo certo?". Nos outros passos, o Gemini recebe a pergunta modelo do passo e mantém as opções dela. Quando a mensagem gera erro de campo, como e-mail já usado ou inválido, `phrase` não chama o Gemini: a resposta é fixa, explica o erro e pede o mesmo dado de novo. Assim o modelo não trata o valor recusado como aceito nem pula para outro campo. Se a chamada ao Gemini falha, o serviço usa a frase modelo do passo. Com o provedor indisponível, a API responde 503 e a tela avisa na própria conversa, oferecendo tentar de novo ou usar o formulário.
+
+O cadastro por chat usa o mesmo orçamento das perguntas (seção 7.1). Antes de cada turno, o serviço consulta o teto: estourado, a mensagem responde 503 com o código `degraded`, sem chamar o Gemini e sem gravar a mensagem na transcrição, e a tela oferece o formulário, como na indisponibilidade. Depois do turno, os tokens da extração e da frase entram em `token_usage_days`. O formulário não chama o modelo e não consulta o orçamento.
 
 A resposta de cada turno traz `fields` com o que foi entendido, `field_errors`, `next_step` e `prompt`. A interface mostra os campos entendidos num cartão editável, que a pessoa abre ao lado do chat.
 

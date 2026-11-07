@@ -939,6 +939,8 @@ As Fases 11 a 16 vêm da auditoria de 2026-11-07 (SDD 23, passo 11). Elas fecham
 
 **Como testar.** Com `LLM_DAILY_TOKEN_BUDGET=1` na máquina local, faça uma pergunta e depois abra `/register`.
 
+**Resultado.** O `RegistrationService` recebe o `PostgresTokenBudget`: com o teto estourado, a mensagem responde 503 com o código `degraded` e "O cadastro por conversa está indisponível. Use o formulário.", sem chamar o modelo e sem gravar a mensagem, e a tela oferece o formulário como já fazia num 503. Depois de cada turno, os tokens da extração e da frase entram no contador. O uso de uma pergunta passou a vir do `UsageTally`, a soma dos `RunContext` do pedido, que o adaptador preenche a cada pedaço do fluxo. Assim, uma resposta cancelada grava na mensagem, em `token_usage_days` e em `atrium_llm_tokens` o que o modelo já gerou, e o mesmo vale para uma resposta que quebra no meio ou que perde a corrida de um reenvio. Na API local com o adaptador `demo`, o teto em 1 e o contador do dia já cheio, a mensagem do cadastro respondeu 503 `degraded`.
+
 #### Etapa 12.3 — Histórico com janela
 
 **Objetivo.** Limitar o histórico que vai ao modelo, para o custo de uma pergunta não crescer com a conversa.
@@ -1332,7 +1334,7 @@ A IA atualiza esta tabela em cada PR.
 | 11.3 | CI endurecida e dependências vigiadas | Débito técnico |
 | 11.4 | Cobertura medida | Débito técnico |
 | 12.1 | Orçamento obrigatório | Em revisão |
-| 12.2 | Todo token entra no orçamento | Pendente |
+| 12.2 | Todo token entra no orçamento | Em revisão |
 | 12.3 | Histórico com janela | Pendente |
 | 12.4 | Provedores, breaker e banco com vida de processo | Pendente |
 | 12.5 | API acessível só pela Vercel | Pendente |

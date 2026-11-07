@@ -9,10 +9,12 @@ from uuid import UUID, uuid4
 import pytest
 
 from app.adapters.fake_chat import FakeChatProvider
+from app.core.metrics import REGISTRY
 from app.domain.embedding_text import query_embedding_text
 from app.domain.errors import CircuitOpen, ProviderUnavailable
 from app.domain.outcomes import Outcome, gate_outcome
 from app.domain.trace_policy import TraceEvent
+from app.ports.chat import UsageTally
 from app.prompts.qa import (
     ABSTENTION,
     GENERATE_PROMPT_VERSION,
@@ -297,6 +299,53 @@ def test_workflow_streams_tokens_and_keeps_the_given_run_id() -> None:
     assert result.outcome is Outcome.ANSWERED
     assert sink.intents == ["public_info"]
     assert sink.tokens == ["11:00 ", "[1]."]
+
+
+def test_cancelled_generation_leaves_the_partial_usage_in_the_tally() -> None:
+    """Etapa 12.2: o uso já contado de uma resposta cancelada no meio chega a quem chamou."""
+    chat = FakeChatProvider(
+        structured=_classification("Horário de visita", "public_info", 0.9),
+        structured_usage=(20, 3),
+        tokens=["11:00 ", "[1]."],
+        token_usage=(0, 5),
+        stream_usage=(40, 0),
+        pause_after=1,
+    )
+    workflow = QaWorkflow(chat, _Embeddings(), _Search([_hit()]), minimum_similarity=0.5)
+    tally = UsageTally()
+    labels = {"model": "fake-chat", "direction": "output"}
+    before = REGISTRY.get_sample_value("atrium_llm_tokens_total", labels) or 0.0
+
+    async def cancel_midway() -> None:
+        task = asyncio.create_task(
+            workflow.run("Qual é o horário?", request_id="req-1", usage=tally)
+        )
+        await asyncio.wait_for(chat.paused.wait(), timeout=3)
+        task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await task
+
+    asyncio.run(cancel_midway())
+    after = REGISTRY.get_sample_value("atrium_llm_tokens_total", labels) or 0.0
+    assert (tally.input_tokens, tally.output_tokens) == (20, 8)
+    assert len(tally.runs) == 2
+    assert after - before == 8
+
+
+def test_tally_matches_the_tokens_of_a_complete_answer() -> None:
+    chat = FakeChatProvider(
+        structured=_classification("Horário de visita", "public_info", 0.9),
+        structured_usage=(20, 3),
+        tokens=["11:00 ", "[1]."],
+        token_usage=(0, 5),
+        stream_usage=(40, 0),
+    )
+    workflow = QaWorkflow(chat, _Embeddings(), _Search([_hit()]), minimum_similarity=0.5)
+    tally = UsageTally()
+    result = asyncio.run(workflow.run("Qual é o horário?", request_id="req-1", usage=tally))
+    assert result.outcome is Outcome.ANSWERED
+    assert (result.input_tokens, result.output_tokens) == (60, 13)
+    assert (tally.input_tokens, tally.output_tokens) == (60, 13)
 
 
 def test_medical_advice_is_classified_without_tokens() -> None:

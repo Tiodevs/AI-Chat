@@ -30,6 +30,7 @@ from app.domain.questions import (
 from app.domain.retrieval import RetrievedChunk
 from app.main import create_app
 from app.models.guest_key import GuestKey
+from app.models.message import Message
 from app.models.rate_limit_window import RateLimitWindow
 from app.models.token_usage_day import TokenUsageDay
 from app.prompts.conversations import (
@@ -42,6 +43,7 @@ from app.prompts.conversations import (
 )
 from app.prompts.qa import ABSTENTION, MEDICAL_ADVICE
 from app.repositories.conversations import ConversationRepository, MessageRecord
+from app.repositories.token_usage import TokenUsageRepository
 from app.workflows.qa import QaWorkflow, QuestionClassification
 from tests.integration.test_auth import (
     HMAC_KEY,
@@ -151,6 +153,28 @@ def test_disconnect_stores_cancelled_and_discards_the_partial(
 ) -> None:
     _configure(monkeypatch, migrated_database)
     asyncio.run(_disconnect(migrated_database))
+
+
+def test_disconnect_records_the_partial_usage(
+    monkeypatch: pytest.MonkeyPatch,
+    migrated_database: str,
+) -> None:
+    """CA-3 da Etapa 12.2: os tokens que o modelo já gerou entram na mensagem e no orçamento."""
+    _configure(monkeypatch, migrated_database)
+    chat = FakeChatProvider(
+        structured=_classification("Horário de visita", "public_info", 0.9),
+        structured_usage=(20, 3),
+        tokens=["rascunho parcial", "resto"],
+        token_usage=(0, 5),
+        stream_usage=(40, 0),
+        pause_after=1,
+    )
+    before = asyncio.run(_day_usage(migrated_database))
+    stored, tokens = asyncio.run(_cancel_after_first_token(migrated_database, chat))
+    after = asyncio.run(_day_usage(migrated_database))
+    assert _assistant(stored).outcome == "cancelled"
+    assert tokens == (20, 8)
+    assert (after[0] - before[0], after[1] - before[1]) == (20, 8)
 
 
 def test_medical_question_is_stored_as_the_marker(
@@ -671,17 +695,30 @@ class _Search:
 
 
 async def _disconnect(database_url: str) -> None:
-    application = create_app()
-    application.dependency_overrides[get_clock] = FrozenClock
     chat = FakeChatProvider(
         structured=_classification("Horário de visita", "public_info", 0.9),
         tokens=["rascunho parcial", "resto"],
         pause_after=1,
     )
+    stored, _tokens = await _cancel_after_first_token(database_url, chat)
+    assistant = _assistant(stored)
+    user = next(row for row in stored if row.role == "user")
+    assert assistant.outcome == "cancelled"
+    assert assistant.content == ""
+    assert "rascunho parcial" not in assistant.content
+    assert user.content == VISITING
+
+
+async def _cancel_after_first_token(
+    database_url: str,
+    chat: FakeChatProvider,
+) -> tuple[list[MessageRecord], tuple[int, int]]:
+    """Desconecta depois do primeiro token. Devolve as mensagens e os tokens da resposta."""
+    application = create_app()
+    application.dependency_overrides[get_clock] = FrozenClock
     application.dependency_overrides[get_qa_workflow] = lambda: _workflow(chat, [_hit()])
     transport = ASGITransport(app=application)
     secret = ""
-    conversation_id = ""
     try:
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             created = await client.post("/v1/conversations", headers=_headers())
@@ -690,15 +727,27 @@ async def _disconnect(database_url: str) -> None:
             conversation_id = created.json()["id"]
         await _close_after_first_token(application, conversation_id, secret)
         stored = await _messages(database_url, UUID(conversation_id))
+        tokens = await _message_tokens(database_url, _assistant(stored).id)
     finally:
         if secret:
             await _delete_guest(database_url, secret)
-    assistant = _assistant(stored)
-    user = next(row for row in stored if row.role == "user")
-    assert assistant.outcome == "cancelled"
-    assert assistant.content == ""
-    assert "rascunho parcial" not in assistant.content
-    assert user.content == VISITING
+    return stored, tokens
+
+
+async def _message_tokens(database_url: str, message_id: UUID) -> tuple[int, int]:
+    async with open_session(database_url) as session, UnitOfWork(session):
+        row = (
+            await session.execute(
+                select(Message.input_tokens, Message.output_tokens).where(Message.id == message_id)
+            )
+        ).one()
+    return (row.input_tokens, row.output_tokens)
+
+
+async def _day_usage(database_url: str) -> tuple[int, int]:
+    async with open_session(database_url) as session, UnitOfWork(session):
+        return await TokenUsageRepository(session).totals(FIXED.date())
+    raise AssertionError("token usage")
 
 
 async def _close_after_first_token(app: object, conversation_id: str, secret: str) -> None:

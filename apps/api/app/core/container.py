@@ -35,6 +35,7 @@ def get_registration_service(
     from app.adapters.langsmith_tracing import tracer_for
     from app.adapters.password_hasher import get_password_hasher
     from app.ports.tracing import NullTracer
+    from app.services.budget import PostgresTokenBudget
     from app.services.registration import RegistrationService
     from app.workflows.registration import RegistrationWorkflow
 
@@ -47,6 +48,11 @@ def get_registration_service(
         workflow=RegistrationWorkflow(
             build_chat_provider(settings),
             tracer=tracer_for(settings) or NullTracer(),
+        ),
+        budget=PostgresTokenBudget(
+            settings.database_url,
+            clock,
+            settings.llm_daily_token_budget,
         ),
     )
 

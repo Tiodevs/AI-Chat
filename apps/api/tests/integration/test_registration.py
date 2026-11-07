@@ -21,13 +21,16 @@ from app.main import create_app
 from app.models.consent_record import ConsentRecord
 from app.models.rate_limit_window import RateLimitWindow
 from app.models.registration_session import RegistrationSession
+from app.models.token_usage_day import TokenUsageDay
 from app.models.user import User
 from app.ports.chat import ToolResult
-from app.prompts.registration import EMAIL_TAKEN, prompt_for
+from app.prompts.registration import EMAIL_TAKEN, REGISTRATION_UNAVAILABLE, prompt_for
 from app.repositories.auth_sessions import AuthSessionRepository
+from app.repositories.token_usage import TokenUsageRepository
 from app.repositories.users import UserRepository
+from app.services.budget import PostgresTokenBudget
 from app.services.registration import RegistrationService
-from app.workflows.registration import RegistrationWorkflow
+from app.workflows.registration import PhraseText, RegistrationWorkflow
 
 pytestmark = pytest.mark.integration
 
@@ -36,6 +39,7 @@ HMAC_KEY = "test-hmac-key"
 PASSWORD = "correct-horse-1"
 SECRET_PASSWORD = "senha-que-nao-pode-vazar"
 FIXED = datetime(2026, 10, 28, 3, 0, tzinfo=UTC)
+BUDGET_DAY = datetime(2026, 10, 30, 12, 0, tzinfo=UTC)
 
 
 class FrozenClock:
@@ -48,13 +52,34 @@ def chat() -> FakeChatProvider:
     return FakeChatProvider()
 
 
+class BudgetClock:
+    """Dia só dos testes de orçamento, para o contador começar vazio."""
+
+    def now(self) -> datetime:
+        return BUDGET_DAY
+
+
 @pytest.fixture
 def api(
     monkeypatch: pytest.MonkeyPatch,
     migrated_database: str,
     chat: FakeChatProvider,
 ) -> TestClient:
-    monkeypatch.setenv("DATABASE_URL", migrated_database)
+    return _client(
+        monkeypatch,
+        migrated_database,
+        chat,
+        PostgresTokenBudget(migrated_database, FrozenClock(), daily_budget=0),
+    )
+
+
+def _client(
+    monkeypatch: pytest.MonkeyPatch,
+    database_url: str,
+    chat: FakeChatProvider,
+    budget: PostgresTokenBudget,
+) -> TestClient:
+    monkeypatch.setenv("DATABASE_URL", database_url)
     monkeypatch.setenv("RATE_LIMIT_HMAC_KEY", HMAC_KEY)
     monkeypatch.setenv("WEB_ORIGIN", ORIGIN)
     monkeypatch.setenv("APP_ENV", "local")
@@ -63,14 +88,75 @@ def api(
     application = create_app()
     application.dependency_overrides[get_clock] = FrozenClock
     application.dependency_overrides[get_registration_service] = lambda: RegistrationService(
-        database_url=migrated_database,
+        database_url=database_url,
         clock=FrozenClock(),
         hasher=_hasher(),
         hmac_key=HMAC_KEY,
         app_env="local",
         workflow=RegistrationWorkflow(chat),
+        budget=budget,
     )
     return TestClient(application)
+
+
+def test_exceeded_budget_offers_the_form_without_calling_the_model(
+    monkeypatch: pytest.MonkeyPatch,
+    migrated_database: str,
+) -> None:
+    """CA-1 da Etapa 12.2. Seção 7.1: com o teto estourado, o cadastro oferece o formulário."""
+    chat = FakeChatProvider(
+        tool_result=ToolResult(name="set_fields", arguments={"full_name": "Ana Costa"}),
+        structured=PhraseText(text="Qual é o seu e-mail?"),
+    )
+    budget = PostgresTokenBudget(migrated_database, BudgetClock(), daily_budget=10)
+    client = _client(monkeypatch, migrated_database, chat, budget)
+    _run(_set_usage(migrated_database, input_tokens=10, output_tokens=0))
+    session_id = _start(client)
+    try:
+        response = client.post(
+            f"/v1/registration/sessions/{session_id}/messages",
+            headers=_headers(),
+            json={"text": "Ana Costa"},
+        )
+        transcript, _hash, status = _run(_session_secret(migrated_database, session_id))
+    finally:
+        _run(_cleanup(migrated_database, [], [session_id]))
+        _run(_delete_usage(migrated_database))
+    assert response.status_code == 503
+    assert response.json()["error"]["code"] == "degraded"
+    assert response.json()["error"]["message"] == REGISTRATION_UNAVAILABLE
+    assert chat.tool_calls == []
+    assert chat.structured_calls == []
+    assert len(transcript) == 1
+    assert status == "collecting_required"
+
+
+def test_each_chat_turn_adds_its_tokens_to_the_daily_counter(
+    monkeypatch: pytest.MonkeyPatch,
+    migrated_database: str,
+) -> None:
+    """CA-2 da Etapa 12.2: extração e frase de cada turno entram em `token_usage_days`."""
+    chat = FakeChatProvider(
+        structured=PhraseText(text="Pode me dizer o próximo dado?"),
+        tool_usage=(30, 5),
+        structured_usage=(12, 4),
+    )
+    budget = PostgresTokenBudget(migrated_database, BudgetClock(), daily_budget=1_000)
+    client = _client(monkeypatch, migrated_database, chat, budget)
+    _run(_delete_usage(migrated_database))
+    session_id = _start(client)
+    try:
+        _say(client, chat, session_id, "Ana Costa", {"full_name": "Ana Costa"})
+        first = _run(_usage(migrated_database))
+        email = _email("budget")
+        _say(client, chat, session_id, email, {"email": email})
+        second = _run(_usage(migrated_database))
+    finally:
+        _run(_cleanup(migrated_database, [], [session_id]))
+        _run(_delete_usage(migrated_database))
+    assert len(chat.tool_calls) == len(chat.structured_calls) == 2
+    assert first == (42, 9)
+    assert second == (84, 18)
 
 
 def test_registration_password_endpoint_logs_omit_the_password(
@@ -518,6 +604,29 @@ async def _session_secret(
         if row is None:
             raise AssertionError(session_id)
         return list(row.transcript), row.password_hash, row.status
+
+
+async def _set_usage(database_url: str, *, input_tokens: int, output_tokens: int) -> None:
+    await _delete_usage(database_url)
+    async with open_session(database_url) as session, UnitOfWork(session):
+        session.add(
+            TokenUsageDay(
+                day=BUDGET_DAY.date(),
+                input_tokens=input_tokens,
+                output_tokens=output_tokens,
+            )
+        )
+
+
+async def _usage(database_url: str) -> tuple[int, int]:
+    async with open_session(database_url) as session, UnitOfWork(session):
+        return await TokenUsageRepository(session).totals(BUDGET_DAY.date())
+    raise AssertionError("token usage")
+
+
+async def _delete_usage(database_url: str) -> None:
+    async with open_session(database_url) as session, UnitOfWork(session):
+        await session.execute(delete(TokenUsageDay).where(TokenUsageDay.day == BUDGET_DAY.date()))
 
 
 async def _cleanup(database_url: str, emails: list[str], session_ids: list[str]) -> None:

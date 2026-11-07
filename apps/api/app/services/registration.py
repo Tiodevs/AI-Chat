@@ -21,6 +21,7 @@ from app.domain.auth import (
     session_cookie,
 )
 from app.domain.errors import (
+    BudgetExceeded,
     Conflict,
     DomainError,
     NotFound,
@@ -65,6 +66,7 @@ from app.domain.registration import (
     session_is_expired,
     with_issue,
 )
+from app.ports.budget import TokenBudget
 from app.ports.clock import Clock
 from app.ports.password_hasher import PasswordHasher
 from app.prompts.registration import (
@@ -136,6 +138,7 @@ class RegistrationService:
         hmac_key: str,
         app_env: str,
         workflow: RegistrationWorkflow,
+        budget: TokenBudget,
     ) -> None:
         self._database_url = database_url
         self._clock = clock
@@ -143,6 +146,7 @@ class RegistrationService:
         self._hmac_key = hmac_key
         self._app_env = app_env
         self._workflow = workflow
+        self._budget = budget
 
     async def start(self) -> SessionView:
         now = self._clock.now()
@@ -178,6 +182,9 @@ class RegistrationService:
         record, machine = await self._open(session_id)
         if not accepts_message(machine):
             raise ValidationFailed(WRONG_STEP)
+        # Seção 7.1: com o teto estourado, o cadastro por chat oferece só o formulário.
+        if await self._budget.exceeded():
+            raise BudgetExceeded(REGISTRATION_UNAVAILABLE)
         try:
             result = await self._workflow.turn(
                 machine,
@@ -187,6 +194,7 @@ class RegistrationService:
             )
         except ProviderUnavailable:
             raise ProviderUnavailable(REGISTRATION_UNAVAILABLE) from None
+        await self._budget.record(result.input_tokens, result.output_tokens)
         now = self._clock.now()
         transcript = (
             *load_transcript(record.transcript),

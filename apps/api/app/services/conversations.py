@@ -63,6 +63,7 @@ from app.domain.questions import (
 )
 from app.domain.trace_policy import TraceMetadata
 from app.ports.budget import TokenBudget
+from app.ports.chat import UsageTally
 from app.ports.clock import Clock
 from app.ports.feedback import FeedbackSink
 from app.prompts.auth import UNAUTHENTICATED, VALIDATION
@@ -487,11 +488,13 @@ class _AskStream:
         self._disconnected = disconnected
         self.queue: asyncio.Queue[object] = asyncio.Queue()
         self.tokens_seen = 0
+        self.usage = UsageTally()
         self._lock = asyncio.Lock()
         self._user_lock = asyncio.Lock()
         self._user_saved = False
         self._duplicate = False
         self._stored = False
+        self._usage_recorded = False
         self._result: QaResult | None = None
         self._error: BaseException | None = None
         self._started = time.perf_counter()
@@ -562,6 +565,7 @@ class _AskStream:
                 run_id=self._prepared.assistant_message_id,
                 events=_Sink(self),
                 trace_metadata=self._service._trace_metadata(self._prepared),
+                usage=self.usage,
             )
         except asyncio.CancelledError:
             raise
@@ -617,41 +621,47 @@ class _AskStream:
             self._user_saved = True
 
     async def _finish(self) -> None:
-        tokens = (0, 0)
+        """Grava a resposta uma vez e põe no orçamento o uso que os adaptadores contaram.
+
+        O uso vem dos `RunContext` do pedido, então uma resposta cancelada, quebrada ou
+        repetida também paga os tokens que o modelo já gerou. Seções 6.4 e 7.1 do SDD.
+        """
         async with self._lock:
-            if self._stored or self._duplicate:
-                self._stored = True
+            await self._store()
+            if self._usage_recorded:
                 return
-            result = self._result
-            try:
-                await self.save_user(None if result is None else result.intent)
-            except DuplicateClientMessage as exc:
-                self._error = exc
-                self._stored = True
-                return
-            await self._save_assistant(result)
+            self._usage_recorded = True
+        await self._service._budget.record(self.usage.input_tokens, self.usage.output_tokens)
+
+    async def _store(self) -> None:
+        if self._stored or self._duplicate:
             self._stored = True
-            if result is not None:
-                tokens = (result.input_tokens, result.output_tokens)
-        await self._service._budget.record(tokens[0], tokens[1])
+            return
+        result = self._result
+        try:
+            await self.save_user(None if result is None else result.intent)
+        except DuplicateClientMessage as exc:
+            self._error = exc
+            self._stored = True
+            return
+        await self._save_assistant(result)
+        self._stored = True
 
     async def _save_assistant(self, result: QaResult | None) -> None:
+        input_tokens = self.usage.input_tokens
+        output_tokens = self.usage.output_tokens
         if result is None:
             outcome = Outcome.CANCELLED.value
             text = ""
             citations: tuple[Citation, ...] = ()
             model = None
             prompt_version = None
-            input_tokens = 0
-            output_tokens = 0
         else:
             outcome = result.outcome.value
             text = result.text
             citations = result.citations
             model = result.model
             prompt_version = result.prompt_version
-            input_tokens = result.input_tokens
-            output_tokens = result.output_tokens
         latency_ms = max(0, int((time.perf_counter() - self._started) * 1000))
         try:
             async with (

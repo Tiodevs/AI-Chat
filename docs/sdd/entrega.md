@@ -64,6 +64,8 @@ O job padrão usa `FakeChatProvider`, `DeterministicEmbeddingProvider` e `NoopFe
 | Mensagem repetida com o mesmo `client_message_id` devolve 409 | Seção 7.1 |
 | Desconexão grava `cancelled` | Seção 6.4 |
 | Orçamento estourado devolve `degraded` sem chamar o gerador | NFR-13 |
+| Com o orçamento estourado, a mensagem do cadastro por chat responde 503 sem chamar o modelo, e os tokens de cada turno entram no contador | NFR-13, seção 7.2 |
+| Uma resposta cancelada no meio grava o uso parcial na mensagem e no contador | NFR-13, seção 6.4 |
 | Em `development` e `production`, a API não sobe com o teto de tokens desligado ou com chave de HMAC vazia | NFR-13, seção 10.4 |
 | Um membro não chama rota de admin | NFR-10 |
 | Pedido de mudança de estado com `Origin` diferente devolve 403 | NFR-12 |

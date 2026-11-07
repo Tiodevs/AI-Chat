@@ -278,3 +278,4 @@ Não há decisões em aberto. Nenhuma decisão bloqueia as Etapas 1 a 4.
 | 1.13 | 2026-11-07 | Alertas no Discord: o contato `atrium-operacao` posta no webhook de `DISCORD_WEBHOOK_URL`, porque a Railway só libera SMTP no plano Pro (seção 18.3). |
 | 1.14 | 2026-11-07 | Ordem de construção: rollback conferido, CI endurecida e cobertura medida ficam como débito técnico, e o custo do LLM entra antes deles (seção 23). |
 | 1.15 | 2026-11-07 | Orçamento obrigatório: em `development` e `production`, a API não sobe com `LLM_DAILY_TOKEN_BUDGET` menor ou igual a zero nem com `RATE_LIMIT_HMAC_KEY` ou `PSEUDONYM_KEY` vazias, conferido em `create_app` (seções 7.1, 10.4, 19 e 22.1). |
+| 1.16 | 2026-11-07 | Todo token entra no orçamento: o cadastro por chat consulta o teto antes de cada turno e grava os tokens depois, e uma resposta cancelada grava o uso parcial que o adaptador já contou (seções 6.4, 7.1 e 7.2). |

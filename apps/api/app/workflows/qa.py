@@ -25,7 +25,7 @@ from app.domain.outcomes import Outcome, gate_outcome
 from app.domain.ranking import RESULT_LIMIT
 from app.domain.retrieval import RetrievedChunk
 from app.domain.trace_policy import TraceMetadata, question_traces
-from app.ports.chat import ChatProvider, Message, RunContext
+from app.ports.chat import ChatProvider, Message, RunContext, UsageTally
 from app.ports.embedding import EmbeddingProvider
 from app.ports.search import HybridSearch
 from app.ports.tracing import NullTracer, TraceRecorder
@@ -146,15 +146,20 @@ class QaWorkflow:
         run_id: UUID | None = None,
         events: QaEventSink | None = None,
         trace_metadata: TraceMetadata | None = None,
+        usage: UsageTally | None = None,
     ) -> QaResult:
+        """`usage` recebe cada chamada ao modelo, para quem chama ler o uso parcial."""
         observed = _Observed()
+        tally = UsageTally() if usage is None else usage
         active_run_id = uuid4() if run_id is None else run_id
-        rewrite = _run_context(
-            run_id=active_run_id,
-            request_id=request_id,
-            prompt_version=REWRITE_PROMPT_VERSION,
-            trace_policy="metadata_only",
-            temperature=CLASSIFICATION_TEMPERATURE,
+        rewrite = tally.track(
+            _run_context(
+                run_id=active_run_id,
+                request_id=request_id,
+                prompt_version=REWRITE_PROMPT_VERSION,
+                trace_policy="metadata_only",
+                temperature=CLASSIFICATION_TEMPERATURE,
+            )
         )
         try:
             return await self._execute(
@@ -166,6 +171,7 @@ class QaWorkflow:
                 observed=observed,
                 active_run_id=active_run_id,
                 rewrite=rewrite,
+                tally=tally,
             )
         finally:
             if observed.result is not None:
@@ -176,6 +182,9 @@ class QaWorkflow:
                     request_id=request_id,
                     trace_metadata=trace_metadata,
                 )
+            else:
+                # Cancelada ou quebrada no meio: os tokens já cobrados entram na métrica.
+                _count_tokens(self._chat.model_name, tally.input_tokens, tally.output_tokens)
 
     async def _execute(
         self,
@@ -188,6 +197,7 @@ class QaWorkflow:
         observed: _Observed,
         active_run_id: UUID,
         rewrite: RunContext,
+        tally: UsageTally,
     ) -> QaResult:
         try:
             with traced_span(
@@ -279,12 +289,14 @@ class QaWorkflow:
                 ),
             )
 
-        generate = _run_context(
-            run_id=active_run_id,
-            request_id=request_id,
-            prompt_version=GENERATE_PROMPT_VERSION,
-            trace_policy="masked",
-            temperature=ANSWER_TEMPERATURE,
+        generate = tally.track(
+            _run_context(
+                run_id=active_run_id,
+                request_id=request_id,
+                prompt_version=GENERATE_PROMPT_VERSION,
+                trace_policy="masked",
+                temperature=ANSWER_TEMPERATURE,
+            )
         )
         parts: list[str] = []
         try:
@@ -465,8 +477,12 @@ def _history(history: Sequence[ConversationTurn]) -> list[Message]:
 
 def _count_outcome(result: QaResult, model: str) -> None:
     QA_OUTCOMES.labels(outcome=result.outcome.value).inc()
-    LLM_TOKENS.labels(model=model, direction="input").inc(result.input_tokens)
-    LLM_TOKENS.labels(model=model, direction="output").inc(result.output_tokens)
+    _count_tokens(model, result.input_tokens, result.output_tokens)
+
+
+def _count_tokens(model: str, input_tokens: int, output_tokens: int) -> None:
+    LLM_TOKENS.labels(model=model, direction="input").inc(input_tokens)
+    LLM_TOKENS.labels(model=model, direction="output").inc(output_tokens)
 
 
 def _keep(observed: _Observed, result: QaResult) -> QaResult:
