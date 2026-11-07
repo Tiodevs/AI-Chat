@@ -91,7 +91,7 @@ def test_cors_allows_only_the_frontend_origin(monkeypatch: pytest.MonkeyPatch) -
 EDGE_SECRET = "segredo-da-borda"
 
 
-def _cloud_client(monkeypatch: pytest.MonkeyPatch, *, edge_secret: str = EDGE_SECRET) -> TestClient:
+def _cloud_client(monkeypatch: pytest.MonkeyPatch) -> TestClient:
     monkeypatch.setenv("WEB_ORIGIN", ORIGIN)
     monkeypatch.setenv("APP_ENV", "production")
     monkeypatch.setenv("DATABASE_URL", "")
@@ -99,7 +99,7 @@ def _cloud_client(monkeypatch: pytest.MonkeyPatch, *, edge_secret: str = EDGE_SE
     monkeypatch.setenv("RATE_LIMIT_HMAC_KEY", "hmac-key")
     monkeypatch.setenv("PSEUDONYM_KEY", "pseudonym-key")
     monkeypatch.setenv("METRICS_TOKEN", "metrics-token")
-    monkeypatch.setenv("EDGE_SECRET", edge_secret)
+    monkeypatch.setenv("EDGE_SECRET", EDGE_SECRET)
     get_settings.cache_clear()
     return TestClient(create_app())
 
@@ -154,11 +154,3 @@ def test_local_and_test_do_not_require_the_edge_secret(
     monkeypatch.setenv("EDGE_SECRET", EDGE_SECRET)
     get_settings.cache_clear()
     assert TestClient(create_app()).get("/v1/legal/versions").status_code == 200
-
-
-def test_cloud_without_edge_secret_keeps_v1_open_until_the_railway_has_it(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """Etapa 12.5a: a API só exige o cabeçalho depois que EDGE_SECRET chega à Railway."""
-    client = _cloud_client(monkeypatch, edge_secret="")
-    assert client.get("/v1/legal/versions").status_code == 200
