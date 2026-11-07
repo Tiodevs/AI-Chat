@@ -979,6 +979,8 @@ As Fases 11 a 16 vêm da auditoria de 2026-11-07 (SDD 23, passo 11). Elas fecham
 
 **Como testar.** Em development, troque a chave do Gemini por uma inválida e confira que o sexto pedido degrada na hora. Depois volte a chave.
 
+**Resultado.** O `AiRuntime`, em `app/core/container.py`, guarda o provedor de chat, com o circuito, o `QaWorkflow` e o grafo do cadastro, e as perguntas e o cadastro usam o mesmo provedor. O `lifespan` o monta e o põe em `app.state`; um app sem `lifespan`, como um `TestClient` sem `with`, o monta no primeiro uso. O `lifespan` também abre o engine com pool em `app/db/session.py` e o fecha no fim. O pool é registrado por loop de eventos, porque o asyncpg prende a conexão ao loop que a abriu, então scripts, o `retention-job` e os testes que não sobem o `lifespan` seguem com uma conexão por uso. O `/ready` usa conexão própria. Num app com `lifespan`, quatro pedidos fizeram 8 checkouts do pool sem nenhuma conexão nova, onde antes seriam 8 conexões. Antes da mudança, em development (`3396738`), o `ttft.mjs` com 20 perguntas mediu primeiro token com p50 de 1,98 s e p95 de 2,26 s, e resposta completa com p95 de 2,59 s. A medida de depois espera o deploy desta etapa em development.
+
 #### Etapa 12.5 — API acessível só pela Vercel
 
 **Objetivo.** Fechar o acesso direto à Railway, que deixa forjar o IP dos limites de taxa.
@@ -1338,7 +1340,7 @@ A IA atualiza esta tabela em cada PR.
 | 12.1 | Orçamento obrigatório | Em revisão |
 | 12.2 | Todo token entra no orçamento | Em revisão |
 | 12.3 | Histórico com janela | Em revisão |
-| 12.4 | Provedores, breaker e banco com vida de processo | Pendente |
+| 12.4 | Provedores, breaker e banco com vida de processo | Em revisão |
 | 12.5 | API acessível só pela Vercel | Pendente |
 | 13.1 | Loop de eventos livre | Pendente |
 | 13.2 | Embedding resiliente atrás da porta | Pendente |
