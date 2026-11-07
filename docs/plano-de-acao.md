@@ -1010,6 +1010,8 @@ Ordem: grave `EDGE_SECRET` na Vercel (Preview e Production, um valor por ambient
 
 **Resultado da 12.5a.** O `vercel.ts` declara só `routes`: as sete rotas que o `getTransformedRoutes` da Vercel gerava dos `rewrites` e `headers` de antes, iguais fora o escape das barras na regex da API, e a rota de `/backend` com o `transform` que põe `x-atrium-edge` com `$EDGE_SECRET`. A normalização da CLI 65.2.0, lida no código dela, deixa essas rotas como estão. `src/deploy/vercel-config.test.ts` trava a lista. Na API, `ApiGuardMiddleware` recusa com 403 `forbidden` um pedido a `/v1` sem o cabeçalho certo, comparado com `hmac.compare_digest`, quando `APP_ENV` é `development` ou `production` e `EDGE_SECRET` existe. `/health`, `/ready` e `/metrics` ficam fora. A conferência das rotas no ar acontece na fumaça do deploy em development.
 
+**Resultado da 12.5b.** `EDGE_SECRET` entrou em `missing_safeguards`: em development e production, a API não sobe sem ele, e a Railway mantém a versão anterior no ar. A fumaça recebe a origem da API na Railway (`API_URL` do Environment) e confere que `GET /v1/conversations` direto responde 403 `forbidden` e que `GET /health` direto responde 200. Rodada contra development antes da 12.5a, a checagem falhou como devia: o pedido direto respondeu 401, porque ainda chegava às rotas.
+
 ---
 
 ### Fase 13 — Correção e resiliência da API (SDD 23, passo 11)
@@ -1349,7 +1351,7 @@ A IA atualiza esta tabela em cada PR.
 | 12.2 | Todo token entra no orçamento | Em revisão |
 | 12.3 | Histórico com janela | Em revisão |
 | 12.4 | Provedores, breaker e banco com vida de processo | Em revisão |
-| 12.5 | API acessível só pela Vercel | Em revisão (12.5a), 12.5b em seguida |
+| 12.5 | API acessível só pela Vercel | Em revisão (12.5a e 12.5b) |
 | 13.1 | Loop de eventos livre | Pendente |
 | 13.2 | Embedding resiliente atrás da porta | Pendente |
 | 13.3 | Cadastro sem perda de atualização | Pendente |

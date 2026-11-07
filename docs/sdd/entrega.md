@@ -15,9 +15,9 @@ Parte da [especificação do Atrium](../sdd.md). A numeração das seções é a
 | `LANGSMITH_API_KEY` | Opcional | ausente | Chave de development | Chave de produção | ausente |
 | `LLM_DAILY_TOKEN_BUDGET` | `0`, teto desligado, ou um valor positivo | `0` | Obrigatório e maior que zero | Obrigatório e maior que zero | sem uso |
 | `RATE_LIMIT_HMAC_KEY` e `PSEUDONYM_KEY` | Valor local, obrigatório para o login | Valor fixo de teste | Obrigatórias, geradas pela Railway | Obrigatórias, geradas pela Railway | sem uso |
-| `EDGE_SECRET` | sem uso | sem uso | O mesmo valor do Preview da Vercel | O mesmo valor do Production da Vercel | Preview e Production, lido na hora do pedido pela rota de `/backend` |
+| `EDGE_SECRET` | sem uso | sem uso | Obrigatório, o mesmo valor do Preview da Vercel | Obrigatório, o mesmo valor do Production da Vercel | Preview e Production, lido na hora do pedido pela rota de `/backend` |
 
-As chaves de cada ambiente são diferentes, para uma poder ser revogada sem afetar as outras. Em `development` e `production`, a API não sobe com `LLM_DAILY_TOKEN_BUDGET` menor ou igual a zero, nem com `RATE_LIMIT_HMAC_KEY` ou `PSEUDONYM_KEY` vazias (seção 7.1). O `retention-job` não usa essas três variáveis e não passa por essa conferência.
+As chaves de cada ambiente são diferentes, para uma poder ser revogada sem afetar as outras. Em `development` e `production`, a API não sobe com `LLM_DAILY_TOKEN_BUDGET` menor ou igual a zero, nem com `RATE_LIMIT_HMAC_KEY`, `PSEUDONYM_KEY` ou `EDGE_SECRET` vazias (seção 7.1). O `retention-job` não usa essas variáveis e não passa por essa conferência.
 
 ## 20. Fluxo de trabalho de desenvolvimento com IA
 
@@ -72,7 +72,7 @@ O job padrão usa `FakeChatProvider`, `DeterministicEmbeddingProvider` e `NoopFe
 | Os pedidos reaproveitam as conexões do pool que o `lifespan` abre | Seção 6.4 |
 | Em `development` e `production`, um pedido a `/v1` sem o segredo da borda recebe 403, e `/health`, `/ready` e `/metrics` continuam abertos | Seção 10.3 |
 | As rotas da Vercel põem o segredo só na rota da API e mantêm as rotas geradas antes dos `rewrites` e `headers` | Seções 10.3 e 22.2 |
-| Em `development` e `production`, a API não sobe com o teto de tokens desligado ou com chave de HMAC vazia | NFR-13, seção 10.4 |
+| Em `development` e `production`, a API não sobe com o teto de tokens desligado, com chave de HMAC vazia ou sem o segredo da borda | NFR-13, seções 10.3 e 10.4 |
 | Um membro não chama rota de admin | NFR-10 |
 | Pedido de mudança de estado com `Origin` diferente devolve 403 | NFR-12 |
 | Respostas de `/v1` têm `Cache-Control: no-store` | NFR-11 |
@@ -215,7 +215,7 @@ flowchart LR
 | Prometheus e Grafana | Só em produção: `railway up --service prometheus` e `railway up --service grafana`, da raiz do repositório. O diretório raiz de cada serviço na Railway (`/ops/prometheus` e `/ops/grafana`) escolhe a pasta, como num deploy pelo repositório; com `--path-as-root`, a pasta viraria a raiz e o build não a acharia |
 | Build da Vercel | `vercel pull --environment=<preview ou production>`, `vercel build`, com `API_URL` do ambiente |
 | Deploy da Vercel | `vercel deploy --prebuilt`, com `--prod` em produção. Em development, a API REST da Vercel (`POST /v2/deployments/{id}/aliases`, com o `teamId`) liga a implantação ao `WEB_HOST`; o `vercel alias set` não serve, porque procura o usuário dono do token, e um token de time não tem usuário. |
-| Fumaça | `node .github/scripts/smoke.mjs https://<WEB_HOST> <commit>`: espera até 10 minutos o `/backend/health` devolver o commit, e então confere `GET /backend/health`, `GET /backend/ready`, `GET /backend/v1/legal/versions` com `no-store` e sem `HIT` no cache da Vercel, os cabeçalhos de segurança da seção 13.4 em `/`, uma rota da SPA, o 404 de um arquivo ausente em `/assets`, e `GET /backend/v1/diagnostics/stream`, conferindo que o primeiro evento chega pelo menos 1 s antes do fim do fluxo |
+| Fumaça | `node .github/scripts/smoke.mjs https://<WEB_HOST> <commit>`: espera até 10 minutos o `/backend/health` devolver o commit, e então confere `GET /backend/health`, `GET /backend/ready`, `GET /backend/v1/legal/versions` com `no-store` e sem `HIT` no cache da Vercel, os cabeçalhos de segurança da seção 13.4 em `/`, uma rota da SPA, o 404 de um arquivo ausente em `/assets`, e `GET /backend/v1/diagnostics/stream`, conferindo que o primeiro evento chega pelo menos 1 s antes do fim do fluxo. Com a origem da API na Railway (`API_URL` do Environment, terceiro argumento), confere também que `GET /v1/conversations` direto, sem o segredo da borda, responde 403 `forbidden` e que `GET /health` direto responde 200 (seção 10.3) |
 
 O `deploy.yml` roda por `workflow_run`, depois de o `ci.yml` passar num push para a `main`, e faz checkout do commit que a CI testou. Um job `gate` só deixa seguir o commit que ainda é o topo da `main`, para uma CI antiga que termine depois de uma nova não devolver código velho ao ar; o job de produção confere de novo depois da aprovação, que pode levar dias. O disparo manual vale só na `main`. Cada ambiente tem o próprio grupo de concorrência, então uma aprovação de produção pendente não segura o development. As dependências do frontend são instaladas antes do `vercel build`, que compila o `vercel.ts` com o `@vercel/config`. Os segredos `RAILWAY_TOKEN` (token do projeto, do ambiente) e `VERCEL_TOKEN`, e as variáveis `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`, `API_URL` e `WEB_HOST`, ficam nos GitHub Environments `development` e `production`. O ambiente `production` exige aprovação de quem opera. A variável de repositório `DEPLOY_ENABLED` liga o pipeline: ela fica desligada até os tokens existirem, para um push na `main` não falhar por falta deles. Os dois Environments só aceitam a branch `main`, e o `production` tem o dono do repositório como revisor obrigatório.
 
