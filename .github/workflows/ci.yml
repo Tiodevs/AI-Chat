@@ -26,6 +26,8 @@ jobs:
           --health-retries 5
     env:
       DATABASE_URL: postgresql://atrium:atrium@127.0.0.1:5432/atrium
+      # Sem o banco, a integração falha em vez de pular. Seção 21.1 do SDD.
+      REQUIRE_INTEGRATION_DB: "1"
     steps:
       - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v10.3.2
