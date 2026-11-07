@@ -101,6 +101,13 @@ def test_alerts_notify_a_discord_webhook_read_from_the_environment() -> None:
     assert alerting["policies"][0]["receiver"] == contact["name"]
 
 
+def test_the_old_email_integration_is_deleted_from_the_grafana_volume() -> None:
+    """O Grafana guarda no volume a integração que sai do arquivo. `deleteContactPoints` apaga."""
+    alerting = json.loads(ALERTING.read_text(encoding="utf-8"))
+    deleted = {(entry["orgId"], entry["uid"]) for entry in alerting["deleteContactPoints"]}
+    assert deleted == {(1, "atrium-operacao-email")}
+
+
 def test_alert_thresholds_follow_the_sdd() -> None:
     alerting = json.loads(ALERTING.read_text(encoding="utf-8"))
     by_title = {rule["title"]: rule for rule in alerting["groups"][0]["rules"]}
