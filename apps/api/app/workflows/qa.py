@@ -21,6 +21,7 @@ from app.core.telemetry import traced_span
 from app.domain.embedding_text import query_embedding_text
 from app.domain.errors import CircuitOpen, ProviderUnavailable
 from app.domain.grounding import Citation, ContextBlock, check_grounding
+from app.domain.history import history_window
 from app.domain.outcomes import Outcome, gate_outcome
 from app.domain.ranking import RESULT_LIMIT
 from app.domain.retrieval import RetrievedChunk
@@ -148,8 +149,12 @@ class QaWorkflow:
         trace_metadata: TraceMetadata | None = None,
         usage: UsageTally | None = None,
     ) -> QaResult:
-        """`usage` recebe cada chamada ao modelo, para quem chama ler o uso parcial."""
+        """`usage` recebe cada chamada ao modelo, para quem chama ler o uso parcial.
+
+        Reescrita e geração recebem só a janela do histórico (seção 7.1 do SDD).
+        """
         observed = _Observed()
+        window = history_window(history)
         tally = UsageTally() if usage is None else usage
         active_run_id = uuid4() if run_id is None else run_id
         rewrite = tally.track(
@@ -164,7 +169,7 @@ class QaWorkflow:
         try:
             return await self._execute(
                 question,
-                history=history,
+                history=window,
                 visitor_type=visitor_type,
                 request_id=request_id,
                 events=events,
