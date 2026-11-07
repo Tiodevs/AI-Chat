@@ -728,6 +728,8 @@ Cada etapa traz: objetivo, seções do SDD, entregas, critérios de aceite (CA) 
 
 **Resultado.** O relatório está em [docs/acessibilidade-e-desempenho.md](acessibilidade-e-desempenho.md). CA-1 a CA-3 passam na suíte ao vivo. CA-4 espera a chave do Gemini em produção e se mede com `node .github/scripts/ttft.mjs <url>`. A troca de M13 para o Flip ficou como pendência.
 
+Em 2026-11-07, o CA-4 foi medido em produção com `ttft.mjs`: 20 de 20 respostas `answered`, primeiro token com p95 de 2,29 s e resposta completa com p95 de 2,49 s. A troca de M13 para o Flip entrou na PR #31.
+
 #### Etapa 9.2 — Teste de usabilidade
 
 **Objetivo.** Validar J1 a J5 com pessoas, conforme a seção 15.9.
@@ -744,6 +746,8 @@ Cada etapa traz: objetivo, seções do SDD, entregas, critérios de aceite (CA) 
 **Como testar.** É você quem executa esta etapa.
 
 **Preparação.** O roteiro, a planilha de registro e o modelo de resultados estão em [docs/usabilidade/](usabilidade/roteiro.md). A persona Marta faz J1 e J2; a persona Diego faz J1, J3, J5 e J4. O teste precisa da chave do Gemini em produção, porque sem ela o chat só responde que está indisponível.
+
+**Situação.** Adiada para depois da Etapa 14.3, para o teste rodar com as correções de experiência da Fase 14. A chave do Gemini de produção já responde.
 
 ---
 
@@ -799,6 +803,8 @@ Cada etapa traz: objetivo, seções do SDD, entregas, critérios de aceite (CA) 
 3. Siga o roteiro de rollback e confira a versão anterior no ar. Depois volte.
 
 **Resultado.** O roteiro testado está em [docs/rollback.md](rollback.md). Os Environments `development` e `production` existem no GitHub, só para a `main`, e o `production` exige a sua aprovação. O Prometheus coleta `/metrics` da API de produção a cada 30 s, e o Grafana está em `https://grafana-production-6ccd.up.railway.app`. Dependem de você: os tokens `RAILWAY_TOKEN` e `VERCEL_TOKEN` nos Environments, o ambiente `development` da Railway, a variável `DEPLOY_ENABLED`, a chave do Gemini de um projeto com faturamento (CA-4) e a conferência dos painéis do Grafana (CA-6).
+
+Conferido em 2026-11-07: `RAILWAY_TOKEN` e `VERCEL_TOKEN` existem nos dois Environments, `DEPLOY_ENABLED` vale `true`, o deploy de `3b2c7b2` passou em development e production com a fumaça verde, e a chave do Gemini responde em produção. Continuam com você a confirmação de que a chave pertence a um projeto com faturamento (CA-4), a conferência visual dos painéis (CA-6) e o SMTP do Grafana, sem o qual os alertas não chegam a ninguém.
 
 ---
 
@@ -1306,13 +1312,13 @@ A IA atualiza esta tabela em cada PR.
 | 6.2 | Canal do titular, retenção e documentos de privacidade | Aprovada |
 | 7.1 | Gestão de documentos | Aprovada |
 | 7.2 | Visão geral e qualidade | Aprovada |
-| 7.3 | Fila de pedidos de titular | Em revisão |
+| 7.3 | Fila de pedidos de titular | Aprovada |
 | 8.1 | Rastros de sistema e métricas | Aprovada |
 | 8.2 | Painéis, alertas e fila de anotação | Aprovada |
-| 9.1 | Acessibilidade, movimento e desempenho | Em revisão |
-| 9.2 | Teste de usabilidade | Em andamento |
-| 10.1 | Pipeline de deploy e ambiente de development | Em revisão |
-| 10.2 | Produção e rollback | Em revisão |
+| 9.1 | Acessibilidade, movimento e desempenho | Aprovada |
+| 9.2 | Teste de usabilidade | Pendente |
+| 10.1 | Pipeline de deploy e ambiente de development | Aprovada |
+| 10.2 | Produção e rollback | Aprovada |
 | 11.1 | CI que não passa vazia | Pendente |
 | 11.2 | Rollback e pré-deploy conferidos | Pendente |
 | 11.3 | CI endurecida e dependências vigiadas | Pendente |
