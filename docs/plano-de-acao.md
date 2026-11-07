@@ -909,7 +909,7 @@ As Fases 11 a 16 vêm da auditoria de 2026-11-07 (SDD 23, passo 11). Elas fecham
 **Achados.** `LLM_DAILY_TOKEN_BUDGET` vale 0 por padrão, e zero desliga o teto. A seção 10.4 aceita limites por IP contornáveis porque conta com esse orçamento. O teto foi gravado na Railway em 2026-11-07 (seção 22.1), mas nada impede que volte a zero.
 
 **Entregas.**
-- `model_validator` em `Settings` que recusa orçamento menor ou igual a zero e `RATE_LIMIT_HMAC_KEY` ou `PSEUDONYM_KEY` vazias fora de `local` e `test`.
+- Conferência na subida da API, em `create_app`, que recusa orçamento menor ou igual a zero e `RATE_LIMIT_HMAC_KEY` ou `PSEUDONYM_KEY` vazias fora de `local` e `test`. Ela não fica num `model_validator` de `Settings` porque o `retention-job` da Railway lê o mesmo `Settings` sem essas variáveis e pararia de rodar.
 - `.env.example` e seção 7.1 dizendo que zero só vale em `local` e `test`.
 
 **Critérios de aceite.**
@@ -917,6 +917,8 @@ As Fases 11 a 16 vêm da auditoria de 2026-11-07 (SDD 23, passo 11). Elas fecham
 - CA-2. Um teste de unidade cobre cada regra.
 
 **Como testar.** Suba a API local com `APP_ENV=production` e `LLM_DAILY_TOKEN_BUDGET=0`.
+
+**Resultado.** `uvicorn app.main:app` com `APP_ENV=production` e `LLM_DAILY_TOKEN_BUDGET=0` sai com código 1 e o erro `MissingSafeguards`, que lista as variáveis que faltam. Com o teto e as duas chaves, a mesma subida responde 200 em `/health`. O serviço `api` da Railway já tem as três variáveis nos dois ambientes. O `retention-job` não tem nenhuma delas, e é por isso que a regra mora em `create_app`, e não em `Settings`.
 
 #### Etapa 12.2 — Todo token entra no orçamento
 
@@ -1329,7 +1331,7 @@ A IA atualiza esta tabela em cada PR.
 | 11.2 | Rollback e pré-deploy conferidos | Débito técnico |
 | 11.3 | CI endurecida e dependências vigiadas | Débito técnico |
 | 11.4 | Cobertura medida | Débito técnico |
-| 12.1 | Orçamento obrigatório | Pendente |
+| 12.1 | Orçamento obrigatório | Em revisão |
 | 12.2 | Todo token entra no orçamento | Pendente |
 | 12.3 | Histórico com janela | Pendente |
 | 12.4 | Provedores, breaker e banco com vida de processo | Pendente |

@@ -277,3 +277,4 @@ Não há decisões em aberto. Nenhuma decisão bloqueia as Etapas 1 a 4.
 | 1.12 | 2026-11-07 | CI que não passa vazia: `REQUIRE_INTEGRATION_DB=1` no job `api` troca o pulo da integração por falha, e o Vitest roda nos projetos `dom` e `node` (seção 21.1). |
 | 1.13 | 2026-11-07 | Alertas no Discord: o contato `atrium-operacao` posta no webhook de `DISCORD_WEBHOOK_URL`, porque a Railway só libera SMTP no plano Pro (seção 18.3). |
 | 1.14 | 2026-11-07 | Ordem de construção: rollback conferido, CI endurecida e cobertura medida ficam como débito técnico, e o custo do LLM entra antes deles (seção 23). |
+| 1.15 | 2026-11-07 | Orçamento obrigatório: em `development` e `production`, a API não sobe com `LLM_DAILY_TOKEN_BUDGET` menor ou igual a zero nem com `RATE_LIMIT_HMAC_KEY` ou `PSEUDONYM_KEY` vazias, conferido em `create_app` (seções 7.1, 10.4, 19 e 22.1). |

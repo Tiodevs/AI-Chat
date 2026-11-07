@@ -13,8 +13,10 @@ Parte da [especificação do Atrium](../sdd.md). A numeração das seções é a
 | `GEMINI_API_KEY` | Chave de desenvolvimento | ausente | Chave de development | Chave de produção, projeto com faturamento | ausente |
 | `APP_AI_ADAPTER` | `gemini`, `fake` ou `demo` | `fake` nos testes, `demo` na e2e | `gemini` | `gemini` | sem uso |
 | `LANGSMITH_API_KEY` | Opcional | ausente | Chave de development | Chave de produção | ausente |
+| `LLM_DAILY_TOKEN_BUDGET` | `0`, teto desligado, ou um valor positivo | `0` | Obrigatório e maior que zero | Obrigatório e maior que zero | sem uso |
+| `RATE_LIMIT_HMAC_KEY` e `PSEUDONYM_KEY` | Valor local, obrigatório para o login | Valor fixo de teste | Obrigatórias, geradas pela Railway | Obrigatórias, geradas pela Railway | sem uso |
 
-As chaves de cada ambiente são diferentes, para uma poder ser revogada sem afetar as outras.
+As chaves de cada ambiente são diferentes, para uma poder ser revogada sem afetar as outras. Em `development` e `production`, a API não sobe com `LLM_DAILY_TOKEN_BUDGET` menor ou igual a zero, nem com `RATE_LIMIT_HMAC_KEY` ou `PSEUDONYM_KEY` vazias (seção 7.1). O `retention-job` não usa essas três variáveis e não passa por essa conferência.
 
 ## 20. Fluxo de trabalho de desenvolvimento com IA
 
@@ -62,6 +64,7 @@ O job padrão usa `FakeChatProvider`, `DeterministicEmbeddingProvider` e `NoopFe
 | Mensagem repetida com o mesmo `client_message_id` devolve 409 | Seção 7.1 |
 | Desconexão grava `cancelled` | Seção 6.4 |
 | Orçamento estourado devolve `degraded` sem chamar o gerador | NFR-13 |
+| Em `development` e `production`, a API não sobe com o teto de tokens desligado ou com chave de HMAC vazia | NFR-13, seção 10.4 |
 | Um membro não chama rota de admin | NFR-10 |
 | Pedido de mudança de estado com `Origin` diferente devolve 403 | NFR-12 |
 | Respostas de `/v1` têm `Cache-Control: no-store` | NFR-11 |
@@ -164,7 +167,7 @@ A API escuta em `0.0.0.0`. O asyncio abre `::` só em IPv6 e recusaria IPv4, e o
 
 Variáveis do `api`: as das seções 17 e 19. `DATABASE_URL` é a referência `${{Postgres.DATABASE_URL}}`. `RATE_LIMIT_HMAC_KEY`, `PSEUDONYM_KEY`, `METRICS_TOKEN` e `ADMIN_PASSWORD` são gerados pela Railway com `${{ secret(...) }}` na primeira gravação e ficam estáveis entre deploys; quem opera lê `ADMIN_PASSWORD` no painel. `GEMINI_API_KEY` e `LANGSMITH_API_KEY` são postas por quem opera, também no painel. No primeiro login, o admin passa pelo novo aceite dos Termos (seção 13.3).
 
-`LLM_DAILY_TOKEN_BUDGET` vale `500000` em `development` e `2000000` em `production`, gravado em 2026-11-07 com folga sobre o uso dos primeiros dias. Zero desligaria o teto (seção 7.1), que é a proteção de custo que os limites por IP não dão (seção 10.4). O alerta de 80% da seção 18.3 avisa antes de o teto chegar.
+`LLM_DAILY_TOKEN_BUDGET` vale `500000` em `development` e `2000000` em `production`, gravado em 2026-11-07 com folga sobre o uso dos primeiros dias. Zero desligaria o teto (seção 7.1), que é a proteção de custo que os limites por IP não dão (seção 10.4), e por isso a API não sobe com zero nesses ambientes: o deploy falha, e a Railway mantém a versão anterior no ar. O alerta de 80% da seção 18.3 avisa antes de o teto chegar.
 
 Migrações seguem expand and contract: uma migração nunca quebra a versão anterior do código. Remover uma coluna acontece no deploy seguinte ao que parou de usá-la. Isso permite voltar o código sem voltar o banco.
 
