@@ -301,6 +301,27 @@ def test_workflow_streams_tokens_and_keeps_the_given_run_id() -> None:
     assert sink.tokens == ["11:00 ", "[1]."]
 
 
+def test_rewrite_and_generation_receive_only_the_history_window() -> None:
+    """CA-1 da Etapa 12.3: o custo de uma pergunta não cresce com a conversa (seção 7.1)."""
+    history: list[ConversationTurn] = []
+    for number in range(1, 11):
+        history.append(ConversationTurn(role="user", content=f"pergunta {number}"))
+        history.append(ConversationTurn(role="assistant", content=f"resposta {number}"))
+    chat, embeddings, search = _parts(
+        _classification("Horário de visita", "public_info", 0.9),
+        hits=[_hit("11:00 às 20:00.")],
+        tokens=["11:00 [1]."],
+    )
+    result = _run(chat, embeddings, search, "E no domingo?", history=history)
+    expected = [turn.content for turn in history[-12:]]
+    rewrite = [message.content for message in chat.structured_calls[0][0]]
+    generate = [message.content for message in chat.stream_calls[0][0]]
+    assert result.outcome is Outcome.ANSWERED
+    assert rewrite[1:-1] == expected
+    assert generate[1:-1] == expected
+    assert "pergunta 4" not in " ".join(rewrite + generate)
+
+
 def test_cancelled_generation_leaves_the_partial_usage_in_the_tally() -> None:
     """Etapa 12.2: o uso já contado de uma resposta cancelada no meio chega a quem chamou."""
     chat = FakeChatProvider(
