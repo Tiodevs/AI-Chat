@@ -272,3 +272,4 @@ Não há decisões em aberto. Nenhuma decisão bloqueia as Etapas 1 a 4.
 | 1.7 | 2026-11-06 | Teste de usabilidade: tarefas por persona de visitante, dados fictícios e roteiro, registro e resultados em `docs/usabilidade/`. |
 | 1.8 | 2026-11-06 | Produção e rollback: Environments `development` e `production` só na `main`, com revisor obrigatório em `production`, serviços da Railway presos a um commit, `/health` com o commit da Railway sem o `BUILD_SHA` e roteiro de rollback testado em `docs/rollback.md`. |
 | 1.9 | 2026-11-06 | M13 com o Flip: a largura da barra lateral troca direto, os ícones se movem só com `transform`, casados pelo `data-flip-id`, e o Flip é registrado em `src/motion/flip.ts`, fora do JavaScript inicial de `/`. |
+| 1.10 | 2026-11-07 | Teto diário de tokens registrado na seção 22.1: `500000` em development e `2000000` em production. |
