@@ -27,6 +27,10 @@ Os arquivos YAML contêm JSON, que o YAML aceita; o Grafana só lê datasources 
 
 Os painéis são provisionados e não editáveis na interface (`allowUiUpdates: false`). Para mudar um, edite o JSON e faça o deploy.
 
+Tirar uma integração do `alerting.json` não a apaga: o Grafana a guarda no volume. Para apagar, liste o `uid` dela em `deleteContactPoints`. É assim que sai o e-mail antigo (`atrium-operacao-email`); a exclusão se repete a cada deploy sem erro.
+
+Para testar o contato, abra Alerting, Contact points e clique em View no `atrium-operacao`. A página é só de leitura, mas o botão Test fica ao lado da integração Discord.
+
 A "prontidão" do painel de saúde usa `up{job="atrium-api"}`: a API responde à coleta. A sonda `/ready` do banco não vira métrica.
 
 O alerta "Retenção parada" dispara também sem dados, porque a ausência da série significa que o job nunca rodou.
