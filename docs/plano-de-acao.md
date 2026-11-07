@@ -831,6 +831,8 @@ As Fases 11 a 16 vêm da auditoria de 2026-11-07 (SDD 23, passo 11). Elas fecham
 
 **Como testar.** Rode `REQUIRE_INTEGRATION_DB=1 DATABASE_URL= uv run pytest tests/integration -x` em `apps/api` e veja a falha. Rode `pnpm test` dez vezes em `apps/web`.
 
+**Resultado.** Com `REQUIRE_INTEGRATION_DB=1` e sem banco, a integração para no primeiro teste com o motivo e sai com código 1. Sem a variável, pula como antes (99 pulados). O Vitest roda nos projetos `dom` e `node`, e o teste do ESLint ficou no `node`. A instabilidade não era só dele: o teste da barra lateral de `documents.test.tsx` consultava o menu, que carrega sob demanda, logo depois da tabela, e falhou uma vez em onze rodadas. Ele agora espera o menu. Dez rodadas seguidas passaram. Rodando junto com o pytest, uma de três rodadas falhou em quatro testes por tempo das consultas `findBy` (3 s); isso ficou para a Etapa 11.4, porque a cobertura também deixa os testes mais lentos.
+
 #### Etapa 11.2 — Rollback e pré-deploy conferidos
 
 **Objetivo.** Fazer o roteiro de rollback achar as migrações e o pipeline conferir o pré-deploy da Railway.
@@ -882,11 +884,13 @@ As Fases 11 a 16 vêm da auditoria de 2026-11-07 (SDD 23, passo 11). Elas fecham
 **Entregas.**
 - `pytest-cov` com `--cov-fail-under` no valor medido hoje, arredondado para baixo.
 - `@vitest/coverage-v8` com `thresholds` pelo mesmo critério.
+- Tempo das consultas `findBy` (`asyncUtilTimeout`, hoje 3 s) e `testTimeout` do projeto `dom` com folga para a cobertura e para a máquina carregada. Pendência da Etapa 11.1.
 
 **Critérios de aceite.**
 - CA-1. A CI mostra a cobertura no resumo dos jobs `api` e `web`.
 - CA-2. Remover um teste que cobre código faz a CI falhar no limiar.
 - CA-3. A seção 21.1 cita os limiares.
+- CA-4. Três rodadas de `pnpm test -- --coverage` junto com o pytest passam.
 
 **Como testar.** Rode `uv run pytest --cov` em `apps/api` e `pnpm test -- --coverage` em `apps/web`.
 
@@ -1319,7 +1323,7 @@ A IA atualiza esta tabela em cada PR.
 | 9.2 | Teste de usabilidade | Pendente |
 | 10.1 | Pipeline de deploy e ambiente de development | Aprovada |
 | 10.2 | Produção e rollback | Aprovada |
-| 11.1 | CI que não passa vazia | Pendente |
+| 11.1 | CI que não passa vazia | Em revisão |
 | 11.2 | Rollback e pré-deploy conferidos | Pendente |
 | 11.3 | CI endurecida e dependências vigiadas | Pendente |
 | 11.4 | Cobertura medida | Pendente |

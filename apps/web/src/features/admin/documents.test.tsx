@@ -200,7 +200,8 @@ describe("tela de documentos", () => {
     installApi([])
     renderAt("/admin/documents")
     await screen.findByText(t.table.empty)
-    const nav = screen.getByRole("navigation", { name: pt.sidebar.label })
+    // A barra lateral carrega sob demanda e pode chegar depois da tabela.
+    const nav = await screen.findByRole("navigation", { name: pt.sidebar.label })
     expect(within(nav).getByText(pt.nav.operations)).toBeInTheDocument()
     expect(within(nav).getByText(pt.nav.system)).toBeInTheDocument()
     expect(within(nav).getByRole("link", { name: pt.nav.documents })).toHaveAttribute(

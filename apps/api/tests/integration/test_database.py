@@ -12,16 +12,36 @@ from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 from app.core.container import get_settings
 from app.main import create_app
 from app.models import Base
-from tests.integration.conftest import integration_database_url
+from tests.integration.conftest import integration_database_url, resolve_integration_database
 
 pytestmark = pytest.mark.integration
+
+REMOTE_URL = "postgresql://user:secret@db.example:5432/railway"
 
 
 def test_remote_database_url_is_ignored() -> None:
     assert integration_database_url("") is None
-    assert integration_database_url("postgresql://user:secret@db.example:5432/railway") is None
+    assert integration_database_url(REMOTE_URL) is None
     local = integration_database_url("postgresql://localhost:5432/atrium")
     assert local == "postgresql+asyncpg://localhost:5432/atrium"
+
+
+@pytest.mark.parametrize("raw_url", ["", REMOTE_URL])
+def test_missing_database_fails_when_the_ci_requires_it(raw_url: str) -> None:
+    with pytest.raises(pytest.fail.Exception, match="REQUIRE_INTEGRATION_DB=1"):
+        resolve_integration_database(raw_url, "1")
+
+
+@pytest.mark.parametrize("required", ["", "0"])
+def test_missing_database_skips_on_a_local_machine(required: str) -> None:
+    with pytest.raises(pytest.skip.Exception, match="DATABASE_URL on localhost"):
+        resolve_integration_database("", required)
+
+
+def test_local_database_is_used_when_required() -> None:
+    url = resolve_integration_database("postgresql://127.0.0.1:5432/atrium", "1")
+    assert url == "postgresql+asyncpg://127.0.0.1:5432/atrium"
+
 
 EXPECTED_COLUMNS: dict[str, set[str]] = {
     "users": {

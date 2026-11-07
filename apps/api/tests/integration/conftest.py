@@ -9,6 +9,11 @@ from app.core.config import rewrite_database_url
 
 API_ROOT = Path(__file__).resolve().parents[2]
 _LOCAL_HOSTS = frozenset({"localhost", "127.0.0.1", "::1"})
+REQUIRE_DATABASE_ENV = "REQUIRE_INTEGRATION_DB"
+_MISSING_DATABASE = (
+    "Integration tests need DATABASE_URL on localhost. "
+    "CI provides pgvector; a remote URL is ignored."
+)
 
 
 def integration_database_url(raw: str) -> str | None:
@@ -22,15 +27,28 @@ def integration_database_url(raw: str) -> str | None:
     return rewrite_database_url(candidate)
 
 
+def resolve_integration_database(raw_url: str, required: str) -> str:
+    """Sem banco local, a suíte pula. Com `REQUIRE_INTEGRATION_DB=1`, como na CI, ela falha.
+
+    Assim a CI não fica verde com a integração inteira pulada. Seção 21.1 do SDD.
+    """
+    url = integration_database_url(raw_url)
+    if url is not None:
+        return url
+    if required.strip() == "1":
+        pytest.fail(
+            f"{_MISSING_DATABASE} {REQUIRE_DATABASE_ENV}=1 turns the skip into a failure.",
+            pytrace=False,
+        )
+    pytest.skip(_MISSING_DATABASE)
+
+
 @pytest.fixture(scope="session")
 def database_url() -> str:
-    url = integration_database_url(os.environ.get("DATABASE_URL", ""))
-    if url is None:
-        pytest.skip(
-            "Integration tests need DATABASE_URL on localhost. "
-            "CI provides pgvector; a remote URL is ignored."
-        )
-    return url
+    return resolve_integration_database(
+        os.environ.get("DATABASE_URL", ""),
+        os.environ.get(REQUIRE_DATABASE_ENV, ""),
+    )
 
 
 @pytest.fixture(scope="session")
