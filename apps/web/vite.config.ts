@@ -6,6 +6,20 @@ import { defineConfig } from "vitest/config"
 import { preloadRoutes } from "./route-preload.ts"
 import { securityHeaders } from "./security-headers.ts"
 
+const TEST_EXCLUDE = [
+  "**/node_modules/**",
+  "**/dist/**",
+  "**/cypress/**",
+  "**/.{idea,git,cache,output,temp}/**",
+  "**/{karma,rollup,webpack,vite,vitest,jest,ava,babel,nyc,cypress,tsup,build,eslint,prettier}.config.*",
+  "e2e/**",
+  "playwright.config.ts",
+]
+
+// Testes que não usam DOM rodam em Node, sem jsdom e sem o setup das telas. O das regras do
+// ESLint carrega o ESLint inteiro; no jsdom, ele disputava a CPU com as telas (Etapa 11.1).
+const NODE_TESTS = ["src/eslint/**/*.test.ts"]
+
 export default defineConfig({
   plugins: [
     react(),
@@ -32,17 +46,26 @@ export default defineConfig({
     headers: securityHeaders,
   },
   test: {
-    environment: "jsdom",
-    setupFiles: ["./src/test/setup.ts"],
     css: false,
-    exclude: [
-      "**/node_modules/**",
-      "**/dist/**",
-      "**/cypress/**",
-      "**/.{idea,git,cache,output,temp}/**",
-      "**/{karma,rollup,webpack,vite,vitest,jest,ava,babel,nyc,cypress,tsup,build,eslint,prettier}.config.*",
-      "e2e/**",
-      "playwright.config.ts",
+    projects: [
+      {
+        extends: true,
+        test: {
+          name: "dom",
+          environment: "jsdom",
+          setupFiles: ["./src/test/setup.ts"],
+          exclude: [...TEST_EXCLUDE, ...NODE_TESTS],
+        },
+      },
+      {
+        extends: true,
+        test: {
+          name: "node",
+          environment: "node",
+          include: NODE_TESTS,
+          exclude: TEST_EXCLUDE,
+        },
+      },
     ],
   },
 })
