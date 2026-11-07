@@ -20,27 +20,37 @@ from app.controllers.privacy import router as privacy_router
 from app.controllers.readiness import router as readiness_router
 from app.controllers.registration import router as registration_router
 from app.core.config import require_safeguards
-from app.core.container import get_settings
+from app.core.container import ensure_ai_runtime, get_settings
 from app.core.errors import register_exception_handlers
 from app.core.logging import configure_logging
 from app.core.middleware import ApiGuardMiddleware, RequestIdMiddleware
 
 
 @asynccontextmanager
-async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    """Provedores, workflows e o pool do banco nascem aqui e vivem o processo. Seção 6.4."""
     settings = get_settings()
+    ensure_ai_runtime(app.state, settings)
     if settings.database_url:
         from app.adapters.clock import SystemClock
+        from app.db.session import start_pool
         from app.services.ingestion import fail_stale_processing_versions
 
+        await start_pool(settings.database_url)
         try:
             await fail_stale_processing_versions(settings.database_url, SystemClock())
         except Exception:
             structlog.get_logger("atrium").warning("ingestion.stale_check_failed")
-    yield
-    from app.adapters.langsmith_tracing import wait_for_all_tracers
+    try:
+        yield
+    finally:
+        if settings.database_url:
+            from app.db.session import close_pool
 
-    wait_for_all_tracers()
+            await close_pool(settings.database_url)
+        from app.adapters.langsmith_tracing import wait_for_all_tracers
+
+        wait_for_all_tracers()
 
 
 def create_app() -> FastAPI:

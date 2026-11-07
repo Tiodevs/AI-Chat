@@ -17,7 +17,12 @@ class ReadinessService:
             _log_failure("database_unconfigured")
             return False
         try:
-            async with open_session(self._database_url) as session, UnitOfWork(session):
+            # Conexão própria: o pool reaproveitaria uma conexão e esconderia um banco que
+            # parou de aceitar conexões novas.
+            async with (
+                open_session(self._database_url, fresh=True) as session,
+                UnitOfWork(session),
+            ):
                 repository = ReadinessRepository(session)
                 await repository.ping()
                 if not await repository.vector_extension_installed():
