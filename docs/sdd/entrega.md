@@ -67,6 +67,8 @@ O job padrão usa `FakeChatProvider`, `DeterministicEmbeddingProvider` e `NoopFe
 | Com o orçamento estourado, a mensagem do cadastro por chat responde 503 sem chamar o modelo, e os tokens de cada turno entram no contador | NFR-13, seção 7.2 |
 | Uma resposta cancelada no meio grava o uso parcial na mensagem e no contador | NFR-13, seção 6.4 |
 | Reescrita e geração recebem só a janela do histórico | NFR-13, seção 7.1 |
+| Cinco falhas em pedidos diferentes abrem o circuito, e o sexto pedido degrada sem chamar o provedor | Seção 7.1 |
+| Os pedidos reaproveitam as conexões do pool que o `lifespan` abre | Seção 6.4 |
 | Em `development` e `production`, a API não sobe com o teto de tokens desligado ou com chave de HMAC vazia | NFR-13, seção 10.4 |
 | Um membro não chama rota de admin | NFR-10 |
 | Pedido de mudança de estado com `Origin` diferente devolve 403 | NFR-12 |

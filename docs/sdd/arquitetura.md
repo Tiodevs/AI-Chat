@@ -82,10 +82,10 @@ O domínio não depende de nada além da biblioteca padrão e do Pydantic. Os wo
 | Strategy | Seleção de adaptador por `APP_AI_ADAPTER` | Gemini ou falso, sem `if` espalhado |
 | Repository | `repositories` | Consultas, inclusive vetoriais, num lugar só |
 | Unit of Work | `app/db/unit_of_work.py` | Transações curtas e explícitas |
-| Composition Root e injeção de dependência | `app/core/container.py` com `Depends` do FastAPI | Um lugar monta o grafo. Os testes usam `dependency_overrides`. |
+| Composition Root e injeção de dependência | `app/core/container.py` com `Depends` do FastAPI | Um lugar monta o grafo. Os testes usam `dependency_overrides`. O `AiRuntime`, com o provedor de chat, o workflow de perguntas e o grafo do cadastro, nasce uma vez por processo, no `lifespan`, e fica em `app.state`. Serviços e repositórios continuam sendo criados por pedido. |
 | State Machine | `domain/registration.py` | O cadastro avança por transições verificáveis, não por decisão do modelo |
 | Pipeline com guardas | `workflows/qa.py` | Cada passo pode encerrar com uma resposta segura |
-| Circuit Breaker | Adaptador do Gemini | Falhas seguidas abrem o circuito e ativam a degradação |
+| Circuit Breaker | Adaptador do Gemini, um por processo | Falhas seguidas abrem o circuito e ativam a degradação |
 | Idempotency Key | Envio de mensagens e consentimento | Um clique repetido não duplica efeito |
 | Expand and Contract | Migrações | O código anterior continua funcionando depois de uma migração, o que permite rollback |
 | ADR | Seção 24 | A razão de cada decisão estrutural fica escrita |
@@ -175,6 +175,7 @@ ops/
 ### 6.4 Transações e concorrência
 
 - **Nenhuma chamada ao Gemini ou ao LangSmith acontece com transação aberta.** Uma pergunta usa duas transações curtas: uma grava a mensagem do visitante, outra grava a resposta. A unidade de trabalho registra um aviso no log quando fica aberta por mais de 2 segundos.
+- **Pool por processo.** A API abre um engine com pool no `lifespan` e o fecha no fim: 5 conexões, mais 5 de folga, espera de até 10 s por uma conexão livre, `pool_pre_ping` e reciclagem a cada 30 minutos. As sessões curtas de um pedido reaproveitam essas conexões, em vez de abrir uma conexão com o banco a cada uso. Scripts, o `retention-job` e os testes que não sobem o `lifespan` seguem com uma conexão por uso, porque o asyncpg prende a conexão ao loop de eventos que a abriu. O `/ready` também usa conexão própria, para conferir que o banco aceita conexão nova.
 - **Ingestão.** A extração de PDF e o divisor de chunks rodam num threadpool, fora do loop de eventos. Embeddings rodam com no máximo 4 pedidos simultâneos.
 - **Semente e criação do admin** rodam no comando de pré-implantação, nunca na inicialização da API. Os dois pegam um `pg_advisory_lock` antes de agir, então duas execuções simultâneas não duplicam nada.
 - **Desconexão do cliente.** Se o navegador fecha o fluxo, o gerador é cancelado, a resposta é gravada com desfecho `cancelled` e o conteúdo parcial é descartado. Os tokens que o adaptador já contou ficam: entram na mensagem, em `token_usage_days` e em `atrium_llm_tokens`, porque o Google cobra por eles.
@@ -267,7 +268,7 @@ Desfechos gravados na resposta: `answered`, `abstained`, `refused`, `off_topic`,
 - `LLM_DAILY_TOKEN_BUDGET` limita a soma de tokens de entrada e saída por dia UTC. O contador fica em `token_usage_days`. Zero desliga o teto, e o contador continua gravando quando há uso. Zero só vale com `APP_ENV` `local` ou `test`: em `development` e `production`, a API não sobe com o teto menor ou igual a zero, nem com `RATE_LIMIT_HMAC_KEY` ou `PSEUDONYM_KEY` vazias, e o erro diz quais variáveis faltam. A conferência fica na subida da API (`create_app`), não em todo `Settings`, porque o `retention-job` lê a mesma configuração sem essas variáveis.
 - Acima de 80% do orçamento, a API registra o log `budget.warning`. O alerta do Prometheus entra na seção 18.3. A partir de 100%, inclusive quando o uso iguala o teto, perguntas recebem a resposta fixa de indisponibilidade com o telefone da mesa, desfecho `degraded`, e o cadastro por chat oferece só o formulário.
 - Todo token entra no contador: os das perguntas, os de cada turno do cadastro por chat e os de uma resposta cancelada, quebrada ou repetida no meio. O uso de uma pergunta é a soma dos `RunContext` das chamadas daquele pedido, que o adaptador preenche a cada pedaço do fluxo, então a soma vale também quando a resposta não chega ao fim.
-- O circuit breaker do Gemini abre depois de 5 falhas seguidas e fica aberto por 60 segundos. Com o circuito aberto, o comportamento é o mesmo do orçamento estourado: desfecho `degraded`, sem chamar o gerador.
+- O circuit breaker do Gemini abre depois de 5 falhas seguidas e fica aberto por 60 segundos. Com o circuito aberto, o comportamento é o mesmo do orçamento estourado: desfecho `degraded`, sem chamar o gerador. O circuito é um só por processo, o do provedor de chat do `AiRuntime`, então conta as falhas de pedidos diferentes, das perguntas e do cadastro.
 - Uma falha do provedor com o circuito fechado grava desfecho `error` e mostra o mesmo texto de indisponibilidade. O gerador não é chamado se a falha acontece antes dele.
 
 ### 7.2 Cadastro
