@@ -1323,7 +1323,7 @@ A IA atualiza esta tabela em cada PR.
 | 9.2 | Teste de usabilidade | Pendente |
 | 10.1 | Pipeline de deploy e ambiente de development | Aprovada |
 | 10.2 | Produção e rollback | Aprovada |
-| 11.1 | CI que não passa vazia | Em revisão |
+| 11.1 | CI que não passa vazia | Aprovada |
 | 11.2 | Rollback e pré-deploy conferidos | Pendente |
 | 11.3 | CI endurecida e dependências vigiadas | Pendente |
 | 11.4 | Cobertura medida | Pendente |
