@@ -1337,10 +1337,10 @@ A IA atualiza esta tabela em cada PR.
 | 11.2 | Rollback e pré-deploy conferidos | Débito técnico |
 | 11.3 | CI endurecida e dependências vigiadas | Débito técnico |
 | 11.4 | Cobertura medida | Débito técnico |
-| 12.1 | Orçamento obrigatório | Em revisão |
-| 12.2 | Todo token entra no orçamento | Em revisão |
-| 12.3 | Histórico com janela | Em revisão |
-| 12.4 | Provedores, breaker e banco com vida de processo | Em revisão |
+| 12.1 | Orçamento obrigatório | Aprovada |
+| 12.2 | Todo token entra no orçamento | Aprovada |
+| 12.3 | Histórico com janela | Aprovada |
+| 12.4 | Provedores, breaker e banco com vida de processo | Aprovada |
 | 12.5 | API acessível só pela Vercel | Pendente |
 | 13.1 | Loop de eventos livre | Pendente |
 | 13.2 | Embedding resiliente atrás da porta | Pendente |
