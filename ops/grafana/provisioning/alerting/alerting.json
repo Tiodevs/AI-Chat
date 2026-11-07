@@ -6,11 +6,11 @@
       "name": "atrium-operacao",
       "receivers": [
         {
-          "uid": "atrium-operacao-email",
-          "type": "email",
+          "uid": "atrium-operacao-discord",
+          "type": "discord",
           "settings": {
-            "addresses": "${ALERT_EMAIL}",
-            "singleEmail": true
+            "url": "${DISCORD_WEBHOOK_URL}",
+            "use_discord_username": false
           },
           "disableResolveMessage": false
         }

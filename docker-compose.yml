@@ -96,7 +96,8 @@ services:
       - prometheus
     environment:
       PROMETHEUS_URL: http://prometheus:9090
-      ALERT_EMAIL: operacao@example.com
+      # Sem a URL o Grafana não sobe. O valor local não leva a lugar nenhum.
+      DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL:-http://127.0.0.1:9/sem-discord}
     ports:
       - "127.0.0.1:3000:3000"
     volumes:

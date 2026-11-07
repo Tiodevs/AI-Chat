@@ -66,7 +66,7 @@ Algumas etapas precisam de contas e chaves que só você pode criar. A IA para e
 | GitHub Environments `development` e `production` com `RAILWAY_TOKEN`, `VERCEL_TOKEN`, `VERCEL_ORG_ID` e `VERCEL_PROJECT_ID`, e aprovação obrigatória em `production` | Etapa 10.1 | GitHub |
 | Projeto Google com faturamento ativo para a chave de produção | Etapa 10.2 | Google Cloud |
 | Cinco participantes por persona para o teste de usabilidade | Etapa 9.2 | Você |
-| SMTP do Grafana (`GF_SMTP_ENABLED`, `GF_SMTP_HOST`, `GF_SMTP_USER`, `GF_SMTP_PASSWORD` e `GF_SMTP_FROM_ADDRESS`), sem o qual os alertas são avaliados e não chegam a ninguém | Já, para os alertas da seção 18.3 | Railway, serviço `grafana` de `production` |
+| Webhook do Discord em `DISCORD_WEBHOOK_URL`, gravado antes do deploy que troca o contato, porque sem ele o Grafana não sobe | Já, para os alertas da seção 18.3 | Discord e Railway, serviço `grafana` de `production` |
 | Segredo `EDGE_SECRET`, o mesmo na Vercel e no serviço `api` da Railway | Etapa 12.5 | Vercel e Railway |
 
 ## 3. Etapas
@@ -804,7 +804,7 @@ Em 2026-11-07, o CA-4 foi medido em produção com `ttft.mjs`: 20 de 20 resposta
 
 **Resultado.** O roteiro testado está em [docs/rollback.md](rollback.md). Os Environments `development` e `production` existem no GitHub, só para a `main`, e o `production` exige a sua aprovação. O Prometheus coleta `/metrics` da API de produção a cada 30 s, e o Grafana está em `https://grafana-production-6ccd.up.railway.app`. Dependem de você: os tokens `RAILWAY_TOKEN` e `VERCEL_TOKEN` nos Environments, o ambiente `development` da Railway, a variável `DEPLOY_ENABLED`, a chave do Gemini de um projeto com faturamento (CA-4) e a conferência dos painéis do Grafana (CA-6).
 
-Conferido em 2026-11-07: `RAILWAY_TOKEN` e `VERCEL_TOKEN` existem nos dois Environments, `DEPLOY_ENABLED` vale `true`, o deploy de `3b2c7b2` passou em development e production com a fumaça verde, e a chave do Gemini responde em produção. Continuam com você a confirmação de que a chave pertence a um projeto com faturamento (CA-4), a conferência visual dos painéis (CA-6) e o SMTP do Grafana, sem o qual os alertas não chegam a ninguém.
+Conferido em 2026-11-07: `RAILWAY_TOKEN` e `VERCEL_TOKEN` existem nos dois Environments, `DEPLOY_ENABLED` vale `true`, o deploy de `3b2c7b2` passou em development e production com a fumaça verde, e a chave do Gemini responde em produção. Continuam com você a confirmação de que a chave pertence a um projeto com faturamento (CA-4), a conferência visual dos painéis (CA-6) e o contato dos alertas, que passou a ser um webhook do Discord (seção 2).
 
 ---
 

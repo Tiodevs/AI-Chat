@@ -7,9 +7,10 @@ Serviço `grafana` do ambiente `production`, construído pelo `Dockerfile` desta
 | Variável | Valor |
 |---|---|
 | `PROMETHEUS_URL` | `http://prometheus.railway.internal:9090` |
-| `ALERT_EMAIL` | e-mail de quem opera; vários separados por `;` |
+| `DISCORD_WEBHOOK_URL` | URL do webhook do canal do Discord que recebe os alertas. É segredo: só na Railway, nunca no repositório. Sem ela o Grafana não sobe, então grave antes do deploy. |
 | `GF_SECURITY_ADMIN_PASSWORD` | senha do administrador, só na Railway |
-| `GF_SMTP_ENABLED`, `GF_SMTP_HOST`, `GF_SMTP_USER`, `GF_SMTP_PASSWORD`, `GF_SMTP_FROM_ADDRESS` | SMTP de quem envia o alerta. Sem eles o Grafana avalia os alertas e não consegue enviar o e-mail. |
+
+O contato era por e-mail, mas a Railway só libera SMTP de saída no plano Pro. O webhook do Discord usa HTTPS e funciona em qualquer plano. `ALERT_EMAIL` deixou de ser usada e pode sair do serviço.
 
 ## Conteúdo
 
@@ -18,7 +19,7 @@ Serviço `grafana` do ambiente `production`, construído pelo `Dockerfile` desta
 | `dashboards/*.json` | Os quatro painéis: saúde da API, qualidade de IA, cadastro e privacidade |
 | `provisioning/datasources/prometheus.yaml` | Fonte de dados `prometheus` (uid fixo, usado pelos painéis e alertas) |
 | `provisioning/dashboards/atrium.yaml` | Carrega os painéis de `/etc/grafana/dashboards` |
-| `provisioning/alerting/alerting.json` | Os oito alertas, o contato por e-mail e a política de notificação |
+| `provisioning/alerting/alerting.json` | Os oito alertas, o contato no Discord e a política de notificação |
 
 Os arquivos YAML contêm JSON, que o YAML aceita; o Grafana só lê datasources e provedores com a extensão `.yaml`.
 

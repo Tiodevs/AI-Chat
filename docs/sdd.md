@@ -275,3 +275,4 @@ Não há decisões em aberto. Nenhuma decisão bloqueia as Etapas 1 a 4.
 | 1.10 | 2026-11-07 | Teto diário de tokens registrado na seção 22.1: `500000` em development e `2000000` em production. |
 | 1.11 | 2026-11-07 | Ordem de construção com o passo 11, das melhorias da auditoria: Fases 11 a 16 do plano de ação. |
 | 1.12 | 2026-11-07 | CI que não passa vazia: `REQUIRE_INTEGRATION_DB=1` no job `api` troca o pulo da integração por falha, e o Vitest roda nos projetos `dom` e `node` (seção 21.1). |
+| 1.13 | 2026-11-07 | Alertas no Discord: o contato `atrium-operacao` posta no webhook de `DISCORD_WEBHOOK_URL`, porque a Railway só libera SMTP no plano Pro (seção 18.3). |
