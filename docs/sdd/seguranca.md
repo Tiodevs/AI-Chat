@@ -38,7 +38,8 @@ A interface mostra um aviso permanente: o Atrium é uma IA, responde a partir da
 - Pedidos com método `POST`, `PUT`, `PATCH` ou `DELETE` precisam de `Origin` igual a `WEB_ORIGIN`. Isso complementa o `SameSite=Lax` contra CSRF.
 - A API não usa o cabeçalho `Authorization` para identificar usuários. Ele só vale para `/metrics`.
 - Toda resposta de `/v1` sai com `Cache-Control: no-store`. A Vercel também recebe `x-vercel-enable-rewrite-caching: 0` em `/backend/*`, porque projetos novos podem armazenar em cache respostas de rewrites externos.
-- O Uvicorn roda com `--proxy-headers`. O IP do cliente vem de `x-forwarded-for` e é usado só para o HMAC do limite de taxa.
+- O Uvicorn roda com `--proxy-headers`. O IP do cliente vem do primeiro item de `x-forwarded-for` e é usado só para o HMAC do limite de taxa.
+- **Segredo da borda.** A Vercel sobrescreve o `x-forwarded-for` com o IP de quem a chamou e, na rota de `/backend`, põe o cabeçalho `x-atrium-edge` com o `EDGE_SECRET` do ambiente, trocando qualquer valor que o visitante mande. Em `development` e `production`, com `EDGE_SECRET` na Railway, a API responde 403 (`forbidden`) a um pedido a `/v1` sem esse cabeçalho ou com outro valor, comparado em tempo constante. Assim o primeiro item do `x-forwarded-for` de um pedido a `/v1` vem sempre da Vercel. `/health`, `/ready` e `/metrics` ficam fora, para a Railway e o Prometheus, que chamam a API direto. Em `local` e `test`, o Vite faz o proxy sem o cabeçalho, e a API não o exige. Na primeira publicação, a Vercel passa a mandar o cabeçalho antes de a Railway receber o segredo, para nenhum pedido do app cair no 403.
 - O CORS permite só `WEB_ORIGIN`. O tráfego normal não precisa de CORS.
 
 ### 10.4 Limites de taxa
@@ -59,7 +60,7 @@ Janelas fixas gravadas em `rate_limit_windows`.
 
 Um pedido limitado devolve HTTP 429 com `retry_after_seconds`. Um erro de login nunca diz se o e-mail existe.
 
-Os limites por IP são uma proteção de melhor esforço. A API da Railway é pública, então `x-forwarded-for` pode ser forjado por quem chama a API diretamente. A proteção que não pode ser contornada é o orçamento diário de tokens da seção 7.1, e por isso a API não sobe em `development` nem em `production` com ele desligado.
+A API da Railway é pública, e `x-forwarded-for` pode ser forjado por quem a chama diretamente. Com o segredo da borda (seção 10.3), esse pedido recebe 403 em `/v1`, e o IP dos limites passa a vir da Vercel. Os limites por IP continuam sendo de melhor esforço, porque um IP não identifica uma pessoa. A proteção de custo que não pode ser contornada é o orçamento diário de tokens da seção 7.1, e por isso a API não sobe em `development` nem em `production` com ele desligado.
 
 ### 10.5 Contas de admin
 
@@ -67,5 +68,5 @@ Os limites por IP são uma proteção de melhor esforço. A API da Railway é p�
 
 ### 10.6 Segredos
 
-`.env.example` lista as chaves e não contém segredo real. `GEMINI_API_KEY`, `LANGSMITH_API_KEY`, `ADMIN_PASSWORD`, `METRICS_TOKEN`, `RATE_LIMIT_HMAC_KEY` e as senhas de banco são variáveis de ambiente. Elas estão ausentes de rastros, logs e exemplos do OpenAPI. Os segredos de implantação do GitHub ficam em GitHub Environments, separados por ambiente.
+`.env.example` lista as chaves e não contém segredo real. `GEMINI_API_KEY`, `LANGSMITH_API_KEY`, `ADMIN_PASSWORD`, `METRICS_TOKEN`, `RATE_LIMIT_HMAC_KEY`, `EDGE_SECRET` e as senhas de banco são variáveis de ambiente. Elas estão ausentes de rastros, logs e exemplos do OpenAPI. Os segredos de implantação do GitHub ficam em GitHub Environments, separados por ambiente.
 

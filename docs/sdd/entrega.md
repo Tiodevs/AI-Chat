@@ -15,6 +15,7 @@ Parte da [especificação do Atrium](../sdd.md). A numeração das seções é a
 | `LANGSMITH_API_KEY` | Opcional | ausente | Chave de development | Chave de produção | ausente |
 | `LLM_DAILY_TOKEN_BUDGET` | `0`, teto desligado, ou um valor positivo | `0` | Obrigatório e maior que zero | Obrigatório e maior que zero | sem uso |
 | `RATE_LIMIT_HMAC_KEY` e `PSEUDONYM_KEY` | Valor local, obrigatório para o login | Valor fixo de teste | Obrigatórias, geradas pela Railway | Obrigatórias, geradas pela Railway | sem uso |
+| `EDGE_SECRET` | sem uso | sem uso | O mesmo valor do Preview da Vercel | O mesmo valor do Production da Vercel | Preview e Production, lido na hora do pedido pela rota de `/backend` |
 
 As chaves de cada ambiente são diferentes, para uma poder ser revogada sem afetar as outras. Em `development` e `production`, a API não sobe com `LLM_DAILY_TOKEN_BUDGET` menor ou igual a zero, nem com `RATE_LIMIT_HMAC_KEY` ou `PSEUDONYM_KEY` vazias (seção 7.1). O `retention-job` não usa essas três variáveis e não passa por essa conferência.
 
@@ -69,6 +70,8 @@ O job padrão usa `FakeChatProvider`, `DeterministicEmbeddingProvider` e `NoopFe
 | Reescrita e geração recebem só a janela do histórico | NFR-13, seção 7.1 |
 | Cinco falhas em pedidos diferentes abrem o circuito, e o sexto pedido degrada sem chamar o provedor | Seção 7.1 |
 | Os pedidos reaproveitam as conexões do pool que o `lifespan` abre | Seção 6.4 |
+| Em `development` e `production`, um pedido a `/v1` sem o segredo da borda recebe 403, e `/health`, `/ready` e `/metrics` continuam abertos | Seção 10.3 |
+| As rotas da Vercel põem o segredo só na rota da API e mantêm as rotas geradas antes dos `rewrites` e `headers` | Seções 10.3 e 22.2 |
 | Em `development` e `production`, a API não sobe com o teto de tokens desligado ou com chave de HMAC vazia | NFR-13, seção 10.4 |
 | Um membro não chama rota de admin | NFR-10 |
 | Pedido de mudança de estado com `Origin` diferente devolve 403 | NFR-12 |
@@ -170,7 +173,7 @@ A API escuta em `0.0.0.0`. O asyncio abre `::` só em IPv6 e recusaria IPv4, e o
 
 `--skip-without-key` adia a semente quando falta `GEMINI_API_KEY`, sem falhar o deploy. Semear com outro embedding deixaria vetores que a semente, que pula checksums iguais, não refaz depois. O primeiro deploy sobe antes de a chave existir: `/health` e `/ready` respondem, e as perguntas recebem a resposta de indisponibilidade até a chave entrar e um novo deploy semear o corpus.
 
-Variáveis do `api`: as das seções 17 e 19. `DATABASE_URL` é a referência `${{Postgres.DATABASE_URL}}`. `RATE_LIMIT_HMAC_KEY`, `PSEUDONYM_KEY`, `METRICS_TOKEN` e `ADMIN_PASSWORD` são gerados pela Railway com `${{ secret(...) }}` na primeira gravação e ficam estáveis entre deploys; quem opera lê `ADMIN_PASSWORD` no painel. `GEMINI_API_KEY` e `LANGSMITH_API_KEY` são postas por quem opera, também no painel. No primeiro login, o admin passa pelo novo aceite dos Termos (seção 13.3).
+Variáveis do `api`: as das seções 17 e 19. `DATABASE_URL` é a referência `${{Postgres.DATABASE_URL}}`. `RATE_LIMIT_HMAC_KEY`, `PSEUDONYM_KEY`, `METRICS_TOKEN` e `ADMIN_PASSWORD` são gerados pela Railway com `${{ secret(...) }}` na primeira gravação e ficam estáveis entre deploys; quem opera lê `ADMIN_PASSWORD` no painel. `GEMINI_API_KEY` e `LANGSMITH_API_KEY` são postas por quem opera, também no painel. `EDGE_SECRET` também: o mesmo valor que a Vercel do ambiente manda no cabeçalho `x-atrium-edge` (seção 10.3). No primeiro login, o admin passa pelo novo aceite dos Termos (seção 13.3).
 
 `LLM_DAILY_TOKEN_BUDGET` vale `500000` em `development` e `2000000` em `production`, gravado em 2026-11-07 com folga sobre o uso dos primeiros dias. Zero desligaria o teto (seção 7.1), que é a proteção de custo que os limites por IP não dão (seção 10.4), e por isso a API não sobe com zero nesses ambientes: o deploy falha, e a Railway mantém a versão anterior no ar. O alerta de 80% da seção 18.3 avisa antes de o teto chegar.
 
@@ -178,7 +181,9 @@ Migrações seguem expand and contract: uma migração nunca quebra a versão an
 
 ### 22.2 Vercel
 
-O projeto Vercel usa o diretório raiz `apps/web`, com o preset Vite e saída `dist`. A publicação por Git fica desligada no `vercel.ts`. O deploy de development é uma implantação de preview apontada para a API de development, e recebe um alias estável (`WEB_HOST` do ambiente), porque a URL de cada preview muda e a API de development só aceita a origem do `WEB_ORIGIN`. O deploy de produção aponta para a API de produção. A proteção de deployments da Vercel fica desligada: os dois ambientes são públicos, com dados fictícios, e os testes de fumaça precisam chegar a eles sem login.
+O projeto Vercel usa o diretório raiz `apps/web`, com o preset Vite e saída `dist`. A publicação por Git fica desligada no `vercel.ts`.
+
+O `vercel.ts` declara só `routes`. O cabeçalho do segredo da borda (seção 10.3) é um `transform` da rota de `/backend`, e transforms só existem no formato `routes`, que a CLI da Vercel recusa junto com `rewrites`, `redirects` ou `headers`. As rotas são as que a Vercel gerava dos `rewrites` e `headers` anteriores, na mesma ordem: os cabeçalhos com `continue`, `handle: filesystem` e, por fim, os rewrites da API e da SPA. `src/deploy/vercel-config.test.ts` trava essa lista, conferida contra o `getTransformedRoutes` da `@vercel/routing-utils`. `EDGE_SECRET` fica nas variáveis da Vercel de Preview e de Production e é lido na hora do pedido: o valor não entra no build. O deploy de development é uma implantação de preview apontada para a API de development, e recebe um alias estável (`WEB_HOST` do ambiente), porque a URL de cada preview muda e a API de development só aceita a origem do `WEB_ORIGIN`. O deploy de produção aponta para a API de produção. A proteção de deployments da Vercel fica desligada: os dois ambientes são públicos, com dados fictícios, e os testes de fumaça precisam chegar a eles sem login.
 
 ### 22.3 GitHub Actions
 
@@ -242,7 +247,7 @@ Cada ADR também vive em `docs/adr/NNN-titulo.md`, com contexto, decisão, conse
 
 | ADR | Decisão | Alternativas descartadas | Consequência principal |
 |---|---|---|---|
-| ADR-001 | SPA React com Vite na Vercel, com rewrite de `/backend` para a API | Next.js com rota de proxy. API em subdomínio próprio com cookie de domínio. | Sem servidor de frontend para manter. O fluxo SSE pelo rewrite precisa do teste de fumaça. |
+| ADR-001 | SPA React com Vite na Vercel, com rewrite de `/backend` para a API | Next.js com rota de proxy. API em subdomínio próprio com cookie de domínio. | Sem servidor de frontend para manter. O fluxo SSE pelo rewrite precisa do teste de fumaça. A API continua pública na Railway, então o rewrite manda um segredo que a API exige em `/v1` (seção 10.3). |
 | ADR-002 | PostgreSQL com pgvector como único armazenamento | Banco vetorial separado. Bucket para arquivos. | Uma transação cobre dados e vetores. Escala de arquivos limitada. |
 | ADR-003 | Máquina de estados do cadastro em Python puro, com LangGraph só orquestrando | Agente de IA livre com ferramentas para criar a conta | Comportamento previsível e testável. A IA fica restrita a extrair e formular. |
 | ADR-004 | Gemini atrás de portas, com falsos determinísticos nos testes | Testes com o modelo real | CI rápida e gratuita. A qualidade real é medida nas avaliações. |
