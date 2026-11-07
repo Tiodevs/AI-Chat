@@ -5,6 +5,7 @@ from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 _ENV_FILE = ".env" if Path(".env").is_file() else None
+CLOUD_ENVIRONMENTS = frozenset({"development", "production"})
 
 
 def rewrite_database_url(value: str) -> str:
@@ -57,6 +58,42 @@ class Settings(BaseSettings):
     @model_validator(mode="after")
     def _demo_only_off_the_cloud(self) -> "Settings":
         """O modo `demo` responde por regras. Ele não pode chegar a um ambiente da Railway."""
-        if self.app_ai_adapter == "demo" and self.app_env in ("development", "production"):
+        if self.app_ai_adapter == "demo" and self.app_env in CLOUD_ENVIRONMENTS:
             raise ValueError("APP_AI_ADAPTER=demo só vale com APP_ENV local ou test.")
         return self
+
+
+class MissingSafeguards(RuntimeError):
+    """A API não sobe na Railway sem o teto de tokens e as chaves de HMAC."""
+
+    def __init__(self, app_env: str, variables: list[str]) -> None:
+        super().__init__(
+            f"APP_ENV={app_env} exige {', '.join(variables)}. "
+            "LLM_DAILY_TOKEN_BUDGET precisa ser maior que zero, e as chaves não podem ficar "
+            "vazias. Zero e vazio só valem com APP_ENV local ou test."
+        )
+        self.variables = tuple(variables)
+
+
+def missing_safeguards(settings: Settings) -> list[str]:
+    """Variáveis sem valor seguro para a API num ambiente da Railway. Seções 7.1 e 10.4 do SDD.
+
+    O teto de tokens é a proteção de custo que os limites por IP não dão. A regra vale para a
+    API, não para todo `Settings`: o `retention-job` lê a mesma configuração sem essas variáveis.
+    """
+    if settings.app_env not in CLOUD_ENVIRONMENTS:
+        return []
+    missing: list[str] = []
+    if settings.llm_daily_token_budget <= 0:
+        missing.append("LLM_DAILY_TOKEN_BUDGET")
+    if not settings.rate_limit_hmac_key.strip():
+        missing.append("RATE_LIMIT_HMAC_KEY")
+    if not settings.pseudonym_key.strip():
+        missing.append("PSEUDONYM_KEY")
+    return missing
+
+
+def require_safeguards(settings: Settings) -> None:
+    missing = missing_safeguards(settings)
+    if missing:
+        raise MissingSafeguards(settings.app_env, missing)

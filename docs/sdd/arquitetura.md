@@ -262,7 +262,7 @@ Desfechos gravados na resposta: `answered`, `abstained`, `refused`, `off_topic`,
 
 #### Orçamento e degradação
 
-- `LLM_DAILY_TOKEN_BUDGET` limita a soma de tokens de entrada e saída por dia UTC. O contador fica em `token_usage_days`. Zero desliga o teto, e o contador continua gravando quando há uso.
+- `LLM_DAILY_TOKEN_BUDGET` limita a soma de tokens de entrada e saída por dia UTC. O contador fica em `token_usage_days`. Zero desliga o teto, e o contador continua gravando quando há uso. Zero só vale com `APP_ENV` `local` ou `test`: em `development` e `production`, a API não sobe com o teto menor ou igual a zero, nem com `RATE_LIMIT_HMAC_KEY` ou `PSEUDONYM_KEY` vazias, e o erro diz quais variáveis faltam. A conferência fica na subida da API (`create_app`), não em todo `Settings`, porque o `retention-job` lê a mesma configuração sem essas variáveis.
 - Acima de 80% do orçamento, a API registra o log `budget.warning`. O alerta do Prometheus entra na seção 18.3. A partir de 100%, inclusive quando o uso iguala o teto, perguntas recebem a resposta fixa de indisponibilidade com o telefone da mesa, desfecho `degraded`, e o cadastro por chat oferece só o formulário.
 - O circuit breaker do Gemini abre depois de 5 falhas seguidas e fica aberto por 60 segundos. Com o circuito aberto, o comportamento é o mesmo do orçamento estourado: desfecho `degraded`, sem chamar o gerador.
 - Uma falha do provedor com o circuito fechado grava desfecho `error` e mostra o mesmo texto de indisponibilidade. O gerador não é chamado se a falha acontece antes dele.

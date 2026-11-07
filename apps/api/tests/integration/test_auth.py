@@ -190,6 +190,8 @@ def test_production_cookie_is_secure(
     monkeypatch.setenv("RATE_LIMIT_HMAC_KEY", HMAC_KEY)
     monkeypatch.setenv("WEB_ORIGIN", ORIGIN)
     monkeypatch.setenv("APP_ENV", "production")
+    monkeypatch.setenv("LLM_DAILY_TOKEN_BUDGET", "1000")
+    monkeypatch.setenv("PSEUDONYM_KEY", "pseudonym-key")
     get_settings.cache_clear()
     application = create_app()
     application.dependency_overrides[get_clock] = FrozenClock

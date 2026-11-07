@@ -59,7 +59,7 @@ Janelas fixas gravadas em `rate_limit_windows`.
 
 Um pedido limitado devolve HTTP 429 com `retry_after_seconds`. Um erro de login nunca diz se o e-mail existe.
 
-Os limites por IP são uma proteção de melhor esforço. A API da Railway é pública, então `x-forwarded-for` pode ser forjado por quem chama a API diretamente. A proteção que não pode ser contornada é o orçamento diário de tokens da seção 7.1.
+Os limites por IP são uma proteção de melhor esforço. A API da Railway é pública, então `x-forwarded-for` pode ser forjado por quem chama a API diretamente. A proteção que não pode ser contornada é o orçamento diário de tokens da seção 7.1, e por isso a API não sobe em `development` nem em `production` com ele desligado.
 
 ### 10.5 Contas de admin
 
