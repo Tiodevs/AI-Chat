@@ -90,10 +90,14 @@ def test_eight_alerts_match_section_18_3() -> None:
         assert rule["data"][0]["datasourceUid"] == "prometheus"
 
 
-def test_alerts_notify_by_email() -> None:
-    alerting = json.loads(ALERTING.read_text(encoding="utf-8"))
+def test_alerts_notify_a_discord_webhook_read_from_the_environment() -> None:
+    text = ALERTING.read_text(encoding="utf-8")
+    alerting = json.loads(text)
     (contact,) = alerting["contactPoints"]
-    assert [receiver["type"] for receiver in contact["receivers"]] == ["email"]
+    (receiver,) = contact["receivers"]
+    assert receiver["type"] == "discord"
+    assert receiver["settings"]["url"] == "${DISCORD_WEBHOOK_URL}"
+    assert "discord.com/api/webhooks" not in text
     assert alerting["policies"][0]["receiver"] == contact["name"]
 
 
