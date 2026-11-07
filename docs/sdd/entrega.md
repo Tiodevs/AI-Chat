@@ -76,8 +76,11 @@ O job padrão usa `FakeChatProvider`, `DeterministicEmbeddingProvider` e `NoopFe
 | `/ready` falha sem a extensão ou com dimensão divergente | NFR-9 |
 | OpenAPI e tipos do frontend iguais aos commitados | NFR-16 |
 | Os telefones e horários do corpus estão no catálogo | Seção 9 |
+| Sem banco e com `REQUIRE_INTEGRATION_DB=1`, a integração falha em vez de pular | NFR-5 |
 
 Os testes de integração rodam contra PostgreSQL com `CREATE EXTENSION vector`. O contêiner de serviço do GitHub Actions é `pgvector/pgvector:pg18`, com health check na porta 5432. As migrações Alembic rodam no início da sessão.
+
+Sem um `DATABASE_URL` local, a integração pula, para a suíte rodar numa máquina sem banco. Uma URL remota também pula, para nenhum teste tocar um banco da Railway. O job `api` define `REQUIRE_INTEGRATION_DB=1`, que troca o pulo por falha: se o banco de serviço sumir, a CI fica vermelha em vez de passar com a integração inteira pulada.
 
 **Frontend, unidade e componente,** com Vitest, Testing Library e MSW:
 
@@ -89,6 +92,8 @@ Os testes de integração rodam contra PostgreSQL com `CREATE EXTENSION vector`.
 - o `ConsentFieldSet` exige os obrigatórios
 - os presets de movimento usam `gsap.set` com movimento reduzido
 - o contraste de cada par de tokens passa em AA
+
+O Vitest roda em dois projetos. O `dom` usa jsdom e o `src/test/setup.ts`, para telas e componentes. O `node` não tem DOM e roda os testes que só leem código e configuração, como o das regras de camada do ESLint. Um teste que espera algo carregado sob demanda, como a barra lateral, usa as consultas `findBy`, nunca `getBy` logo depois de outra espera.
 
 **Frontend, ponta a ponta,** com Playwright, em duas suítes. A do job `web` roda as jornadas com as respostas da API simuladas por `page.route`, em celular com movimento reduzido e uma vez com movimento, e pega quebras de interface depressa. A do job `e2e` (`playwright.live.config.ts`, pasta `e2e/live`) sobe a API de verdade com o adaptador `demo` sobre o PostgreSQL de serviço, com migrações, admin e semente, e o frontend com `vite preview`, o mesmo proxy de `/backend` e os cabeçalhos de produção da seção 13.4. Ela cobre J1, J2, J3, J4, J5 e J8, com axe em cada página, e falha se o navegador registrar uma violação de CSP. Ela também audita todas as telas e diálogos, faz J1 a J5 só com teclado no desktop sem redução de movimento e mede `/` contra a seção 5.3. Na medida, o tamanho do JavaScript inicial e o CLS reprovam; LCP e INP ficam como anotação no relatório, porque dependem da velocidade da máquina. Não há nova tentativa, porque o backend é determinístico.
 
