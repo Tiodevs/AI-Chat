@@ -18,7 +18,7 @@ const TEST_EXCLUDE = [
 
 // Testes que não usam DOM rodam em Node, sem jsdom e sem o setup das telas. O das regras do
 // ESLint carrega o ESLint inteiro; no jsdom, ele disputava a CPU com as telas (Etapa 11.1).
-const NODE_TESTS = ["src/eslint/**/*.test.ts"]
+const NODE_TESTS = ["src/eslint/**/*.test.ts", "src/deploy/**/*.test.ts"]
 
 export default defineConfig({
   plugins: [
