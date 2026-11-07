@@ -66,6 +66,8 @@ Algumas etapas precisam de contas e chaves que só você pode criar. A IA para e
 | GitHub Environments `development` e `production` com `RAILWAY_TOKEN`, `VERCEL_TOKEN`, `VERCEL_ORG_ID` e `VERCEL_PROJECT_ID`, e aprovação obrigatória em `production` | Etapa 10.1 | GitHub |
 | Projeto Google com faturamento ativo para a chave de produção | Etapa 10.2 | Google Cloud |
 | Cinco participantes por persona para o teste de usabilidade | Etapa 9.2 | Você |
+| SMTP do Grafana (`GF_SMTP_ENABLED`, `GF_SMTP_HOST`, `GF_SMTP_USER`, `GF_SMTP_PASSWORD` e `GF_SMTP_FROM_ADDRESS`), sem o qual os alertas são avaliados e não chegam a ninguém | Já, para os alertas da seção 18.3 | Railway, serviço `grafana` de `production` |
+| Segredo `EDGE_SECRET`, o mesmo na Vercel e no serviço `api` da Railway | Etapa 12.5 | Vercel e Railway |
 
 ## 3. Etapas
 
@@ -726,6 +728,8 @@ Cada etapa traz: objetivo, seções do SDD, entregas, critérios de aceite (CA) 
 
 **Resultado.** O relatório está em [docs/acessibilidade-e-desempenho.md](acessibilidade-e-desempenho.md). CA-1 a CA-3 passam na suíte ao vivo. CA-4 espera a chave do Gemini em produção e se mede com `node .github/scripts/ttft.mjs <url>`. A troca de M13 para o Flip ficou como pendência.
 
+Em 2026-11-07, o CA-4 foi medido em produção com `ttft.mjs`: 20 de 20 respostas `answered`, primeiro token com p95 de 2,29 s e resposta completa com p95 de 2,49 s. A troca de M13 para o Flip entrou na PR #31.
+
 #### Etapa 9.2 — Teste de usabilidade
 
 **Objetivo.** Validar J1 a J5 com pessoas, conforme a seção 15.9.
@@ -742,6 +746,8 @@ Cada etapa traz: objetivo, seções do SDD, entregas, critérios de aceite (CA) 
 **Como testar.** É você quem executa esta etapa.
 
 **Preparação.** O roteiro, a planilha de registro e o modelo de resultados estão em [docs/usabilidade/](usabilidade/roteiro.md). A persona Marta faz J1 e J2; a persona Diego faz J1, J3, J5 e J4. O teste precisa da chave do Gemini em produção, porque sem ela o chat só responde que está indisponível.
+
+**Situação.** Adiada para depois da Etapa 14.3, para o teste rodar com as correções de experiência da Fase 14. A chave do Gemini de produção já responde.
 
 ---
 
@@ -798,6 +804,488 @@ Cada etapa traz: objetivo, seções do SDD, entregas, critérios de aceite (CA) 
 
 **Resultado.** O roteiro testado está em [docs/rollback.md](rollback.md). Os Environments `development` e `production` existem no GitHub, só para a `main`, e o `production` exige a sua aprovação. O Prometheus coleta `/metrics` da API de produção a cada 30 s, e o Grafana está em `https://grafana-production-6ccd.up.railway.app`. Dependem de você: os tokens `RAILWAY_TOKEN` e `VERCEL_TOKEN` nos Environments, o ambiente `development` da Railway, a variável `DEPLOY_ENABLED`, a chave do Gemini de um projeto com faturamento (CA-4) e a conferência dos painéis do Grafana (CA-6).
 
+Conferido em 2026-11-07: `RAILWAY_TOKEN` e `VERCEL_TOKEN` existem nos dois Environments, `DEPLOY_ENABLED` vale `true`, o deploy de `3b2c7b2` passou em development e production com a fumaça verde, e a chave do Gemini responde em produção. Continuam com você a confirmação de que a chave pertence a um projeto com faturamento (CA-4), a conferência visual dos painéis (CA-6) e o SMTP do Grafana, sem o qual os alertas não chegam a ninguém.
+
+---
+
+As Fases 11 a 16 vêm da auditoria de 2026-11-07 (SDD 23, passo 11). Elas fecham divergências entre o código e o SDD e endurecem o que já está no ar, nesta ordem: entrega, custo do LLM, API, experiência, privacidade e qualidade de IA. Cada etapa traz os achados que a motivaram. Uma etapa que muda comportamento atualiza o SDD na mesma PR (DP-6).
+
+### Fase 11 — Rede de proteção da entrega (SDD 23, passo 11)
+
+#### Etapa 11.1 — CI que não passa vazia
+
+**Objetivo.** Fazer a integração falhar, em vez de pular, quando a CI fica sem banco, e estabilizar o Vitest.
+
+**Seções.** 21.1 e NFR-5.
+
+**Achados.** Sem `DATABASE_URL`, a fixture `database_url` chama `pytest.skip` e 99 testes pulam em silêncio. O Vitest falhou uma vez em três rodadas locais. O suspeito é `src/eslint/restrictions.test.ts`, que roda o ESLint dentro do jsdom.
+
+**Entregas.**
+- Variável `REQUIRE_INTEGRATION_DB=1` no `ci.yml`, que troca o `skip` por `pytest.fail`.
+- O teste do ESLint com `environment: node`.
+
+**Critérios de aceite.**
+- CA-1. Com `REQUIRE_INTEGRATION_DB=1` e sem banco, a integração falha com uma mensagem clara.
+- CA-2. Sem a variável, a integração continua pulando na máquina local.
+- CA-3. Dez rodadas seguidas de `pnpm test` passam.
+
+**Como testar.** Rode `REQUIRE_INTEGRATION_DB=1 DATABASE_URL= uv run pytest tests/integration -x` em `apps/api` e veja a falha. Rode `pnpm test` dez vezes em `apps/web`.
+
+#### Etapa 11.2 — Rollback e pré-deploy conferidos
+
+**Objetivo.** Fazer o roteiro de rollback achar as migrações e o pipeline conferir o pré-deploy da Railway.
+
+**Seções.** 22.1, 22.3 e ADR-013.
+
+**Achados.** O passo 2 de `docs/rollback.md` procura migrações em `apps/api/migrations`, mas elas ficam em `apps/api/alembic/versions`, então o diff sai sempre vazio. O pré-deploy com `alembic upgrade head` só existe na configuração da Railway (ADR-013), e nada no pipeline confere se ele mudou.
+
+**Entregas.**
+- `docs/rollback.md` com o caminho certo.
+- Script em `.github/scripts` que lê a configuração do serviço `api` pela API da Railway e compara pré-deploy, health check e réplicas com a tabela da seção 22.1.
+- Passo no `deploy.yml` que roda o script antes do `railway up`.
+
+**Critérios de aceite.**
+- CA-1. O diff do roteiro lista a migração entre dois commits que têm uma.
+- CA-2. O deploy falha quando o pré-deploy ou o health check divergem da seção 22.1.
+- CA-3. A seção 22.3 descreve a checagem.
+
+**Como testar.** Siga o passo 2 do roteiro com dois commits que têm migração. Rode o script contra development.
+
+#### Etapa 11.3 — CI endurecida e dependências vigiadas
+
+**Objetivo.** Dar aos workflows só a permissão necessária, fixar as actions e atualizar as dependências sem depender de lembrar.
+
+**Seções.** 10.6 e 22.3.
+
+**Achados.** Não há Dependabot nem pre-commit. As actions usam tags, como `actions/checkout@v7`, num job que tem `RAILWAY_TOKEN` e `VERCEL_TOKEN`. O `evals.yml` põe as chaves do Gemini e do LangSmith no job inteiro, e o `ci.yml` não declara `permissions` nem `concurrency`.
+
+**Entregas.**
+- `.github/dependabot.yml` para `uv`, `npm` e `github-actions`, semanal e agrupado.
+- Actions do `deploy.yml` e do `evals.yml` fixadas por SHA, com a tag em comentário.
+- `permissions: contents: read`, `concurrency` com `cancel-in-progress` e cache do Playwright no `ci.yml`.
+- Chaves do `evals.yml` só no passo que roda as avaliações.
+- Pre-commit opcional com ruff e eslint, descrito no `CONTRIBUTING.md`.
+
+**Critérios de aceite.**
+- CA-1. Dois pushes seguidos numa PR cancelam a primeira rodada.
+- CA-2. O Dependabot abre a primeira PR.
+- CA-3. Nenhuma action do `deploy.yml` usa tag.
+
+**Como testar.** Faça dois pushes seguidos numa PR de teste e confira a aba Actions.
+
+#### Etapa 11.4 — Cobertura medida
+
+**Objetivo.** Medir a cobertura e impedir que ela caia sem ninguém ver.
+
+**Seções.** 21.1.
+
+**Entregas.**
+- `pytest-cov` com `--cov-fail-under` no valor medido hoje, arredondado para baixo.
+- `@vitest/coverage-v8` com `thresholds` pelo mesmo critério.
+
+**Critérios de aceite.**
+- CA-1. A CI mostra a cobertura no resumo dos jobs `api` e `web`.
+- CA-2. Remover um teste que cobre código faz a CI falhar no limiar.
+- CA-3. A seção 21.1 cita os limiares.
+
+**Como testar.** Rode `uv run pytest --cov` em `apps/api` e `pnpm test -- --coverage` em `apps/web`.
+
+---
+
+### Fase 12 — Custo e disponibilidade do LLM (SDD 23, passo 11)
+
+#### Etapa 12.1 — Orçamento obrigatório
+
+**Objetivo.** Impedir que a API suba em development ou production com o teto de tokens desligado.
+
+**Seções.** 7.1 (orçamento e degradação), 10.4, 19 e NFR-13.
+
+**Achados.** `LLM_DAILY_TOKEN_BUDGET` vale 0 por padrão, e zero desliga o teto. A seção 10.4 aceita limites por IP contornáveis porque conta com esse orçamento. O teto foi gravado na Railway em 2026-11-07 (seção 22.1), mas nada impede que volte a zero.
+
+**Entregas.**
+- `model_validator` em `Settings` que recusa orçamento menor ou igual a zero e `RATE_LIMIT_HMAC_KEY` ou `PSEUDONYM_KEY` vazias fora de `local` e `test`.
+- `.env.example` e seção 7.1 dizendo que zero só vale em `local` e `test`.
+
+**Critérios de aceite.**
+- CA-1. Com `APP_ENV=production` e orçamento 0, a API não sobe, e a mensagem diz qual variável falta.
+- CA-2. Um teste de unidade cobre cada regra.
+
+**Como testar.** Suba a API local com `APP_ENV=production` e `LLM_DAILY_TOKEN_BUDGET=0`.
+
+#### Etapa 12.2 — Todo token entra no orçamento
+
+**Objetivo.** Contar no teto os tokens do cadastro por chat e das respostas canceladas.
+
+**Seções.** 6.4, 7.1 e 7.2.
+
+**Achados.** Só o serviço de conversas recebe o orçamento. O cadastro por chat chama o Gemini sem consultar nem gravar o teto, embora a seção 7.1 diga que, com o orçamento estourado, o cadastro oferece só o formulário. Numa resposta cancelada, `_finish` grava zero tokens, mesmo que o modelo já tenha gerado parte do texto.
+
+**Entregas.**
+- `TokenBudget` injetado no `RegistrationService`, consultado antes de cada turno e gravado depois.
+- Uso parcial guardado durante o fluxo e gravado no cancelamento.
+
+**Critérios de aceite.**
+- CA-1. Com o orçamento estourado, a mensagem do cadastro por chat oferece o formulário sem chamar o provedor.
+- CA-2. Os tokens de cada turno do cadastro entram em `token_usage_days`.
+- CA-3. Uma resposta cancelada no meio grava o uso parcial (teste com `FakeChatProvider`).
+
+**Como testar.** Com `LLM_DAILY_TOKEN_BUDGET=1` na máquina local, faça uma pergunta e depois abra `/register`.
+
+#### Etapa 12.3 — Histórico com janela
+
+**Objetivo.** Limitar o histórico que vai ao modelo, para o custo de uma pergunta não crescer com a conversa.
+
+**Seções.** 7.1.
+
+**Achados.** `list_messages` traz a conversa inteira, que vai para a reescrita e para a geração.
+
+**Entregas.**
+- Janela no domínio, por exemplo as últimas 6 trocas ou 6.000 caracteres, registrada na seção 7.1.
+
+**Critérios de aceite.**
+- CA-1. Reescrita e geração recebem só a janela (teste de unidade).
+- CA-2. O caso de avaliação `follow-up` continua passando.
+
+**Como testar.** Faça 15 perguntas numa conversa e confira no LangSmith o histórico enviado.
+
+#### Etapa 12.4 — Provedores, breaker e banco com vida de processo
+
+**Objetivo.** Criar uma vez por processo o que hoje nasce a cada pedido: provedores, circuit breaker, grafo e engine do banco.
+
+**Seções.** 6.2, 6.4 e 7.1.
+
+**Achados.** `get_qa_workflow` e `get_registration_service` montam um `GeminiChatProvider` novo a cada pedido, com um `CircuitBreaker` zerado, então a regra de 5 falhas e 60 s nunca dispara. `open_session` cria um engine com `NullPool` a cada uso, e uma pergunta abre de 7 a 8 conexões até o banco.
+
+**Entregas.**
+- Provedores, breaker e workflows criados no `lifespan` e guardados em `app.state`.
+- Um `AsyncEngine` com pool por processo, fechado no fim do `lifespan`. O `/ready` pode manter conexão própria.
+
+**Critérios de aceite.**
+- CA-1. Cinco falhas em pedidos diferentes abrem o circuito, e o sexto pedido recebe `degraded` sem chamar o provedor.
+- CA-2. Os pedidos reaproveitam conexões do pool.
+- CA-3. O p95 do primeiro token, medido com `.github/scripts/ttft.mjs` antes e depois, fica registrado na PR.
+
+**Como testar.** Em development, troque a chave do Gemini por uma inválida e confira que o sexto pedido degrada na hora. Depois volte a chave.
+
+#### Etapa 12.5 — API acessível só pela Vercel
+
+**Objetivo.** Fechar o acesso direto à Railway, que deixa forjar o IP dos limites de taxa.
+
+**Seções.** 10.3, 10.4 e ADR-001.
+
+**Achados.** O IP vem do primeiro item de `x-forwarded-for`, e o Uvicorn aceita esse cabeçalho de qualquer origem. Quem chama a URL da Railway direto troca o IP a cada pedido. O `routes.rewrite` do `@vercel/config` aceita `requestHeaders`, então a Vercel pode injetar um segredo que a API exige.
+
+**Entregas.**
+- Rewrite de `/backend` no `vercel.ts` com `requestHeaders` e `deploymentEnv("EDGE_SECRET")`.
+- Middleware que recusa `/v1/*` sem o cabeçalho certo fora de `local` e `test`, com `hmac.compare_digest`.
+- Fumaça que confere o 403 num pedido direto à Railway.
+
+**Critérios de aceite.**
+- CA-1. Um pedido direto à Railway em `/v1/conversations` recebe 403.
+- CA-2. `/health`, `/ready` e `/metrics` continuam acessíveis para a Railway e o Prometheus.
+- CA-3. O app pela Vercel funciona como antes.
+- CA-4. As seções 10.3 e 10.4 dizem que o IP passa a vir da Vercel.
+
+**Como testar.** `curl -i <URL da Railway>/v1/conversations` devolve 403, e J1 pela Vercel continua funcionando.
+
+---
+
+### Fase 13 — Correção e resiliência da API (SDD 23, passo 11)
+
+#### Etapa 13.1 — Loop de eventos livre
+
+**Objetivo.** Tirar do loop de eventos o trabalho de CPU que trava os fluxos da réplica.
+
+**Seções.** 6.4.
+
+**Achados.** O argon2 roda direto no código assíncrono do login e do cadastro. O divisor de chunks roda no loop, embora a seção 6.4 diga threadpool.
+
+**Entregas.**
+- `hash_password`, `verify_password` e `split_markdown` chamados com `asyncio.to_thread`.
+
+**Critérios de aceite.**
+- CA-1. Um teste garante que o hasher roda fora da thread do loop.
+- CA-2. A ingestão continua passando nos testes de integração.
+
+**Como testar.** Abra `/v1/diagnostics/stream` e faça login ao mesmo tempo: os eventos não param.
+
+#### Etapa 13.2 — Embedding resiliente atrás da porta
+
+**Objetivo.** Fazer o embedding falhar do mesmo jeito que o chat: erro da porta, nova tentativa e breaker.
+
+**Seções.** 6.2, 17 e NFR-1.
+
+**Achados.** `httpx.TimeoutException` e `ConnectError` escapam sem virar erro da porta, o 503 não tem nova tentativa e o cliente HTTP é recriado a cada chamada. O workflow importa `EmbeddingRequestError` do adaptador, e o teste de camadas não proíbe isso.
+
+**Entregas.**
+- Erros de rede mapeados para o erro da porta, nova tentativa em 503 e cliente compartilhado.
+- O erro em `app.ports.embedding` ou `app.domain.errors`.
+- Teste de camadas e `.claude/rules/camadas.md` proibindo `app.adapters` em `app.workflows`.
+
+**Critérios de aceite.**
+- CA-1. Uma falha de rede do embedding grava desfecho `error` e conta na métrica de desfechos.
+- CA-2. O teste de camadas falha se um workflow importar um adaptador.
+
+**Como testar.** Rode o teste de unidade com um transporte httpx que levanta `ConnectError`.
+
+#### Etapa 13.3 — Cadastro sem perda de atualização
+
+**Objetivo.** Impedir que duas gravações no mesmo cadastro apaguem uma à outra.
+
+**Seções.** 6.4, 7.2, 8.1, FR-5 e FR-6.
+
+**Achados.** `_save` trava a linha, mas só compara o `status`. Campos e transcrição vêm do registro lido antes da chamada ao modelo.
+
+**Entregas.**
+- Coluna `version` em `registration_sessions`, com migração e downgrade.
+- 409 quando a versão mudou, e o frontend recarrega a sessão.
+
+**Critérios de aceite.**
+- CA-1. Mensagem e edição do cartão ao mesmo tempo não perdem nada (teste de integração).
+- CA-2. A migração passa no teste de upgrade e downgrade.
+
+**Como testar.** Abra o mesmo cadastro em duas abas e edite nas duas.
+
+#### Etapa 13.4 — SDD e código alinhados
+
+**Objetivo.** Ter uma regra só para a desconexão do fluxo e decidir o `visitor_type`.
+
+**Seções.** 6.4, 7.1 e FR-18.
+
+**Achados.** A seção 6.4 diz que a desconexão cancela e grava `cancelled`. A seção 7.1 diz que o pedido continua até o fim e a visão consulta a conversa. O código cancela. O `visitor_type` está fixo em `None`, embora a seção 7.1 o use com consentimento de personalização.
+
+**Entregas.**
+- Decisão escrita no SDD, com código e teste seguindo a decisão.
+- `visitor_type` implementado, ou retirado da seção 7.1.
+
+**Critérios de aceite.**
+- CA-1. Quando o fluxo cai, a consulta de reserva encontra o desfecho que o SDD descreve.
+- CA-2. O histórico de revisão do SDD registra a decisão.
+
+**Como testar.** Feche a aba no meio de uma resposta e reabra a conversa.
+
+#### Etapa 13.5 — Banco e manutenção
+
+**Objetivo.** Ajustar índices, destravar versões presas, medir a similaridade antes do piso e remover código sem uso.
+
+**Seções.** 7.3, 8.2, 12 e 18.3.
+
+**Achados.** Faltam índices em `conversations.guest_key_id` e `auth_sessions.user_id`, e `messages_conversation_id_idx` repete a restrição única de `messages`. `fail_stale_processing_versions` só roda na inicialização. A métrica de similaridade só vê candidatos acima do piso. A rota `admin_probe` ficou da Etapa 7.
+
+**Entregas.**
+- Migração com os índices novos e sem o redundante.
+- Checagem de versões presas também no `retention-job`.
+- Métrica da melhor similaridade antes do piso.
+- Rota `admin_probe`, o teste dela e as linhas mortas do `gemini_chat.py` removidos, com o OpenAPI regenerado.
+
+**Critérios de aceite.**
+- CA-1. A consulta de retenção usa o índice novo (`EXPLAIN`).
+- CA-2. O job `contract` passa com o OpenAPI novo.
+
+**Como testar.** Rode o `EXPLAIN` da consulta de retenção no banco de development.
+
+---
+
+### Fase 14 — Experiência do visitante (SDD 23, passo 11)
+
+Depois da 14.3, a Etapa 9.2 é retomada, para o teste de usabilidade rodar com as correções.
+
+#### Etapa 14.1 — Erros honestos
+
+**Objetivo.** Fazer cada erro dizer o que aconteceu e apontar o próximo passo, em português.
+
+**Seções.** 13.3, 13.4, 15.5 e 15.7.
+
+**Achados.** No login, 500 e 503 aparecem como credenciais inválidas. Não há rota `*` nem `ErrorBoundary` na raiz. Os guards usam o `me` em cache, e um 401 não leva ao login. Uma aba aberta antes de um deploy quebra ao abrir uma rota lazy.
+
+**Entregas.**
+- Login que só mostra credenciais inválidas em 400 e 401.
+- Tela de página não encontrada e `ErrorBoundary` na raiz.
+- 401 global que limpa `me` e leva a `/sign-in?returnTo=`.
+- Uma recarga só no `vite:preloadError`.
+
+**Critérios de aceite.**
+- CA-1. Com a API fora, o login mostra indisponibilidade com o `request_id`.
+- CA-2. Uma URL inexistente mostra a tela em português.
+- CA-3. Com a sessão revogada, `/account` leva ao login.
+- CA-4. Histórias no Storybook (DP-7) e axe sem violação (DP-8).
+
+**Como testar.** Pare a API e tente entrar. Abra `/qualquer-coisa`. Revogue a sessão no banco e abra `/account`.
+
+#### Etapa 14.2 — Pergunta preservada
+
+**Objetivo.** Não perder o que a pessoa digitou e não sujar a conversa ao tentar de novo.
+
+**Seções.** 7.1 e 15.5.
+
+**Achados.** O campo é limpo antes de o envio dar certo. Tentar de novo acrescenta outro turno. A consulta de reserva faz um pedido por segundo, sem limite de tempo.
+
+**Entregas.**
+- Campo limpo só depois do envio aceito.
+- Tentar de novo substitui o turno que falhou.
+- Consulta de reserva com limite de tempo e recuo progressivo.
+
+**Critérios de aceite.**
+- CA-1. Numa falha de rede, o texto volta ao campo.
+- CA-2. Tentar de novo deixa um turno só.
+- CA-3. A consulta de reserva para no limite e mostra o erro.
+
+**Como testar.** Desligue a rede no DevTools e envie uma pergunta.
+
+#### Etapa 14.3 — Foco, rolagem e leitor de tela
+
+**Objetivo.** Deixar a conversa acompanhável por teclado, leitor de tela e celular.
+
+**Seções.** 15.8, 16.3, 16.4 e NFR-14.
+
+**Achados.** O compositor fica `disabled` durante a resposta e o foco vai para o `body`, o mesmo nos botões de avaliação. A conversa não rola até a resposta nova. Um erro repetido não é anunciado de novo. A saída do `useGsapPresence` nunca roda.
+
+**Entregas.**
+- Compositor com `readOnly` e `aria-disabled`, e foco devolvido ao campo.
+- Rolagem até a resposta nova quando a pessoa está perto do fim, sem animação com movimento reduzido.
+- Região live que anuncia de novo um erro repetido, com um só mecanismo, e `role="log"` na conversa.
+- `useGsapPresence` com a saída e o `setItem` do movimento protegido.
+
+**Critérios de aceite.**
+- CA-1. O foco fica no campo depois de cada resposta.
+- CA-2. O `keyboard.live` cobre o envio pelo teclado.
+- CA-3. Axe sem violação séria nas telas de conversa.
+
+**Como testar.** Use a conversa só com o teclado e com o NVDA, e numa largura de 375 px.
+
+---
+
+### Fase 15 — Privacidade e superfície de ataque (SDD 23, passo 11)
+
+#### Etapa 15.1 — Conversa do membro só para o membro
+
+**Objetivo.** Fazer a chave de convidado parar de abrir a conversa que passou para uma conta.
+
+**Seções.** 7.2, 10.3, 11.5 e FR-9.
+
+**Achados.** `attach_to_user` mantém o `guest_key_id`, e `owns_conversation` aceita a chave de convidado. O cookie `atrium_guest` dura 30 dias e não é apagado no logout.
+
+**Entregas.**
+- `guest_key_id` zerado ao anexar, ou chave recusada quando há `user_id`.
+- `atrium_guest` apagado no login, no fim do cadastro e no logout.
+
+**Critérios de aceite.**
+- CA-1. Depois do logout, a chave antiga recebe 404 na conversa (teste de integração).
+
+**Como testar.** Pergunte como convidado, crie a conta, saia e abra `/ask/<id>` pelo histórico do navegador.
+
+#### Etapa 15.2 — Menos superfície exposta
+
+**Objetivo.** Desligar o que produção não precisa e endurecer o que fica no ar.
+
+**Seções.** 10.3, 12, 13.4, 22.1 e NFR-10.
+
+**Achados.** `/docs` e `/openapi.json` ficam públicos em produção. O upload é lido antes da checagem de admin. O container roda como root, com a base sem digest. Faltam `Cross-Origin-Opener-Policy` e HSTS próprio.
+
+**Entregas.**
+- Documentação da API desligada fora de `local` e `development`. O export do OpenAPI continua pelo script.
+- `require_admin` como dependência e limite de `content-length` no upload.
+- Usuário sem privilégio no Dockerfile e base fixada por digest.
+- COOP e HSTS em `security-headers.ts`, e `safeReturnTo` validado com `new URL`.
+
+**Critérios de aceite.**
+- CA-1. `/docs` responde 404 em production.
+- CA-2. Um upload sem sessão recebe 401 antes de o corpo ser lido.
+- CA-3. No container, `id -u` é diferente de 0.
+
+**Como testar.** `curl -i` em `/backend/docs` de produção, e `id -u` dentro do container.
+
+#### Etapa 15.3 — Prompt e rastros mais seguros
+
+**Objetivo.** Impedir que um documento feche o bloco de contexto e reduzir o risco de nomes saírem do país nos rastros.
+
+**Seções.** 10.2, 11.6, 11.7 e 18.4.
+
+**Achados.** O bloco `contexto_nao_confiavel` recebe o conteúdo sem tratar a tag de fechamento. A política `masked` envia pergunta e resposta ao LangSmith, e a redação não cobre nomes próprios.
+
+**Entregas.**
+- Tag de fechamento neutralizada, aspas escapadas em `secao` e `PROMPT_VERSION` novo.
+- Decisão sobre nomes: redação extra ou `metadata_only` na geração.
+
+**Critérios de aceite.**
+- CA-1. Um documento com a tag de fechamento no meio não fecha o bloco (teste de unidade).
+- CA-2. O teste de política de rastro cobre a decisão.
+
+**Como testar.** Envie em development um documento de teste com a tag de fechamento e confira o prompt montado no LangSmith.
+
+#### Etapa 15.4 — Riscos aceitos por escrito
+
+**Objetivo.** Registrar o que não se corrige na versão 1, com o motivo.
+
+**Seções.** 4.2, 10.4 e 25.
+
+**Achados.** O cadastro diz quando um e-mail já tem conta, e não há verificação de e-mail. A entrega de e-mail está fora do escopo (seção 4.2), e os dados são fictícios (D-3).
+
+**Entregas.**
+- Linha nova na tabela de riscos da seção 25.
+
+**Critérios de aceite.**
+- CA-1. A seção 25 registra o risco, o motivo e a saída futura, a verificação de e-mail.
+
+**Como testar.** Revise a PR de documentação.
+
+---
+
+### Fase 16 — Qualidade de IA e operação (SDD 23, passo 11)
+
+#### Etapa 16.1 — Avaliações que medem de verdade
+
+**Objetivo.** Ter amostra suficiente para separar regressão de ruído, sem bloquear o merge (seção 25).
+
+**Seções.** 21.2 e 25.
+
+**Achados.** São 11 casos, só 4 esperam resposta, e o limiar é 90%: uma falha já derruba a taxa para 75%. O resumo publica só `outcome_match`.
+
+**Entregas.**
+- `evals/public_qa.jsonl` com 40 a 60 casos: categorias do corpus, seguimento, injeção, telefones e recusas.
+- Resumo com `source_match` e `groundedness`.
+
+**Critérios de aceite.**
+- CA-1. O experimento novo roda no LangSmith com os casos ampliados.
+- CA-2. Uma queda abaixo do limiar pede justificativa escrita na PR.
+
+**Como testar.** Rode `uv run python -m app.scripts.run_evals` e compare com o experimento anterior.
+
+#### Etapa 16.2 — Lint mais rigoroso
+
+**Objetivo.** Pegar automaticamente erros que a revisão deixa passar.
+
+**Seções.** 21.1.
+
+**Entregas.**
+- Ruff com `S`, `ASYNC`, `DTZ`, `PT` e `RUF`, com as exceções justificadas.
+- ESLint com regras tipadas, ao menos `no-floating-promises` e `no-misused-promises`.
+- `prettier --check` na CI.
+
+**Critérios de aceite.**
+- CA-1. A CI passa com as regras novas.
+
+**Como testar.** Rode `uv run ruff check` em `apps/api` e `pnpm exec eslint .` em `apps/web`.
+
+#### Etapa 16.3 — Produção que se recupera
+
+**Objetivo.** Voltar o frontend sozinho quando a fumaça de produção falha, e avisar quem opera.
+
+**Seções.** 22.3.
+
+**Achados.** O último passo do deploy roda a fumaça, mas não há `if: failure()` nem rollback.
+
+**Entregas.**
+- Passo `if: failure()` que promove de volta o deploy anterior da Vercel.
+- Issue aberta com o SHA e o log da fumaça.
+- `docs/rollback.md` com o caminho automático.
+
+**Critérios de aceite.**
+- CA-1. Uma fumaça que falha volta o frontend anterior e abre a issue.
+- CA-2. A API só volta sozinha quando não houve migração.
+
+**Como testar.** Simule uma fumaça falhando em development e confira o rollback e a issue.
+
 ## 4. Status das etapas
 
 A IA atualiza esta tabela em cada PR.
@@ -824,13 +1312,37 @@ A IA atualiza esta tabela em cada PR.
 | 6.2 | Canal do titular, retenção e documentos de privacidade | Aprovada |
 | 7.1 | Gestão de documentos | Aprovada |
 | 7.2 | Visão geral e qualidade | Aprovada |
-| 7.3 | Fila de pedidos de titular | Em revisão |
+| 7.3 | Fila de pedidos de titular | Aprovada |
 | 8.1 | Rastros de sistema e métricas | Aprovada |
 | 8.2 | Painéis, alertas e fila de anotação | Aprovada |
-| 9.1 | Acessibilidade, movimento e desempenho | Em revisão |
-| 9.2 | Teste de usabilidade | Em andamento |
-| 10.1 | Pipeline de deploy e ambiente de development | Em revisão |
-| 10.2 | Produção e rollback | Em revisão |
+| 9.1 | Acessibilidade, movimento e desempenho | Aprovada |
+| 9.2 | Teste de usabilidade | Pendente |
+| 10.1 | Pipeline de deploy e ambiente de development | Aprovada |
+| 10.2 | Produção e rollback | Aprovada |
+| 11.1 | CI que não passa vazia | Pendente |
+| 11.2 | Rollback e pré-deploy conferidos | Pendente |
+| 11.3 | CI endurecida e dependências vigiadas | Pendente |
+| 11.4 | Cobertura medida | Pendente |
+| 12.1 | Orçamento obrigatório | Pendente |
+| 12.2 | Todo token entra no orçamento | Pendente |
+| 12.3 | Histórico com janela | Pendente |
+| 12.4 | Provedores, breaker e banco com vida de processo | Pendente |
+| 12.5 | API acessível só pela Vercel | Pendente |
+| 13.1 | Loop de eventos livre | Pendente |
+| 13.2 | Embedding resiliente atrás da porta | Pendente |
+| 13.3 | Cadastro sem perda de atualização | Pendente |
+| 13.4 | SDD e código alinhados | Pendente |
+| 13.5 | Banco e manutenção | Pendente |
+| 14.1 | Erros honestos | Pendente |
+| 14.2 | Pergunta preservada | Pendente |
+| 14.3 | Foco, rolagem e leitor de tela | Pendente |
+| 15.1 | Conversa do membro só para o membro | Pendente |
+| 15.2 | Menos superfície exposta | Pendente |
+| 15.3 | Prompt e rastros mais seguros | Pendente |
+| 15.4 | Riscos aceitos por escrito | Pendente |
+| 16.1 | Avaliações que medem de verdade | Pendente |
+| 16.2 | Lint mais rigoroso | Pendente |
+| 16.3 | Produção que se recupera | Pendente |
 
 Valores possíveis: Pendente, Em andamento, Em revisão, Ajustes pedidos, Aprovada.
 
@@ -844,11 +1356,11 @@ Cada requisito da seção 5 tem pelo menos uma etapa responsável. Uma etapa pos
 | FR-2 | 3.3, 4.1, 4.2 |
 | FR-3 | 4.1 |
 | FR-4 | 4.1, 4.2 |
-| FR-5 | 5.1, 5.2 |
-| FR-6 | 5.1, 5.2 |
+| FR-5 | 5.1, 5.2, 13.3 |
+| FR-6 | 5.1, 5.2, 13.3 |
 | FR-7 | 5.1, 8.1 |
 | FR-8 | 5.1 |
-| FR-9 | 5.1, 6.1 |
+| FR-9 | 5.1, 6.1, 15.1 |
 | FR-10 | 7.1 |
 | FR-11 | 3.2, 7.1 |
 | FR-12 | 3.3, 7.1 |
@@ -857,21 +1369,21 @@ Cada requisito da seção 5 tem pelo menos uma etapa responsável. Uma etapa pos
 | FR-15 | 7.2 |
 | FR-16 | 6.2, 7.3 |
 | FR-17 | 4.2, 4.4 |
-| FR-18 | 4.2, 4.3 |
-| NFR-1 | 1.3, 2.1 |
+| FR-18 | 4.2, 4.3, 13.4 |
+| NFR-1 | 1.3, 2.1, 13.2 |
 | NFR-2 | 1.2, 4.4 |
 | NFR-3 | 1.4 e todas as seguintes |
 | NFR-4 | 1.2, 2.1 |
-| NFR-5 | 2.1 |
+| NFR-5 | 2.1, 11.1 |
 | NFR-6 | 1.2, 4.4, 8.1 |
 | NFR-7 | 1.2, 8.1 |
 | NFR-8 | 0.1, 10.2 |
 | NFR-9 | 2.1, 3.2 |
-| NFR-10 | 2.2, 5.1, 7.1 |
+| NFR-10 | 2.2, 5.1, 7.1, 15.2 |
 | NFR-11 | 2.2 |
 | NFR-12 | 2.2 |
-| NFR-13 | 4.1 |
-| NFR-14 | 1.3 a 7.3, fechado em 9.1 |
+| NFR-13 | 4.1, 12.1, 12.2, 12.3, 12.4 |
+| NFR-14 | 1.3 a 7.3, fechado em 9.1, revisto em 14.3 |
 | NFR-15 | 1.3, fechado em 9.1 |
 | NFR-16 | 2.2 |
 

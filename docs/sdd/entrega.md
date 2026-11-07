@@ -159,6 +159,8 @@ A API escuta em `0.0.0.0`. O asyncio abre `::` só em IPv6 e recusaria IPv4, e o
 
 Variáveis do `api`: as das seções 17 e 19. `DATABASE_URL` é a referência `${{Postgres.DATABASE_URL}}`. `RATE_LIMIT_HMAC_KEY`, `PSEUDONYM_KEY`, `METRICS_TOKEN` e `ADMIN_PASSWORD` são gerados pela Railway com `${{ secret(...) }}` na primeira gravação e ficam estáveis entre deploys; quem opera lê `ADMIN_PASSWORD` no painel. `GEMINI_API_KEY` e `LANGSMITH_API_KEY` são postas por quem opera, também no painel. No primeiro login, o admin passa pelo novo aceite dos Termos (seção 13.3).
 
+`LLM_DAILY_TOKEN_BUDGET` vale `500000` em `development` e `2000000` em `production`, gravado em 2026-11-07 com folga sobre o uso dos primeiros dias. Zero desligaria o teto (seção 7.1), que é a proteção de custo que os limites por IP não dão (seção 10.4). O alerta de 80% da seção 18.3 avisa antes de o teto chegar.
+
 Migrações seguem expand and contract: uma migração nunca quebra a versão anterior do código. Remover uma coluna acontece no deploy seguinte ao que parou de usá-la. Isso permite voltar o código sem voltar o banco.
 
 ### 22.2 Vercel
@@ -219,6 +221,7 @@ Implementar nesta ordem. Cada passo pode ser publicado em development e deixa os
 8. **Observabilidade completa.** Spans próprios, métricas, Prometheus e Grafana, painéis, alertas, fila de anotação do LangSmith, testes de redação.
 9. **Acabamento de experiência.** Auditoria de acessibilidade, teste de usabilidade da seção 15.9, revisão de movimento com e sem redução, metas de desempenho da seção 5.3.
 10. **Publicação.** `deploy.yml`, development, aprovação, produção e verificação de rollback.
+11. **Melhorias da auditoria.** As divergências entre o código e este documento e o endurecimento encontrados na auditoria de 2026-11-07, nesta ordem: entrega, custo e disponibilidade do LLM, resiliência da API, experiência do visitante, privacidade e qualidade de IA. São as Fases 11 a 16 do plano de ação. Cada etapa que muda comportamento atualiza a seção correspondente deste documento.
 
 ## 24. Registros de decisão de arquitetura
 
