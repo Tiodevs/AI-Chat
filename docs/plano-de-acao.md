@@ -1012,6 +1012,8 @@ Ordem: grave `EDGE_SECRET` na Vercel (Preview e Production, um valor por ambient
 
 **Resultado da 12.5b.** `EDGE_SECRET` entrou em `missing_safeguards`: em development e production, a API não sobe sem ele, e a Railway mantém a versão anterior no ar. A fumaça recebe a origem da API na Railway (`API_URL` do Environment) e confere que `GET /v1/conversations` direto responde 403 `forbidden` e que `GET /health` direto responde 200. Rodada contra development antes da 12.5a, a checagem falhou como devia: o pedido direto respondeu 401, porque ainda chegava às rotas.
 
+**Publicação.** Em 2026-11-08, o `EDGE_SECRET` entrou na Vercel e também na Railway antes do deploy da 12.5a, fora da ordem acima. Em development, `/v1` pela Vercel respondeu 403 por cerca de um minuto, entre a API nova no ar e o alias da Vercel. Depois, `/v1` respondeu 200 pela Vercel e 403 `forbidden` direto na Railway, também com um cabeçalho errado, e o `/health` direto respondeu 200. O deploy da 12.5b em development (`9e8be28`) passou na fumaça com as checagens diretas, sem nenhum 403 pela Vercel. Em production, a Railway já tem o segredo, então o primeiro deploy aprovado com a 12.5 repete essa janela por alguns minutos.
+
 ---
 
 ### Fase 13 — Correção e resiliência da API (SDD 23, passo 11)
