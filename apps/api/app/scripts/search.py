@@ -1,4 +1,15 @@
-"""Diagnóstico da busca híbrida. Seção 6.3 do SDD."""
+"""Diagnóstico da busca híbrida. Seção 6.3 do SDD.
+
+Uso: `python -m app.scripts.search "Qual é o horário de visita?"`, em `apps/api`.
+
+Ferramenta de desenvolvimento da Etapa 3.3: roda só a recuperação da seção 8.4, sem o modelo de
+chat, e imprime documento, título, seção e similaridade dos até 6 chunks que passam no piso
+`RETRIEVAL_MIN_SIMILARITY`, na ordem da fusão. Só lê o banco.
+
+Precisa de `DATABASE_URL`. Com `APP_AI_ADAPTER=gemini`, precisa também de `GEMINI_API_KEY`
+para embedar a pergunta. Com `fake` ou `demo`, usa o embedding desse adaptador, que só encontra
+algo num corpus semeado com o mesmo adaptador.
+"""
 
 import argparse
 import asyncio
@@ -14,6 +25,7 @@ from app.services.retrieval import RetrievalService
 
 
 def main(argv: list[str] | None = None) -> None:
+    """Lê a pergunta, confere o ambiente e imprime a tabela dos chunks encontrados."""
     parser = argparse.ArgumentParser(description="Busca híbrida de diagnóstico.")
     parser.add_argument("question")
     args = parser.parse_args(argv)
@@ -30,6 +42,7 @@ def main(argv: list[str] | None = None) -> None:
 
 
 async def _run(settings: Settings, question: str) -> list[RetrievedChunk]:
+    """A busca do `RetrievalService`, que acrescenta o prefixo da seção 8.3 à pergunta."""
     service = RetrievalService(
         settings.database_url,
         build_embedding_provider(settings),
@@ -39,6 +52,7 @@ async def _run(settings: Settings, question: str) -> list[RetrievedChunk]:
 
 
 def format_hits(hits: list[RetrievedChunk]) -> str:
+    """Uma linha por chunk, com a similaridade em 4 casas, ou o aviso de nenhum resultado."""
     if not hits:
         return NO_SEARCH_RESULTS
     lines = ["documento | título | seção | similaridade"]

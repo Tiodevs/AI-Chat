@@ -1,4 +1,14 @@
-"""Sincroniza evals/public_qa.jsonl com o dataset atrium-public-qa. Seção 21.2."""
+"""Sincroniza evals/public_qa.jsonl com o dataset atrium-public-qa. Seção 21.2.
+
+Uso: `python -m app.scripts.sync_eval_dataset`, em `apps/api`, depois de mudar o arquivo de
+casos e antes do `run_evals`.
+
+Cria o dataset se ele não existe, lista os exemplos e aplica o plano de `app.evals.dataset`:
+cria os casos novos, atualiza os que mudaram e apaga os que saíram do arquivo. Cada exemplo
+guarda o `case_id` nos metadados, que é o que liga o exemplo ao caso. Não usa banco nem o
+Gemini. Precisa de `LANGSMITH_API_KEY`, mais `LANGSMITH_WORKSPACE_ID` com chave de
+organização. O `evals.yml` roda este script antes de cada experimento.
+"""
 
 import sys
 
@@ -11,6 +21,7 @@ from app.evals.dataset import RemoteExample, plan_sync
 
 
 def main() -> None:
+    """Confere a chave, sincroniza e imprime quantos exemplos foram criados, mudados e apagados."""
     settings = Settings()
     if not settings.langsmith_api_key:
         print("Defina LANGSMITH_API_KEY.", file=sys.stderr)
@@ -32,6 +43,11 @@ def main() -> None:
 
 
 def _sync(client: Client, cases: tuple[EvalCase, ...]) -> tuple[int, int, int]:
+    """Aplica o plano no LangSmith e devolve as contagens de criados, mudados e apagados.
+
+    No SDK, `create_example` recebe o esperado em `reference_outputs`, e `update_example`, em
+    `outputs`.
+    """
     if not client.has_dataset(dataset_name=DATASET_NAME):
         client.create_dataset(
             DATASET_NAME,
@@ -59,6 +75,7 @@ def _sync(client: Client, cases: tuple[EvalCase, ...]) -> tuple[int, int, int]:
 
 
 def _remote(example: object) -> RemoteExample:
+    """Um exemplo do SDK como `RemoteExample`, lido com `getattr` para tolerar campos ausentes."""
     metadata = getattr(example, "metadata", None)
     case_id = metadata.get("case_id") if isinstance(metadata, dict) else None
     inputs = getattr(example, "inputs", None) or {}

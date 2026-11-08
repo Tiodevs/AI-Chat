@@ -11,6 +11,12 @@ demonstração local sem chave. As regras são poucas e previsíveis:
 - Frases do cadastro: indisponível, então valem as perguntas fixas de `app/prompts`.
 
 Nunca roda em `development` nem em `production` (`app.core.config`).
+
+Implementa a porta `ChatProvider` (ADR-014). Quem usa: `build_chat_provider` com
+`APP_AI_ADAPTER=demo`. As saídas passam pelas mesmas guardas das do Gemini: lista de permissão
+do cadastro e conferência de citação e de telefone. As regras leem os textos montados pelos
+workflows, então dependem de dois formatos: o bloco `contexto_nao_confiavel` de
+`app.prompts.qa` e a linha "Passo atual" do nó `extract` do cadastro.
 """
 
 import re
@@ -22,6 +28,9 @@ from app.domain.fields import SET_FIELDS_TOOL_NAME, VISIT_REASONS, VISITOR_TYPES
 from app.ports.chat import Message, ModelT, RunContext, Tool, ToolResult
 from app.prompts.qa import CHAT_UNAVAILABLE
 
+# Palavras, já sem acento e em minúsculas como `tokens` as devolve, que marcam orientação
+# médica. Como "tomar" está na lista, "Posso tomar café na lanchonete?" também vira
+# `medical_advice` neste modo.
 _MEDICAL = frozenset(
     {
         "dor", "dores", "sintoma", "sintomas", "remedio", "remedios", "medicamento",
@@ -29,19 +38,24 @@ _MEDICAL = frozenset(
         "diagnostico", "tomar", "tosse", "sangramento", "receita",
     }
 )
+# Palavras que marcam um assunto fora do hospital.
 _OFF_TOPIC = frozenset({"clima", "previsao", "chover", "chuva", "futebol", "temperatura"})
 # "Tempo" só é fora de tema perto de um dia: "ao mesmo tempo" é uma pergunta de visita.
 _WEATHER_DAYS = frozenset({"amanha", "hoje", "semana", "fim"})
+# Palavras que, num passo opcional, valem como "pular este campo".
 _SKIP = frozenset(
     {"pular", "pula", "pulo", "nao", "sem", "nenhum", "nenhuma", "prefiro", "passar", "passo"}
 )
+# O bloco que `untrusted_block` monta: o índice e o conteúdo entre as tags.
 _BLOCK = re.compile(
     r'<contexto_nao_confiavel indice="(?P<index>\d+)"[^>]*>\n'
     r"(?P<content>.*?)\n</contexto_nao_confiavel>",
     re.DOTALL,
 )
+# A linha que o nó `extract` acrescenta às regras da extração.
 _STEP = re.compile(r"Passo atual: (?P<step>[a-z_]+)\.")
 _EMAIL = re.compile(r"[\w.+-]+@[\w-]+(?:\.[\w-]+)+")
+# Palavras que escolhem um valor dos enums `visitor_type` e `visit_reason` (seção 8.5).
 _VISITOR_WORDS = {
     "patient": ("paciente",),
     "visitor": ("visitante", "visita", "visitar"),
@@ -57,6 +71,8 @@ _REASON_WORDS = {
 
 
 class DemoChatProvider:
+    """Respostas por regras para as três operações da porta de chat. Não conta tokens."""
+
     model_name = "demo-rules"
 
     async def complete_structured(
@@ -65,6 +81,11 @@ class DemoChatProvider:
         schema: type[ModelT],
         run: RunContext,
     ) -> ModelT:
+        """Responde só à classificação da pergunta, reconhecida pelos campos do schema.
+
+        A pergunta reescrita é a própria pergunta, e a confiança fixa de 0,9 passa do portão
+        de 0,6 (seção 7.1). Qualquer outro schema levanta `ProviderUnavailable`.
+        """
         fields = set(schema.model_fields)
         if {"standalone_question", "intent", "confidence"} <= fields:
             question = _last_user(messages)
@@ -80,6 +101,7 @@ class DemoChatProvider:
         tools: list[Tool],
         run: RunContext,
     ) -> ToolResult:
+        """Responde à extração do cadastro chamando `set_fields` com o campo do passo atual."""
         if not any(tool.name == SET_FIELDS_TOOL_NAME for tool in tools):
             raise ProviderUnavailable(CHAT_UNAVAILABLE)
         step = _step(messages)
@@ -87,6 +109,12 @@ class DemoChatProvider:
         return ToolResult(name=SET_FIELDS_TOOL_NAME, arguments=_registration_fields(step, text))
 
     def stream(self, messages: list[Message], run: RunContext) -> AsyncIterator[str]:
+        """Transmite a resposta palavra a palavra, como um fluxo de tokens.
+
+        Cada pedaço leva o espaço que vinha depois da palavra, então o texto juntado é igual
+        ao original. Sem bloco de contexto, levanta `ProviderUnavailable`.
+        """
+
         async def iterate() -> AsyncIterator[str]:
             answer = _answer(_last_user(messages))
             if answer is None:
@@ -99,6 +127,7 @@ class DemoChatProvider:
 
 
 def _last_user(messages: list[Message]) -> str:
+    """O texto da última mensagem do visitante, ou vazio."""
     for message in reversed(messages):
         if message.role == "user":
             return message.content
@@ -106,6 +135,7 @@ def _last_user(messages: list[Message]) -> str:
 
 
 def _step(messages: list[Message]) -> str:
+    """O passo do cadastro lido da linha "Passo atual" das mensagens de sistema, ou vazio."""
     for message in messages:
         if message.role == "system":
             found = _STEP.search(message.content)
@@ -115,6 +145,7 @@ def _step(messages: list[Message]) -> str:
 
 
 def _intent(question: str) -> str:
+    """A intenção pela regra do cabeçalho. Orientação médica vem antes de fora de tema."""
     words = set(tokens(question))
     if words & _MEDICAL:
         return "medical_advice"
@@ -124,7 +155,12 @@ def _intent(question: str) -> str:
 
 
 def _answer(prompt: str) -> str | None:
-    """A primeira frase útil do primeiro bloco, com a citação do bloco."""
+    """A primeira frase útil do primeiro bloco, com a citação do bloco.
+
+    O primeiro bloco é o de melhor posição na busca. Linhas vazias e títulos Markdown são
+    pulados, e os marcadores de lista saem. A frase termina no primeiro `.`, `!` ou `?`
+    seguido de espaço.
+    """
     block = _BLOCK.search(prompt)
     if block is None:
         return None
@@ -139,6 +175,13 @@ def _answer(prompt: str) -> str | None:
 
 
 def _registration_fields(step: str, text: str) -> dict[str, object]:
+    """Os argumentos de `set_fields` para a mensagem, pelo passo atual.
+
+    Num passo opcional, uma palavra de `_SKIP` pula o campo. Nome e telefone vão como vieram,
+    e o e-mail é o primeiro endereço achado no texto; a validação do domínio julga os três.
+    Tipo de visitante e motivo da visita saem das tabelas de palavras. Num passo que não pede
+    campo, só um e-mail no texto é lido.
+    """
     words = set(tokens(text))
     email = _EMAIL.search(text)
     if step in {"phone", "visitor_type", "visit_reason"} and words & _SKIP:
@@ -162,6 +205,7 @@ def _choice(
     table: dict[str, tuple[str, ...]],
     allowed: tuple[str, ...],
 ) -> dict[str, object]:
+    """O primeiro valor permitido cujas palavras aparecem na mensagem; sem nenhum, pula."""
     for value, hints in table.items():
         if value in allowed and words & set(hints):
             return {field: value}
