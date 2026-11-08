@@ -39,7 +39,8 @@ permissions:
   contents: read
 
 # Versões fixas das CLIs, iguais nos dois ambientes. As rotas do vercel.ts foram conferidas
-# contra a normalização da CLI 65.2.0 (Etapa 12.5).
+# contra a normalização da CLI 65.2.0 (Etapa 12.5). O .github/scripts/install-clis.sh lê as
+# duas variáveis.
 env:
   RAILWAY_CLI_VERSION: 5.71.0
   VERCEL_CLI_VERSION: 65.2.0
@@ -119,9 +120,10 @@ jobs:
           node-version: 22
           cache: pnpm
           cache-dependency-path: apps/web/pnpm-lock.yaml
-      # As CLIs nas versões fixas do `env` do topo.
+      # As CLIs nas versões fixas do `env` do topo, com até três tentativas: o download do
+      # binário da Railway às vezes responde 504 (.github/scripts/install-clis.sh).
       - name: Instalar as CLIs da Railway e da Vercel
-        run: npm install --global "@railway/cli@${RAILWAY_CLI_VERSION}" "vercel@${VERCEL_CLI_VERSION}"
+        run: bash .github/scripts/install-clis.sh
       # O /health devolve este commit, e a fumaça espera por ele (seção 22.3).
       - name: Gravar o commit na imagem da API
         run: printf '%s' "$SHA" > apps/api/app/BUILD_SHA
@@ -231,7 +233,7 @@ jobs:
           cache-dependency-path: apps/web/pnpm-lock.yaml
       - name: Instalar as CLIs da Railway e da Vercel
         if: steps.tip.outputs.current == 'true'
-        run: npm install --global "@railway/cli@${RAILWAY_CLI_VERSION}" "vercel@${VERCEL_CLI_VERSION}"
+        run: bash .github/scripts/install-clis.sh
       - name: Gravar o commit na imagem da API
         if: steps.tip.outputs.current == 'true'
         run: printf '%s' "$SHA" > apps/api/app/BUILD_SHA
