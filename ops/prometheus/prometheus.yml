@@ -1,15 +1,26 @@
 # Coleta da API pela rede privada da Railway a cada 30 s. Seção 18.3 do SDD.
 # As variáveis ${...} são trocadas por entrypoint.sh antes de o Prometheus iniciar.
+# Um teste de unidade da API (test_ops_files.py) confere o intervalo, o caminho e o marcador
+# do token neste arquivo.
 global:
+  # O mesmo intervalo do `timeInterval` da fonte de dados do Grafana. Não há regras aqui: os
+  # alertas são avaliados pelo Grafana (ops/grafana/provisioning/alerting).
   scrape_interval: 30s
   evaluation_interval: 30s
 
 scrape_configs:
+  # O nome vira o rótulo `job` das séries. O painel de saúde da API lê `up` deste job.
   - job_name: atrium-api
     metrics_path: /metrics
+    # HTTP pela rede privada (api.railway.internal na Railway, `api` no Compose), sem passar
+    # pelo domínio público.
     scheme: http
+    # O token vai no cabeçalho `Authorization: Bearer`. Sem token configurado na API, o /metrics
+    # responde 404; com o token errado, 401 (seção 18.3).
     authorization:
       type: Bearer
       credentials: ${METRICS_TOKEN}
+    # Um alvo só, porque a versão 1 tem uma réplica (ADR-012). Com mais réplicas, a coleta
+    # passa a descobri-las pelo DNS privado (seção 6.5).
     static_configs:
       - targets: ["${API_HOST}:${API_PORT}"]

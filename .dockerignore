@@ -1,17 +1,26 @@
+# O que fica fora do contexto de build. Os dois Dockerfiles de apps/ constroem a partir da raiz
+# do repositório (seção 22.1, ADR-013), no docker-compose.yml e na Railway, então este arquivo
+# vale para os dois.
+
+# Histórico, workflows e configuração de agentes: nada disso roda na imagem.
 .git
 .github
 .claude
+# Dependências e caches da máquina. A imagem instala as próprias, para Linux.
 **/node_modules
 **/.venv
 **/__pycache__
 **/.pytest_cache
 **/.mypy_cache
 **/.ruff_cache
+# Segredos locais nunca entram numa imagem (seção 10.6).
 **/.env
+# Saídas de build e de teste.
 **/dist
 **/storybook-static
 **/test-results
 **/playwright-report
+# Testes e documentação não rodam no contêiner.
 apps/api/tests
 apps/web/e2e
 docs

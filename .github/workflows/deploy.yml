@@ -14,24 +14,43 @@ name: deploy
 #
 # A variável de repositório DEPLOY_ENABLED liga o pipeline. Ela fica desligada até os
 # segredos acima existirem, para um push na main não falhar por falta de token.
+#
+# Fluxo: gate -> development (API, retention-job, preview da Vercel com o alias estável e
+# fumaça) -> aprovação -> production (o mesmo, mais Prometheus e Grafana, com o domínio de
+# produção da Vercel). O rollback é manual e segue docs/rollback.md.
+#
+# Pendências do plano de ação: a Etapa 11.2 confere o pré-deploy da Railway antes do
+# `railway up`, a Etapa 11.3 fixa as actions por SHA (hoje são tags) e a Etapa 16.3 volta o
+# frontend sozinho quando a fumaça de produção falha. As Etapas 11.2 e 11.3 são débito técnico.
 
 on:
+  # Quando uma execução do ci.yml termina num commit da main, com qualquer resultado. O job
+  # gate deixa passar só a que terminou verde e veio de um push. O GitHub roda este arquivo
+  # na versão da main.
   workflow_run:
     workflows: [ci]
     types: [completed]
     branches: [main]
+  # Disparo manual pela aba Actions. O gate só aceita a main.
   workflow_dispatch:
 
+# O token do GitHub só lê o repositório: o checkout e a consulta do topo da main.
 permissions:
   contents: read
 
+# Versões fixas das CLIs, iguais nos dois ambientes. As rotas do vercel.ts foram conferidas
+# contra a normalização da CLI 65.2.0 (Etapa 12.5).
 env:
   RAILWAY_CLI_VERSION: 5.71.0
   VERCEL_CLI_VERSION: 65.2.0
 
 jobs:
+  # Decide se este commit publica. Não usa segredo nem GitHub Environment.
   gate:
     name: gate
+    # O pipeline ligado e, além disso, um disparo manual na main ou uma CI verde de um push.
+    # `event == 'push'` descarta a CI de uma pull request cuja branch de origem também se
+    # chame main, como a de um fork.
     if: >-
       vars.DEPLOY_ENABLED == 'true' &&
       ((github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
@@ -39,15 +58,20 @@ jobs:
         github.event.workflow_run.conclusion == 'success' &&
         github.event.workflow_run.event == 'push'))
     runs-on: ubuntu-latest
+    # O commit a publicar e se ele ainda é o topo da main. Os jobs seguintes leem daqui.
     outputs:
       sha: ${{ steps.tip.outputs.sha }}
       current: ${{ steps.tip.outputs.current }}
     steps:
+      # Compara o commit com o topo atual da main pela API do GitHub. Fora do topo, o job
+      # termina verde com um aviso e os ambientes ficam de fora.
       - name: Conferir que o commit é o topo da main
         id: tip
         env:
+          # O token do próprio workflow basta para o `gh api` ler um commit.
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
+          # O commit que a CI testou; num disparo manual, o commit da main.
           SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
         run: |
           tip="$(gh api "repos/${REPO}/commits/main" --jq .sha)"
@@ -59,16 +83,22 @@ jobs:
             echo "::notice::A main já está em ${tip}. O deploy de ${SHA} fica de fora; o mais novo publica."
           fi
 
+  # Publica a API, o retention-job e o preview da Vercel no ambiente development e roda a
+  # fumaça. Não pede aprovação.
   development:
     name: development
     needs: gate
+    # Um commit que já não é o topo da main fica de fora: o deploy mais novo publica.
     if: needs.gate.outputs.current == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 40
     # Um grupo por ambiente: uma aprovação de produção pendente não segura o development.
+    # `cancel-in-progress: false` deixa o deploy em andamento terminar; o seguinte espera.
     concurrency:
       group: deploy-development
       cancel-in-progress: false
+    # Os segredos e as variáveis deste job vêm do GitHub Environment development, que só
+    # aceita a main (seção 22.3). A url aparece no resumo da execução.
     environment:
       name: development
       url: https://${{ vars.WEB_HOST }}
@@ -76,9 +106,11 @@ jobs:
       SHA: ${{ needs.gate.outputs.sha }}
       WEB_HOST: ${{ vars.WEB_HOST }}
     steps:
+      # O commit que a CI testou, não o topo da main no momento do checkout.
       - uses: actions/checkout@v7
         with:
           ref: ${{ needs.gate.outputs.sha }}
+      # pnpm e Node para instalar o frontend antes do `vercel build`.
       - uses: pnpm/action-setup@v6
         with:
           version: 10
@@ -87,22 +119,36 @@ jobs:
           node-version: 22
           cache: pnpm
           cache-dependency-path: apps/web/pnpm-lock.yaml
+      # As CLIs nas versões fixas do `env` do topo.
       - name: Instalar as CLIs da Railway e da Vercel
         run: npm install --global "@railway/cli@${RAILWAY_CLI_VERSION}" "vercel@${VERCEL_CLI_VERSION}"
       # O /health devolve este commit, e a fumaça espera por ele (seção 22.3).
       - name: Gravar o commit na imagem da API
         run: printf '%s' "$SHA" > apps/api/app/BUILD_SHA
+      # Envia o repositório a partir da raiz. A Railway constrói o apps/api/Dockerfile com a
+      # configuração gravada no serviço (seção 22.1, ADR-013): pré-deploy com migrações, admin
+      # e semente, health check em /ready e uma réplica. Se o deploy falha, a versão anterior
+      # continua no ar, e o `railway up` pode sair antes de o /ready da nova passar; por isso a
+      # fumaça espera o commit no /health. O token do projeto, limitado ao ambiente, só existe
+      # neste passo e no seguinte.
       - name: Deploy da API em development
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
         run: railway up --service api --environment development
+      # A mesma imagem. O agendamento (0 6 * * *) e o comando `python -m app.scripts.retention`
+      # ficam na configuração do serviço (seção 22.1).
       - name: Deploy do retention-job em development
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
         run: railway up --service retention-job --environment development
+      # O `vercel build` compila o vercel.ts com o @vercel/config, que vem destas dependências.
       - name: Instalar o frontend
         working-directory: apps/web
         run: pnpm install --frozen-lockfile
+      # `vercel pull` baixa a configuração e as variáveis do Preview, `vercel build` gera o
+      # build com o API_URL de development e `vercel deploy --prebuilt` envia o build pronto.
+      # Depois, a API REST da Vercel liga a implantação ao alias WEB_HOST (seção 22.2), porque a
+      # URL de cada preview muda e a API de development só aceita a origem do WEB_ORIGIN.
       - name: Build e deploy de preview na Vercel
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
@@ -124,13 +170,19 @@ jobs:
             -d "{\"alias\":\"${WEB_HOST}\"}" \
             "https://api.vercel.com/v2/deployments/${id}/aliases?teamId=${VERCEL_ORG_ID}"
           echo "Alias: https://${WEB_HOST} -> ${id}"
+      # Pela origem da Vercel, como no navegador: espera o /health devolver este commit e
+      # confere as rotas, os cabeçalhos e o fluxo SSE. Com o API_URL, também confere o 403 de
+      # /v1 direto na Railway (seção 22.3, .github/scripts/smoke.mjs).
       - name: Testes de fumaça em development
         env:
           API_URL: ${{ vars.API_URL }}
         run: node .github/scripts/smoke.mjs "https://${WEB_HOST}" "$SHA" "$API_URL"
 
+  # O mesmo deploy em production, mais Prometheus e Grafana, depois da aprovação.
   production:
     name: production
+    # Só depois do development. Sem função de status no `if`, o GitHub exige também que gate e
+    # development tenham terminado verdes.
     needs: [gate, development]
     if: needs.gate.outputs.current == 'true'
     runs-on: ubuntu-latest
@@ -138,6 +190,8 @@ jobs:
     concurrency:
       group: deploy-production
       cancel-in-progress: false
+    # O GitHub Environment production tem o dono do repositório como revisor obrigatório e só
+    # aceita a main. O job espera a aprovação antes do primeiro passo (seção 22.3).
     environment:
       name: production
       url: https://${{ vars.WEB_HOST }}
@@ -159,6 +213,8 @@ jobs:
             echo "current=false" >> "$GITHUB_OUTPUT"
             echo "::notice::A main já está em ${tip}. Aprove o deploy mais novo."
           fi
+      # Daqui em diante, cada passo só roda se o commit ainda for o topo. Se não for, o job
+      # termina verde sem publicar nada, com o aviso acima.
       - uses: actions/checkout@v7
         if: steps.tip.outputs.current == 'true'
         with:
@@ -179,6 +235,8 @@ jobs:
       - name: Gravar o commit na imagem da API
         if: steps.tip.outputs.current == 'true'
         run: printf '%s' "$SHA" > apps/api/app/BUILD_SHA
+      # Como em development, com o token do ambiente production. Uma versão que trouxe
+      # migração não volta pela Railway; nesse caso, corrige-se para frente (docs/rollback.md).
       - name: Deploy da API em production
         if: steps.tip.outputs.current == 'true'
         env:
@@ -204,6 +262,9 @@ jobs:
         if: steps.tip.outputs.current == 'true'
         working-directory: apps/web
         run: pnpm install --frozen-lockfile
+      # `--prod` em todos os comandos: variáveis de Production, build de produção e o domínio
+      # de produção na implantação nova. Depois de um Instant Rollback, a Vercel não liga mais o
+      # domínio sozinha até um `vercel promote` (docs/rollback.md).
       - name: Build e deploy de produção na Vercel
         if: steps.tip.outputs.current == 'true'
         env:
@@ -215,6 +276,9 @@ jobs:
           vercel pull --yes --environment=production
           vercel build --prod
           vercel deploy --prebuilt --prod
+      # A mesma fumaça de development. Se ela falhar, o job fica vermelho e nada volta sozinho:
+      # o rollback segue docs/rollback.md. A Etapa 16.3 acrescenta um passo `if: failure()` que
+      # promove o frontend anterior e abre uma issue.
       - name: Testes de fumaça em production
         if: steps.tip.outputs.current == 'true'
         env:
