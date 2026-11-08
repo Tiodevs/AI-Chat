@@ -1353,7 +1353,7 @@ A IA atualiza esta tabela em cada PR.
 | 12.2 | Todo token entra no orçamento | Aprovada |
 | 12.3 | Histórico com janela | Aprovada |
 | 12.4 | Provedores, breaker e banco com vida de processo | Aprovada |
-| 12.5 | API acessível só pela Vercel | Em revisão (12.5a e 12.5b) |
+| 12.5 | API acessível só pela Vercel | Aprovada |
 | 13.1 | Loop de eventos livre | Pendente |
 | 13.2 | Embedding resiliente atrás da porta | Pendente |
 | 13.3 | Cadastro sem perda de atualização | Pendente |
