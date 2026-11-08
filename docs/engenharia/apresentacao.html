@@ -1,0 +1,1341 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Engenharia do Atrium</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Arquitetura, hospedagem, CI/CD, observabilidade e processo do Atrium, o assistente de visitantes do Harborlight General Hospital.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: uma pilha de telas escuras, uma por assunto, cada uma com um diagrama ou uma tabela.
+   No modo Apresentar, cada tela ocupa a tela cheia e as setas passam de uma para a outra.
+   Tokens do design system do próprio Atrium (SDD 14): neutros, cor só para significado,
+   Geist e Geist Mono. Tema escuro de propósito, como o produto. */
+:root{
+  --shell:#0a0a0a;
+  --surface:#101010;
+  --card:#171717;
+  --raised:#1c1c1c;
+  --popover:#262626;
+  --border:#222222;
+  --border-strong:#333333;
+  --fg:#ededed;
+  --fg-strong:#ffffff;
+  --muted:#a3a3a3;
+  --subtle:#8f8f8f;
+  --success:#10b981;
+  --danger:#f87171;
+  --warning:#fbbf24;
+  --info:#60a5fa;
+  --font-sans:"Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono:"Geist Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  --t-body:15px;
+  --t-lead:18px;
+  --t-h2:clamp(26px, 3.4vw, 38px);
+  --t-h1:clamp(42px, 7.4vw, 80px);
+  color-scheme:dark;
+}
+
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}}
+body{margin:0;background:var(--shell);color:var(--fg);font-family:var(--font-sans);font-size:var(--t-body);line-height:1.6;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+img,svg{max-width:100%}
+[hidden]{display:none!important}
+a{color:var(--fg-strong);text-decoration:underline;text-decoration-color:var(--border-strong);text-underline-offset:3px}
+a:hover{text-decoration-color:var(--muted)}
+:focus-visible{outline:2px solid var(--fg-strong);outline-offset:3px;border-radius:4px}
+code,kbd{font-family:var(--font-mono);font-size:.86em}
+code{background:var(--card);border:1px solid var(--border);border-radius:5px;padding:.05em .36em;overflow-wrap:anywhere;color:var(--fg)}
+kbd{display:inline-block;min-width:1.8em;text-align:center;padding:.12em .45em;border:1px solid var(--border-strong);border-bottom-width:2px;border-radius:5px;background:var(--card);color:var(--fg)}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.wrap{max-width:1240px;margin-inline:auto;padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px))}
+
+/* Barra do topo */
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top, 0px);z-index:20;background:var(--shell)}
+.topbar{position:sticky;top:env(safe-area-inset-top, 0px);z-index:15;background:color-mix(in srgb, var(--shell) 88%, transparent);-webkit-backdrop-filter:saturate(140%) blur(10px);backdrop-filter:saturate(140%) blur(10px);border-bottom:1px solid var(--border)}
+.topbar .wrap{display:flex;align-items:center;gap:14px;min-height:54px}
+.brand{display:flex;align-items:baseline;gap:8px;white-space:nowrap;font-weight:600;font-size:14px;color:var(--fg-strong);text-decoration:none}
+.brand small{font:500 12px var(--font-mono);color:var(--subtle)}
+.toc{flex:1;min-width:0;display:flex;gap:2px;overflow-x:auto;scrollbar-width:none}
+.toc::-webkit-scrollbar{display:none}
+.toc a{flex:none;font-size:13px;color:var(--muted);text-decoration:none;padding:6px 10px;border-radius:6px}
+.toc a:hover{color:var(--fg-strong);background:var(--card)}
+.btn{appearance:none;border:1px solid var(--fg-strong);background:var(--fg-strong);color:var(--shell);font:600 13px/1 var(--font-sans);padding:10px 14px;border-radius:7px;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
+.btn:hover{background:var(--fg);border-color:var(--fg)}
+.btn svg{width:14px;height:14px}
+@media (max-width: 640px){.topbar .btn{display:none}.brand small{display:none}}
+
+/* Telas */
+.slide{border-bottom:1px solid var(--border);scroll-margin-top:54px}
+.slide > .wrap{padding-block:clamp(56px, 8vw, 104px)}
+.eyebrow{margin:0 0 14px;font:500 12px/1.3 var(--font-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--subtle)}
+h1,h2,h3{color:var(--fg-strong);text-wrap:balance}
+h1{margin:0 0 22px;font-size:var(--t-h1);line-height:1;letter-spacing:-.04em;font-weight:600}
+h2{margin:0 0 14px;font-size:var(--t-h2);line-height:1.1;letter-spacing:-.028em;font-weight:600;max-width:28ch}
+h3{margin:0 0 10px;font-size:15px;line-height:1.35;font-weight:600}
+p{margin:0 0 14px}
+.lede{margin:0 0 40px;max-width:66ch;font-size:var(--t-lead);line-height:1.55;color:var(--muted)}
+.note{font-size:14px;color:var(--muted);max-width:72ch}
+.stack-gap{display:grid;gap:28px}
+
+/* Capa */
+.cover > .wrap{padding-block:clamp(72px, 11vw, 140px) clamp(56px, 8vw, 96px)}
+.cover .lede{font-size:clamp(18px, 2vw, 21px);max-width:60ch}
+.cover-actions{display:flex;flex-wrap:wrap;align-items:center;gap:12px 18px;margin:0 0 56px}
+.hint{font-size:13.5px;color:var(--subtle)}
+.facts{display:grid;grid-template-columns:repeat(auto-fit, minmax(min(100%, 230px), 1fr));gap:1px;margin:0;background:var(--border);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.facts div{background:var(--surface);padding:18px 20px;min-width:0}
+.facts dt{font:500 11.5px/1.3 var(--font-mono);letter-spacing:.07em;text-transform:uppercase;color:var(--subtle);margin:0 0 8px}
+.facts dd{margin:0;color:var(--fg-strong);font-weight:600;font-size:17px;line-height:1.3}
+.facts dd span{display:block;margin-top:4px;color:var(--muted);font-weight:400;font-size:14px}
+.meta{margin:22px 0 0;font-size:13px;color:var(--subtle)}
+
+/* Diagramas */
+.diagram{margin:0}
+.canvas{--halo:var(--surface);overflow-x:auto;overscroll-behavior-x:contain;border:1px solid var(--border);border-radius:14px;background:var(--surface);padding:clamp(10px, 1.6vw, 22px)}
+.canvas svg{display:block;width:100%;height:auto;min-width:var(--minw, 760px)}
+.diagram figcaption{margin-top:14px;max-width:84ch;font-size:13.5px;line-height:1.6;color:var(--muted)}
+.swipe{display:none;margin:10px 0 0;font-size:12.5px;color:var(--subtle)}
+@media (max-width: 860px){.swipe{display:block}}
+.legend{display:flex;flex-wrap:wrap;gap:8px 22px;margin:14px 0 0;padding:0;list-style:none;font-size:13px;color:var(--muted)}
+.legend li{display:flex;align-items:center;gap:9px}
+.legend svg{width:36px;height:10px;flex:none;min-width:0}
+.legend path{fill:none;stroke-width:1.6}
+.legend .l-req{stroke:var(--fg)}
+.legend .l-obs{stroke:var(--subtle);stroke-dasharray:4 4}
+.legend .l-ship{stroke:var(--info);stroke-width:1.8}
+
+.dg{font-family:var(--font-sans)}
+.dg text{fill:var(--fg)}
+.dg .zone{fill:none;stroke:var(--border-strong);stroke-width:1;stroke-dasharray:5 5}
+.dg .env{fill:none;stroke:var(--border-strong);stroke-width:1}
+.dg .strip{fill:var(--card);stroke:var(--border-strong);stroke-width:1;stroke-dasharray:4 4}
+.dg .pill{fill:none;stroke:var(--border-strong);stroke-width:1}
+.dg .zl{font-size:12px;font-weight:600;fill:var(--fg-strong)}
+.dg .d{font-weight:400;fill:var(--subtle)}
+.dg .box{fill:var(--card);stroke:var(--border-strong);stroke-width:1}
+.dg .box.hl{stroke:var(--muted)}
+.dg .box.okb{stroke:var(--success)}
+.dg .box.warnb{stroke:var(--warning)}
+.dg .box.dash{stroke-dasharray:4 4}
+.dg .t{font-size:13px;font-weight:600;fill:var(--fg-strong)}
+.dg .s{font-size:11.5px;fill:var(--muted)}
+.dg .m{font-family:var(--font-mono);font-size:11px;fill:var(--muted)}
+.dg .mono{font-family:var(--font-mono)}
+.dg .fgc{fill:var(--fg)}
+.dg .ok{fill:var(--success)}
+.dg .bad{fill:var(--danger)}
+.dg .warn{fill:var(--warning)}
+.dg .edge{fill:none;stroke:var(--fg);stroke-width:1.4}
+.dg .edge.obs{stroke:var(--subtle);stroke-dasharray:4 4}
+.dg .edge.ship{stroke:var(--info);stroke-width:1.6}
+.dg .edge.soft{stroke:var(--subtle)}
+.dg .edge.line{stroke:var(--border-strong);stroke-width:1.2}
+.dg .lbl{font-size:11px;fill:var(--muted);paint-order:stroke fill;stroke:var(--halo);stroke-width:5px;stroke-linejoin:round}
+.dg .lbl.ship{fill:var(--info)}
+.dg .ah{fill:var(--fg)}
+.dg .ah.obs,.dg .ah.soft{fill:var(--subtle)}
+.dg .ah.ship{fill:var(--info)}
+.dg .dot{fill:var(--card);stroke:var(--muted);stroke-width:1.4}
+.dg .chip{fill:var(--raised);stroke:var(--border-strong);stroke-width:1}
+.dg .chip.dash{stroke-dasharray:4 3}
+.dg .ct{font-family:var(--font-mono);font-size:11.5px;fill:var(--fg)}
+
+/* Tabelas */
+.table-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:12px;background:var(--surface)}
+table{width:100%;border-collapse:collapse;font-size:14px;line-height:1.5}
+.table-wrap table{min-width:760px}
+th,td{text-align:left;vertical-align:top;padding:13px 16px;border-bottom:1px solid var(--border)}
+thead th{font:500 11.5px/1.3 var(--font-mono);letter-spacing:.07em;text-transform:uppercase;color:var(--subtle);background:var(--card);white-space:nowrap}
+tbody tr:last-child > *{border-bottom:0}
+tbody th{color:var(--fg-strong);font-weight:600;white-space:nowrap}
+td{color:var(--muted)}
+td b{color:var(--fg);font-weight:500}
+.num{font-variant-numeric:tabular-nums;white-space:nowrap}
+
+/* Blocos */
+.grid{display:grid;gap:16px}
+@media (min-width: 900px){.g2{grid-template-columns:repeat(2, minmax(0, 1fr))}.g4{grid-template-columns:repeat(4, minmax(0, 1fr))}}
+@media (min-width: 640px) and (max-width: 899px){.g4{grid-template-columns:repeat(2, minmax(0, 1fr))}}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px 22px;min-width:0}
+.panel p:last-child,.panel ul:last-child{margin-bottom:0}
+.panel .k{display:block;margin:0 0 8px;font:500 12px var(--font-mono);color:var(--fg)}
+.panel p{font-size:14px;color:var(--muted)}
+.list{margin:0;padding-left:18px;color:var(--muted);font-size:14px}
+.list li{margin:0 0 8px;padding-left:2px}
+.list li::marker{color:var(--subtle)}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:0;padding:0;list-style:none}
+.chip{font:500 12.5px/1 var(--font-sans);color:var(--fg);background:var(--card);border:1px solid var(--border);border-radius:999px;padding:8px 12px}
+.chip.mono{font-family:var(--font-mono);font-size:12px}
+.chip b{font-family:var(--font-mono);font-weight:500;color:var(--fg-strong);margin-right:6px}
+.tag{display:inline-flex;align-items:center;gap:6px;font:500 11.5px/1 var(--font-mono);padding:5px 9px;border-radius:999px;border:1px solid var(--border-strong);color:var(--muted);white-space:nowrap}
+.tag::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.tag.ok{color:var(--success);background:color-mix(in oklab, var(--success) 13%, transparent);border-color:color-mix(in oklab, var(--success) 35%, transparent)}
+.tag.warn{color:var(--warning);background:color-mix(in oklab, var(--warning) 13%, transparent);border-color:color-mix(in oklab, var(--warning) 35%, transparent)}
+.tag.bad{color:var(--danger);background:color-mix(in oklab, var(--danger) 13%, transparent);border-color:color-mix(in oklab, var(--danger) 35%, transparent)}
+.tag.info{color:var(--info);background:color-mix(in oklab, var(--info) 13%, transparent);border-color:color-mix(in oklab, var(--info) 35%, transparent)}
+.events{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0;padding:0;list-style:none}
+.events li{font:500 12px/1 var(--font-mono);color:var(--fg);background:var(--card);border:1px solid var(--border-strong);border-radius:6px;padding:7px 10px}
+.events li.sep{background:none;border:0;padding:0 2px;color:var(--subtle)}
+
+/* Segurança: o caminho do pedido */
+.path{display:grid;gap:12px}
+.hop{position:relative;padding:22px;border:1px solid var(--border);background:var(--surface);border-radius:12px;min-width:0}
+.hop .where{display:block;margin:0 0 4px;font:500 11.5px var(--font-mono);letter-spacing:.07em;text-transform:uppercase;color:var(--subtle)}
+.hop h3{font-size:17px;margin-bottom:12px}
+@media (min-width: 980px){
+  .path{grid-template-columns:repeat(4, minmax(0, 1fr));gap:0}
+  .hop{border-radius:0;border-right-width:0}
+  .hop:first-child{border-radius:12px 0 0 12px}
+  .hop:last-child{border-radius:0 12px 12px 0;border-right-width:1px}
+  .hop:not(:last-child)::after{content:"";position:absolute;top:30px;right:-7px;width:12px;height:12px;background:var(--surface);border-top:1px solid var(--border-strong);border-right:1px solid var(--border-strong);transform:rotate(45deg);z-index:1}
+}
+
+/* Plano de ação */
+.rm-head{display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px;margin:0 0 10px}
+.rm-total{display:flex;gap:3px;height:12px;margin:0 0 32px;border-radius:999px;overflow:hidden}
+.rm-total span{display:block;min-width:0}
+.bg-ok{background:var(--success)}
+.bg-debt{background:var(--warning)}
+.bg-todo{background:var(--border-strong)}
+.phases{list-style:none;margin:0;padding:0}
+@media (min-width: 960px){.phases{columns:2;column-gap:48px}}
+.phase{break-inside:avoid;display:grid;grid-template-columns:2.4em minmax(0, 1fr) auto;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--border)}
+.phase .n{font:500 12px var(--font-mono);color:var(--subtle);font-variant-numeric:tabular-nums}
+.phase .name{color:var(--fg);font-size:14px;line-height:1.35}
+.stages{display:flex;flex-wrap:wrap;gap:4px;justify-content:flex-end}
+.st{font:500 11px/1 var(--font-mono);padding:5px 6px;border-radius:5px;border:1px solid var(--border-strong);color:var(--subtle);font-variant-numeric:tabular-nums}
+.st.ok{color:var(--success);border-color:color-mix(in oklab, var(--success) 40%, transparent);background:color-mix(in oklab, var(--success) 12%, transparent)}
+.st.debt{color:var(--warning);border-color:color-mix(in oklab, var(--warning) 40%, transparent);background:color-mix(in oklab, var(--warning) 12%, transparent)}
+
+/* Números */
+.stats{display:grid;grid-template-columns:repeat(2, minmax(0, 1fr));gap:1px;margin:0 0 28px;background:var(--border);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+@media (min-width: 900px){.stats{grid-template-columns:repeat(4, minmax(0, 1fr))}}
+.stat{background:var(--surface);padding:20px 22px;min-width:0}
+.stat b{display:block;font-size:clamp(26px, 3vw, 34px);line-height:1.05;font-weight:600;letter-spacing:-.02em;color:var(--fg-strong);font-variant-numeric:tabular-nums}
+.stat span{display:block;margin-top:8px;font-size:13px;line-height:1.45;color:var(--muted)}
+
+.foot > .wrap{padding-block:40px 72px;font-size:13px;color:var(--subtle)}
+.foot p{max-width:96ch}
+
+/* Modo Apresentar */
+.pctl{display:none}
+html.presenting .topbar{display:none}
+html.presenting .slide{min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;justify-content:center;scroll-margin-top:0}
+html.presenting .slide > .wrap{width:100%;padding-block:56px}
+html.presenting .canvas svg{max-height:calc(100dvh - 300px)}
+html.presenting .pctl{display:flex;position:fixed;right:calc(16px + env(safe-area-inset-right, 0px));bottom:calc(16px + env(safe-area-inset-bottom, 0px));z-index:30;align-items:center;gap:4px;padding:5px;background:var(--popover);border:1px solid var(--border-strong);border-radius:10px}
+.pctl button{appearance:none;border:0;background:transparent;color:var(--fg);font:500 13px/1 var(--font-sans);padding:9px 11px;border-radius:6px;cursor:pointer}
+.pctl button:hover{background:var(--raised)}
+.pctl output{font:500 12px var(--font-mono);color:var(--muted);padding:0 6px;min-width:6ch;text-align:center;font-variant-numeric:tabular-nums}
+</style>
+
+<header class="topbar">
+  <div class="wrap">
+    <a class="brand" href="#inicio">Atrium <small>engenharia</small></a>
+    <nav class="toc" aria-label="Seções">
+      <a href="#mapa">Mapa</a>
+      <a href="#hospedagem">Hospedagem</a>
+      <a href="#ambientes">Ambientes</a>
+      <a href="#api">API</a>
+      <a href="#pergunta">Pergunta</a>
+      <a href="#seguranca">Segurança</a>
+      <a href="#ci">CI</a>
+      <a href="#cd">CD</a>
+      <a href="#observabilidade">Observabilidade</a>
+      <a href="#processo">Processo</a>
+      <a href="#plano">Plano</a>
+      <a href="#numeros">Números</a>
+    </nav>
+    <button class="btn" type="button" data-present>
+      <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 2.5v11l10-5.5z" fill="currentColor"/></svg>
+      Apresentar
+    </button>
+  </div>
+</header>
+
+<main>
+
+<!-- Capa -->
+<section class="slide cover" id="inicio" aria-labelledby="t-inicio">
+  <div class="wrap">
+    <p class="eyebrow">Atrium · assistente de visitantes do Harborlight General Hospital</p>
+    <h1 id="t-inicio">Engenharia do Atrium</h1>
+    <p class="lede">Como o assistente é construído, onde cada peça roda e como uma mudança vai do pull request até a produção. Os números foram levantados no repositório e na infraestrutura publicada.</p>
+    <div class="cover-actions">
+      <button class="btn" type="button" data-present>
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 2.5v11l10-5.5z" fill="currentColor"/></svg>
+        Apresentar
+      </button>
+      <span class="hint">Use <kbd>→</kbd> e <kbd>←</kbd> para passar as telas e <kbd>Esc</kbd> para sair.</span>
+    </div>
+    <dl class="facts">
+      <div><dt>Frontend</dt><dd>Vercel<span>SPA React na borda global</span></dd></div>
+      <div><dt>API e dados</dt><dd>Railway<span>us-east4, Virgínia (EUA)</span></dd></div>
+      <div><dt>Modelo</dt><dd>Google Gemini<span>chat e embedding atrás de portas</span></dd></div>
+      <div><dt>Entrega</dt><dd>GitHub Actions<span>aprovação humana antes de production</span></dd></div>
+    </dl>
+    <p class="meta">Levantado em 8 de novembro de 2026 · <code>main</code> em <code>984fefc</code> · especificação 1.20 · hospital, pessoas e telefones fictícios</p>
+  </div>
+</section>
+
+<!-- Mapa -->
+<section class="slide" id="mapa" aria-labelledby="t-mapa">
+  <div class="wrap">
+    <p class="eyebrow">Mapa do sistema</p>
+    <h2 id="t-mapa">Do navegador ao modelo, e do commit à produção</h2>
+    <p class="lede">O navegador fala só com a Vercel. Ela serve a SPA e leva <code>/backend/*</code> para a API na Railway, que guarda tudo no Postgres e chama o Gemini. O GitHub Actions é o único caminho para publicar.</p>
+    <figure class="diagram">
+      <div class="canvas">
+        <svg class="dg" viewBox="0 0 1280 780" style="--minw:1040px" role="img" aria-label="Mapa do Atrium. O desenvolvimento abre pull requests no GitHub, o ci.yml testa e o deploy.yml publica na Vercel e na Railway. O navegador do visitante e do admin chama a Vercel, que serve a SPA React e encaminha /backend para a API FastAPI na Railway com o segredo da borda. A API usa o Postgres com pgvector e chama o Gemini, e manda rastros mascarados ao LangSmith. O Prometheus coleta as métricas da API, o Grafana consulta o Prometheus e envia alertas ao Discord, e o retention-job apaga dados vencidos todo dia.">
+          <defs>
+            <marker id="mp-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah" d="M0 0L10 5L0 10z"/></marker>
+            <marker id="mp-o" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah obs" d="M0 0L10 5L0 10z"/></marker>
+            <marker id="mp-s" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah ship" d="M0 0L10 5L0 10z"/></marker>
+          </defs>
+
+          <!-- Zonas -->
+          <rect class="zone" x="200" y="40" width="804" height="196" rx="14"/>
+          <text class="zl" x="216" y="64">GitHub<tspan class="d"> · Tiodevs/AI-Chat · código, CI e CD</tspan></text>
+          <rect class="zone" x="200" y="280" width="244" height="480" rx="14"/>
+          <text class="zl" x="216" y="304">Vercel<tspan class="d"> · borda global</tspan></text>
+          <rect class="zone" x="484" y="280" width="520" height="480" rx="14"/>
+          <text class="zl" x="500" y="304">Railway<tspan class="d"> · projeto atrium · us-east4, Virgínia (EUA)</tspan></text>
+          <rect class="zone" x="1044" y="280" width="212" height="480" rx="14"/>
+          <text class="zl" x="1060" y="304">Serviços externos</text>
+          <rect class="env" x="500" y="320" width="488" height="380" rx="10"/>
+          <text class="zl" x="516" y="342"><tspan class="mono">production</tspan><tspan class="d"> · 1 réplica por serviço</tspan></text>
+          <rect class="strip" x="500" y="712" width="488" height="36" rx="8"/>
+          <text class="s" x="516" y="735"><tspan class="mono fgc">development</tspan> · api, retention-job e Postgres. Sem Prometheus e Grafana.</text>
+          <rect class="strip" x="216" y="712" width="212" height="36" rx="8"/>
+          <text class="s" x="232" y="735"><tspan class="mono fgc">development</tspan> · preview + alias</text>
+
+          <!-- Pessoas -->
+          <rect class="box" x="24" y="84" width="148" height="80" rx="8"/>
+          <text class="t" x="38" y="110">Desenvolvimento</text>
+          <text class="s" x="38" y="128">Claude Code</text>
+          <text class="s" x="38" y="144">+ revisão humana</text>
+          <rect class="box" x="24" y="340" width="148" height="120" rx="8"/>
+          <text class="t" x="38" y="366">Navegador</text>
+          <text class="s" x="38" y="384">visitante e admin</text>
+          <text class="s" x="38" y="400">celular ou desktop</text>
+          <text class="m" x="38" y="430">atrium_session</text>
+          <text class="s" x="38" y="446">cookie HttpOnly</text>
+
+          <!-- GitHub -->
+          <rect class="box" x="232" y="84" width="180" height="80" rx="8"/>
+          <text class="t" x="246" y="110">Repositório</text>
+          <text class="s" x="246" y="128">PR por etapa do plano</text>
+          <text class="s" x="246" y="144">SDD, ADRs e testes</text>
+          <rect class="box" x="512" y="84" width="180" height="80" rx="8"/>
+          <text class="t" x="526" y="110">CI <tspan class="mono d">· ci.yml</tspan></text>
+          <text class="s" x="526" y="128">api · web · contract · e2e</text>
+          <text class="s" x="526" y="144">+ evals.yml para a IA</text>
+          <rect class="box" x="792" y="84" width="180" height="80" rx="8"/>
+          <text class="t" x="806" y="110">CD <tspan class="mono d">· deploy.yml</tspan></text>
+          <text class="s" x="806" y="128">development, aprovação</text>
+          <text class="s" x="806" y="144">e production</text>
+
+          <!-- Vercel -->
+          <rect class="box" x="248" y="332" width="180" height="72" rx="8"/>
+          <text class="t" x="262" y="356">SPA React</text>
+          <text class="s" x="262" y="374">React 19 · Vite</text>
+          <text class="s" x="262" y="390">arquivos estáticos na CDN</text>
+          <rect class="box hl" x="248" y="424" width="180" height="88" rx="8"/>
+          <text class="t" x="262" y="448">Rewrite <tspan class="mono">/backend/*</tspan></text>
+          <text class="s" x="262" y="466">mesma origem, sem CORS</text>
+          <text class="s" x="262" y="482">põe <tspan class="mono fgc">x-atrium-edge</tspan></text>
+          <text class="s" x="262" y="498">cache desligado</text>
+          <rect class="box" x="248" y="532" width="180" height="72" rx="8"/>
+          <text class="t" x="262" y="556">Cabeçalhos</text>
+          <text class="s" x="262" y="574">CSP · nosniff · Referrer</text>
+          <text class="s" x="262" y="590">/assets imutável por 1 ano</text>
+          <rect class="pill" x="248" y="624" width="180" height="48" rx="24"/>
+          <text class="m fgc" x="338" y="645" text-anchor="middle">atrium-gold.vercel.app</text>
+          <text class="s" x="338" y="661" text-anchor="middle">domínio de produção</text>
+
+          <!-- Railway -->
+          <rect class="box hl" x="532" y="364" width="180" height="104" rx="8"/>
+          <text class="t" x="546" y="388"><tspan class="mono">api</tspan> · FastAPI</text>
+          <text class="s" x="546" y="406">LangChain · LangGraph</text>
+          <text class="s" x="546" y="422">Dockerfile · porta 8080</text>
+          <text class="s" x="546" y="438">healthcheck <tspan class="mono">/ready</tspan></text>
+          <text class="s" x="546" y="454">logs JSON · rastros OTel</text>
+          <rect class="box" x="532" y="508" width="180" height="72" rx="8"/>
+          <text class="t" x="546" y="532">Postgres + pgvector</text>
+          <text class="s" x="546" y="550">pg18 · volume de 5 GB</text>
+          <text class="s" x="546" y="566">só rede privada</text>
+          <rect class="box" x="532" y="612" width="180" height="72" rx="8"/>
+          <text class="t mono" x="546" y="636">retention-job</text>
+          <text class="s" x="546" y="654">cron 06:00 UTC (03:00 BRT)</text>
+          <text class="s" x="546" y="670">apaga o que venceu</text>
+          <rect class="box" x="792" y="508" width="164" height="72" rx="8"/>
+          <text class="t" x="806" y="532">Prometheus</text>
+          <text class="s" x="806" y="550">coleta a cada 30 s</text>
+          <text class="s" x="806" y="566">volume de 5 GB</text>
+          <rect class="box" x="792" y="612" width="164" height="72" rx="8"/>
+          <text class="t" x="806" y="636">Grafana</text>
+          <text class="s" x="806" y="654">4 painéis · 8 alertas</text>
+          <text class="s" x="806" y="670">provisionados do repo</text>
+
+          <!-- Externos -->
+          <rect class="box" x="1060" y="352" width="180" height="72" rx="8"/>
+          <text class="t" x="1074" y="376">Google Gemini</text>
+          <text class="m" x="1074" y="394">gemini-2.5-flash</text>
+          <text class="m" x="1074" y="410">gemini-embedding-2</text>
+          <rect class="box" x="1060" y="440" width="180" height="72" rx="8"/>
+          <text class="t" x="1074" y="464">LangSmith</text>
+          <text class="s" x="1074" y="482">rastros de IA · EUA</text>
+          <text class="m" x="1074" y="498">atrium-prod</text>
+          <rect class="box" x="1060" y="612" width="180" height="72" rx="8"/>
+          <text class="t" x="1074" y="636">Discord</text>
+          <text class="s" x="1074" y="654">canal da operação</text>
+          <text class="s" x="1074" y="670">contato <tspan class="mono">atrium-operacao</tspan></text>
+
+          <!-- Entrega -->
+          <path class="edge" d="M172 124H231" marker-end="url(#mp-a)"/>
+          <text class="lbl" x="202" y="116" text-anchor="middle">PR</text>
+          <path class="edge" d="M412 124H511" marker-end="url(#mp-a)"/>
+          <text class="lbl" x="462" y="116" text-anchor="middle">dispara</text>
+          <path class="edge" d="M692 124H791" marker-end="url(#mp-a)"/>
+          <text class="lbl" x="742" y="116" text-anchor="middle">verde na main</text>
+          <path class="edge ship" d="M900 164V279" marker-end="url(#mp-s)"/>
+          <text class="lbl ship mono" x="910" y="226">railway up</text>
+          <path class="edge ship" d="M820 164V256H338V279" marker-end="url(#mp-s)"/>
+          <text class="lbl ship mono" x="580" y="250" text-anchor="middle">vercel deploy</text>
+
+          <!-- Pedidos -->
+          <path class="edge" d="M172 368H247" marker-end="url(#mp-a)"/>
+          <text class="lbl" x="210" y="360" text-anchor="middle">páginas</text>
+          <path class="edge" d="M172 448H247" marker-end="url(#mp-a)"/>
+          <text class="lbl mono" x="210" y="440" text-anchor="middle">/backend/*</text>
+          <path class="edge" d="M428 448H531" marker-end="url(#mp-a)"/>
+          <text class="lbl" x="480" y="440" text-anchor="middle">HTTPS + segredo</text>
+          <path class="edge" d="M580 468V507" marker-end="url(#mp-a)"/>
+          <text class="lbl" x="590" y="492">SQL + vetores</text>
+          <path class="edge" d="M580 612V581" marker-end="url(#mp-a)"/>
+          <text class="lbl" x="590" y="600">apaga vencidos</text>
+          <path class="edge" d="M712 388H1059" marker-end="url(#mp-a)"/>
+          <text class="lbl" x="886" y="380" text-anchor="middle">chat + embedding</text>
+
+          <!-- Observabilidade -->
+          <path class="edge obs" d="M712 452H1059" marker-end="url(#mp-o)"/>
+          <text class="lbl" x="886" y="444" text-anchor="middle">rastros mascarados</text>
+          <path class="edge obs" d="M820 508V488H690V469" marker-end="url(#mp-o)"/>
+          <text class="lbl mono" x="755" y="482" text-anchor="middle">GET /metrics</text>
+          <path class="edge obs" d="M874 612V581" marker-end="url(#mp-o)"/>
+          <text class="lbl" x="884" y="600">consulta</text>
+          <path class="edge obs" d="M956 648H1059" marker-end="url(#mp-o)"/>
+          <text class="lbl" x="1008" y="640" text-anchor="middle">alertas</text>
+        </svg>
+      </div>
+      <p class="swipe">Arraste o diagrama para o lado para ver tudo.</p>
+      <ul class="legend">
+        <li><svg viewBox="0 0 36 10" aria-hidden="true"><path class="l-req" d="M1 5H35"/></svg>pedido ou dado</li>
+        <li><svg viewBox="0 0 36 10" aria-hidden="true"><path class="l-obs" d="M1 5H35"/></svg>observabilidade</li>
+        <li><svg viewBox="0 0 36 10" aria-hidden="true"><path class="l-ship" d="M1 5H35"/></svg>entrega pelo GitHub Actions</li>
+      </ul>
+      <figcaption>A API na Railway é pública, mas responde 403 a <code>/v1</code> sem o cabeçalho <code>x-atrium-edge</code>, que só o rewrite da Vercel põe. As chaves do Gemini e do LangSmith existem só no processo da API, e o navegador nunca as recebe.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- Hospedagem -->
+<section class="slide" id="hospedagem" aria-labelledby="t-hosp">
+  <div class="wrap">
+    <p class="eyebrow">Hospedagem</p>
+    <h2 id="t-hosp">Onde cada peça roda</h2>
+    <p class="lede">Dois provedores de nuvem, dois ambientes publicados e nenhum servidor de frontend para manter. Tudo o que roda na Railway fica na mesma região e na mesma rede privada.</p>
+    <div class="stack-gap">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th scope="col">Provedor</th><th scope="col">O que roda</th><th scope="col">Onde</th><th scope="col">Por quê</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">Vercel</th><td>SPA React e o rewrite de <code>/backend/*</code> para a API</td><td>Borda global. Projeto <code>atrium</code>, domínio <code>atrium-gold.vercel.app</code></td><td>Sem servidor de frontend (ADR-001). A publicação por Git fica desligada: só o GitHub Actions publica (ADR-008).</td></tr>
+            <tr><th scope="row">Railway</th><td><code>api</code>, <code>Postgres</code>, <code>retention-job</code>, <code>prometheus</code> e <code>grafana</code></td><td>Projeto <code>atrium</code>, região <code>us-east4-eqdc4a</code> (Virgínia, EUA). Uma réplica por serviço</td><td>API, banco e monitoramento no mesmo projeto e na mesma rede privada (ADR-009, ADR-012).</td></tr>
+            <tr><th scope="row">Google Gemini</th><td>Chat <code>gemini-2.5-flash</code> e embedding <code>gemini-embedding-2</code>, 768 dimensões</td><td>API do Google, chamada só pela API do Atrium</td><td>Atrás de portas próprias, com falsos nos testes (ADR-004). Produção num projeto com faturamento.</td></tr>
+            <tr><th scope="row">LangSmith</th><td>Rastros de IA, feedback dos visitantes e avaliações</td><td>Região dos Estados Unidos. Projetos <code>atrium-dev</code> e <code>atrium-prod</code></td><td>Mostra o que o modelo recebeu e respondeu, com política de rastro por passo (ADR-005, ADR-006).</td></tr>
+            <tr><th scope="row">GitHub</th><td>Código, Actions de CI e CD, Environments com segredos</td><td><code>Tiodevs/AI-Chat</code></td><td>Um pipeline só, com testes de fumaça e aprovação do dono do repositório em production.</td></tr>
+            <tr><th scope="row">Discord</th><td>Alertas do Grafana</td><td>Canal da operação</td><td>A Railway só libera SMTP no plano Pro, e o webhook resolve sem custo.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div>
+        <h3>Serviços da Railway</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th scope="col">Serviço</th><th scope="col">Origem</th><th scope="col">Configuração</th><th scope="col">Ambientes</th></tr></thead>
+            <tbody>
+              <tr><th scope="row"><code>api</code></th><td><code>apps/api/Dockerfile</code>, contexto na raiz</td><td>Porta 8080, healthcheck <code>/ready</code>, pré-deploy com migrações, admin e semente, tracing OpenTelemetry ligado</td><td>development e production</td></tr>
+              <tr><th scope="row"><code>Postgres</code></th><td>Imagem <code>pgvector/pgvector:pg18</code></td><td>Volume de 5 GB. Em production, sem acesso público</td><td>development e production</td></tr>
+              <tr><th scope="row"><code>retention-job</code></th><td>O mesmo Dockerfile</td><td>Cron <code>0 6 * * *</code>, 06:00 UTC, com <code>python -m app.scripts.retention</code></td><td>development e production</td></tr>
+              <tr><th scope="row"><code>prometheus</code></th><td><code>ops/prometheus</code></td><td>Coleta <code>/metrics</code> pela rede privada a cada 30 s. Volume de 5 GB</td><td>só production</td></tr>
+              <tr><th scope="row"><code>grafana</code></th><td><code>ops/grafana</code></td><td>4 painéis e 8 alertas provisionados do repositório. Volume de 5 GB</td><td>só production</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Ambientes -->
+<section class="slide" id="ambientes" aria-labelledby="t-amb">
+  <div class="wrap">
+    <p class="eyebrow">Ambientes</p>
+    <h2 id="t-amb">Local, CI, development e production</h2>
+    <p class="lede">Cada ambiente tem o próprio banco e as próprias chaves. Um experimento no laptop não toca o corpus publicado, e a CI nunca chama um modelo de verdade.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th scope="col"></th><th scope="col">Local</th><th scope="col">CI</th><th scope="col">development</th><th scope="col">production</th></tr></thead>
+        <tbody>
+          <tr><th scope="row">Frontend</th><td><code>pnpm dev</code> na 5173, proxy de <code>/backend</code></td><td><code>vite preview</code> com os cabeçalhos de produção</td><td>Preview da Vercel com alias estável</td><td><code>atrium-gold.vercel.app</code></td></tr>
+          <tr><th scope="row">API</th><td><code>uvicorn</code> na 8000</td><td>Processo da API, na e2e</td><td>Serviço <code>api</code> da Railway</td><td>Serviço <code>api</code> da Railway</td></tr>
+          <tr><th scope="row">Banco</th><td>Postgres de development ou do Docker Compose</td><td>Contêiner <code>pgvector:pg18</code> no runner</td><td>Postgres da Railway</td><td>Postgres da Railway, só rede privada</td></tr>
+          <tr><th scope="row">Adaptador de IA</th><td><code>gemini</code>, <code>fake</code> ou <code>demo</code></td><td><code>fake</code> nos testes, <code>demo</code> na e2e</td><td><code>gemini</code></td><td><code>gemini</code>, projeto com faturamento</td></tr>
+          <tr><th scope="row">LangSmith</th><td>Opcional</td><td>Desligado</td><td><code>atrium-dev</code></td><td><code>atrium-prod</code></td></tr>
+          <tr><th scope="row">Teto de tokens por dia</th><td class="num">0 ou positivo</td><td class="num">0</td><td class="num">500.000</td><td class="num">2.000.000</td></tr>
+          <tr><th scope="row">Métricas</th><td><code>/metrics</code> ou o Prometheus do Compose</td><td>Nenhuma</td><td>Nenhuma</td><td>Prometheus e Grafana</td></tr>
+          <tr><th scope="row">Como publica</th><td>Não publica</td><td>Não publica</td><td><span class="tag info">automático</span> depois da CI verde na <code>main</code></td><td><span class="tag warn">aprovação</span> no GitHub Environment</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- API -->
+<section class="slide" id="api" aria-labelledby="t-api">
+  <div class="wrap">
+    <p class="eyebrow">Arquitetura da API</p>
+    <h2 id="t-api">MVC com as camadas que um sistema de IA precisa</h2>
+    <p class="lede">O "M" do MVC é grande demais para uma pasta só. Ele se divide em domínio puro, serviços, workflows de IA e persistência, e as portas deixam o Gemini trocável nos testes.</p>
+    <figure class="diagram">
+      <div class="canvas">
+        <svg class="dg" viewBox="0 0 976 472" style="--minw:780px" role="img" aria-label="Camadas da API. controllers chamam services, services chamam workflows, workflows chamam ports, e adapters implementam as ports e falam com o Gemini e o LangSmith. controllers usam schemas, services e workflows usam domain, e services usam a unit of work, que usa repositories, que usam models. O core monta tudo.">
+          <defs>
+            <marker id="ly-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah" d="M0 0L10 5L0 10z"/></marker>
+            <marker id="ly-o" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah obs" d="M0 0L10 5L0 10z"/></marker>
+          </defs>
+          <!-- Linha 1 -->
+          <rect class="box" x="24" y="40" width="160" height="72" rx="8"/>
+          <text class="t mono" x="38" y="64">controllers</text>
+          <text class="s" x="38" y="82">HTTP para o serviço</text>
+          <text class="s" x="38" y="98">status e schema</text>
+          <rect class="box" x="216" y="40" width="160" height="72" rx="8"/>
+          <text class="t mono" x="230" y="64">services</text>
+          <text class="s" x="230" y="82">um caso de uso</text>
+          <text class="s" x="230" y="98">dono da transação</text>
+          <rect class="box" x="408" y="40" width="160" height="72" rx="8"/>
+          <text class="t mono" x="422" y="64">workflows</text>
+          <text class="s" x="422" y="82">LangChain · LangGraph</text>
+          <text class="s" x="422" y="98">prompts versionados</text>
+          <rect class="box" x="600" y="40" width="160" height="72" rx="8"/>
+          <text class="t mono" x="614" y="64">ports</text>
+          <text class="m" x="614" y="82">ChatProvider</text>
+          <text class="m" x="614" y="98">EmbeddingProvider</text>
+          <rect class="box" x="792" y="40" width="160" height="72" rx="8"/>
+          <text class="t mono" x="806" y="64">adapters</text>
+          <text class="s" x="806" y="82">implementam as portas</text>
+          <text class="s" x="806" y="98">falsos nos testes</text>
+          <!-- Linha 2 -->
+          <rect class="box" x="24" y="168" width="160" height="72" rx="8"/>
+          <text class="t mono" x="38" y="192">schemas</text>
+          <text class="s" x="38" y="210">modelos Pydantic</text>
+          <text class="s" x="38" y="226">pedido e resposta</text>
+          <rect class="box hl" x="408" y="168" width="160" height="72" rx="8"/>
+          <text class="t mono" x="422" y="192">domain</text>
+          <text class="s" x="422" y="210">Python puro, sem I/O</text>
+          <text class="s" x="422" y="226">regras e desfechos</text>
+          <rect class="box dash" x="792" y="168" width="160" height="72" rx="8"/>
+          <text class="t" x="806" y="192">Provedores</text>
+          <text class="s" x="806" y="210">Gemini e LangSmith</text>
+          <text class="s" x="806" y="226">chaves só na API</text>
+          <!-- Linha 3 -->
+          <rect class="box" x="216" y="296" width="160" height="72" rx="8"/>
+          <text class="t mono" x="230" y="320">unit of work</text>
+          <text class="s" x="230" y="338">transação curta</text>
+          <text class="s" x="230" y="354">aviso depois de 2 s</text>
+          <rect class="box" x="408" y="296" width="160" height="72" rx="8"/>
+          <text class="t mono" x="422" y="320">repositories</text>
+          <text class="s" x="422" y="338">SQL, vetor e texto</text>
+          <text class="s" x="422" y="354">busca híbrida</text>
+          <rect class="box" x="600" y="296" width="160" height="72" rx="8"/>
+          <text class="t mono" x="614" y="320">models</text>
+          <text class="s" x="614" y="338">entidades</text>
+          <text class="s" x="614" y="354">SQLAlchemy 2</text>
+          <!-- Núcleo -->
+          <rect class="strip" x="24" y="400" width="928" height="48" rx="8"/>
+          <text class="s" x="40" y="429"><tspan class="mono fgc">core</tspan> · configuração, logging, telemetria, segurança, erros e o container que monta tudo. O AiRuntime nasce uma vez, no lifespan.</text>
+          <!-- Setas -->
+          <path class="edge" d="M184 76H215" marker-end="url(#ly-a)"/>
+          <path class="edge" d="M376 76H407" marker-end="url(#ly-a)"/>
+          <path class="edge" d="M568 76H599" marker-end="url(#ly-a)"/>
+          <path class="edge obs" d="M792 76H761" marker-end="url(#ly-o)"/>
+          <path class="edge" d="M104 112V167" marker-end="url(#ly-a)"/>
+          <path class="edge" d="M320 112V140H440V167" marker-end="url(#ly-a)"/>
+          <path class="edge" d="M488 112V167" marker-end="url(#ly-a)"/>
+          <path class="edge" d="M256 112V295" marker-end="url(#ly-a)"/>
+          <path class="edge" d="M376 332H407" marker-end="url(#ly-a)"/>
+          <path class="edge" d="M568 332H599" marker-end="url(#ly-a)"/>
+          <path class="edge" d="M872 112V167" marker-end="url(#ly-a)"/>
+          <text class="lbl" x="882" y="144">chamam</text>
+        </svg>
+      </div>
+      <p class="swipe">Arraste o diagrama para o lado para ver tudo.</p>
+      <figcaption>Cada seta aponta para o que a camada pode importar. O domínio só depende da biblioteca padrão e do Pydantic, e os workflows recebem as portas pelo construtor, sem abrir sessão de banco. Um teste com <code>ast</code> falha se, por exemplo, um controller importar <code>sqlalchemy</code> ou um workflow importar <code>fastapi</code> (NFR-1).</figcaption>
+    </figure>
+    <div class="grid g2" style="margin-top:28px">
+      <div class="panel">
+        <h3>Padrões de projeto</h3>
+        <ul class="chips">
+          <li class="chip">Service Layer</li><li class="chip">Domain Model puro</li><li class="chip">Ports and Adapters</li><li class="chip">Strategy por <code>APP_AI_ADAPTER</code></li><li class="chip">Repository</li><li class="chip">Unit of Work</li><li class="chip">Composition Root</li><li class="chip">State Machine do cadastro</li><li class="chip">Pipeline com guardas</li><li class="chip">Circuit Breaker</li><li class="chip">Idempotency Key</li><li class="chip">Expand and Contract</li>
+        </ul>
+      </div>
+      <div class="panel">
+        <h3>No frontend</h3>
+        <p>Os hooks de feature, como <code>useAskConversation</code>, fazem o papel de controlador. <code>src/lib/api</code> com o TanStack Query é o modelo, com tipos gerados do OpenAPI. Os componentes de shadcn/ui só renderizam: uma regra do ESLint impede <code>fetch</code> direto num componente.</p>
+        <p>O cadastro é uma máquina de estados em Python puro. O LangGraph só orquestra, e o Gemini só extrai campos e formula a próxima pergunta (ADR-003).</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Pergunta -->
+<section class="slide" id="pergunta" aria-labelledby="t-perg">
+  <div class="wrap">
+    <p class="eyebrow">Fluxo de uma pergunta</p>
+    <h2 id="t-perg">Cada passo pode encerrar com uma resposta segura</h2>
+    <p class="lede">A pergunta passa por portões antes de chegar ao gerador. A resposta só fica se cada citação aponta para um trecho recuperado e cada telefone existe no contexto.</p>
+    <figure class="diagram">
+      <div class="canvas">
+        <svg class="dg" viewBox="0 0 1200 300" style="--minw:1000px" role="img" aria-label="Pipeline de uma pergunta: reescrever e classificar, portão de intenção e confiança, embedding, busca híbrida, piso de similaridade, geração em fluxo e conferência de citações e telefones. Orientação médica recebe a recusa fixa, outro tema recebe a resposta de escopo, abaixo do piso há abstenção e uma citação inválida vira resposta segura. Antes do modelo, o teto diário de tokens e o circuit breaker podem degradar a resposta.">
+          <defs>
+            <marker id="pp-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah" d="M0 0L10 5L0 10z"/></marker>
+            <marker id="pp-s" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah soft" d="M0 0L10 5L0 10z"/></marker>
+          </defs>
+          <!-- Caminho principal -->
+          <rect class="box" x="24" y="40" width="112" height="64" rx="32"/>
+          <text class="t" x="80" y="68" text-anchor="middle">Pergunta</text>
+          <text class="s" x="80" y="85" text-anchor="middle">do visitante</text>
+          <rect class="box" x="156" y="40" width="112" height="64" rx="8"/>
+          <text class="t" x="168" y="62">Reescrever</text>
+          <text class="s" x="168" y="79">e classificar</text>
+          <text class="m" x="168" y="94">qa.rewrite</text>
+          <rect class="box" x="288" y="40" width="112" height="64" rx="8"/>
+          <text class="t" x="300" y="62">Portão</text>
+          <text class="s" x="300" y="79">intenção e</text>
+          <text class="s" x="300" y="94">confiança ≥ 0,6</text>
+          <rect class="box" x="420" y="40" width="112" height="64" rx="8"/>
+          <text class="t" x="432" y="62">Embedding</text>
+          <text class="s" x="432" y="79">768 dimensões</text>
+          <text class="m" x="432" y="94">qa.embed_query</text>
+          <rect class="box" x="552" y="40" width="112" height="64" rx="8"/>
+          <text class="t" x="564" y="62">Busca híbrida</text>
+          <text class="s" x="564" y="79">vetor + texto</text>
+          <text class="m" x="564" y="94">qa.retrieve</text>
+          <rect class="box" x="684" y="40" width="112" height="64" rx="8"/>
+          <text class="t" x="696" y="62">Piso</text>
+          <text class="s" x="696" y="79">similaridade</text>
+          <text class="s" x="696" y="94">≥ 0,50</text>
+          <rect class="box" x="816" y="40" width="112" height="64" rx="8"/>
+          <text class="t" x="828" y="62">Gerar</text>
+          <text class="s" x="828" y="79">em fluxo, SSE</text>
+          <text class="m" x="828" y="94">qa.generate</text>
+          <rect class="box" x="948" y="40" width="112" height="64" rx="8"/>
+          <text class="t" x="960" y="62">Fundamentar</text>
+          <text class="s" x="960" y="79">confere fontes</text>
+          <text class="m" x="960" y="94">qa.ground</text>
+          <rect class="box okb" x="1080" y="40" width="112" height="64" rx="32"/>
+          <text class="t" x="1136" y="62" text-anchor="middle">Resposta</text>
+          <text class="s" x="1136" y="79" text-anchor="middle">com fontes</text>
+          <text class="m ok" x="1136" y="94" text-anchor="middle">answered</text>
+          <path class="edge" d="M136 72H155" marker-end="url(#pp-a)"/>
+          <path class="edge" d="M268 72H287" marker-end="url(#pp-a)"/>
+          <path class="edge" d="M400 72H419" marker-end="url(#pp-a)"/>
+          <path class="edge" d="M532 72H551" marker-end="url(#pp-a)"/>
+          <path class="edge" d="M664 72H683" marker-end="url(#pp-a)"/>
+          <path class="edge" d="M796 72H815" marker-end="url(#pp-a)"/>
+          <path class="edge" d="M928 72H947" marker-end="url(#pp-a)"/>
+          <path class="edge" d="M1060 72H1079" marker-end="url(#pp-a)"/>
+          <!-- Saídas -->
+          <rect class="box" x="200" y="176" width="150" height="60" rx="8"/>
+          <text class="t" x="214" y="198">Orientação médica</text>
+          <text class="m bad" x="214" y="214">refused</text>
+          <text class="s" x="214" y="228">recusa sem gravar</text>
+          <rect class="box" x="366" y="176" width="150" height="60" rx="8"/>
+          <text class="t" x="380" y="198">Outro tema</text>
+          <text class="m" x="380" y="214">off_topic</text>
+          <text class="s" x="380" y="228">resposta de escopo</text>
+          <rect class="box" x="665" y="176" width="150" height="60" rx="8"/>
+          <text class="t" x="679" y="198">Abaixo do piso</text>
+          <text class="m warn" x="679" y="214">abstained</text>
+          <text class="s" x="679" y="228">telefone da central</text>
+          <rect class="box" x="929" y="176" width="150" height="60" rx="8"/>
+          <text class="t" x="943" y="198">Citação inválida</text>
+          <text class="m warn" x="943" y="214">grounding_failed</text>
+          <text class="s" x="943" y="228">evento replace</text>
+          <path class="edge soft" d="M332 104V140H275V175" marker-end="url(#pp-s)"/>
+          <path class="edge soft" d="M356 104V140H441V175" marker-end="url(#pp-s)"/>
+          <path class="edge soft" d="M740 104V175" marker-end="url(#pp-s)"/>
+          <path class="edge soft" d="M1004 104V175" marker-end="url(#pp-s)"/>
+          <!-- Guarda de custo -->
+          <rect class="strip" x="156" y="256" width="1036" height="32" rx="8"/>
+          <text class="s" x="172" y="277">Antes do modelo: teto diário de tokens e circuit breaker de 5 falhas por 60 s. Estourou ou abriu, a resposta sai <tspan class="mono warn">degraded</tspan>, sem chamar o Gemini.</text>
+        </svg>
+      </div>
+      <p class="swipe">Arraste o diagrama para o lado para ver tudo.</p>
+      <figcaption>Uma pergunta de orientação médica é gravada como <code>[health-related message not stored]</code> e vai ao LangSmith só com metadados. Nenhuma chamada ao modelo acontece com transação aberta: uma transação grava a pergunta, outra grava a resposta.</figcaption>
+    </figure>
+    <div class="grid g2" style="margin-top:28px">
+      <div class="panel">
+        <h3>A resposta chega por Server-Sent Events</h3>
+        <ul class="events" aria-label="Ordem dos eventos">
+          <li>meta</li><li class="sep" aria-hidden="true">→</li><li>token</li><li class="sep" aria-hidden="true">→</li><li>replace</li><li class="sep" aria-hidden="true">→</li><li>citation</li><li class="sep" aria-hidden="true">→</li><li>done</li>
+        </ul>
+        <p style="margin-top:14px"><code>replace</code> só aparece quando a fundamentação falha depois de tokens enviados. Um comentário <code>: keepalive</code> sai a cada 15 s para o rewrite não fechar a conexão.</p>
+      </div>
+      <div class="panel">
+        <h3>Custo e repetição sob controle</h3>
+        <ul class="list">
+          <li>Reescrita e geração recebem só as últimas 6 trocas, até 6.000 caracteres.</li>
+          <li>Um reenvio com o mesmo <code>client_message_id</code> devolve 409 e não chama o modelo.</li>
+          <li>Uma resposta cancelada grava o uso parcial, porque o Google cobra por ele.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Segurança -->
+<section class="slide" id="seguranca" aria-labelledby="t-seg">
+  <div class="wrap">
+    <p class="eyebrow">Segurança</p>
+    <h2 id="t-seg">Defesas em cada salto do pedido</h2>
+    <p class="lede">Cada camada assume que a anterior pode falhar. A proteção de custo que ninguém contorna é o teto diário de tokens: sem ele, a API não sobe em development nem em production.</p>
+    <div class="path">
+      <div class="hop">
+        <span class="where">1 · navegador</span>
+        <h3>Sessão e página</h3>
+        <ul class="list">
+          <li>Cookies <code>HttpOnly</code> e <code>SameSite=Lax</code>, sem <code>Domain</code></li>
+          <li>CSP com <code>default-src 'self'</code> e <code>frame-ancestors 'none'</code></li>
+          <li>Aviso permanente de que o Atrium é uma IA</li>
+        </ul>
+      </div>
+      <div class="hop">
+        <span class="where">2 · vercel</span>
+        <h3>Borda</h3>
+        <ul class="list">
+          <li>Rewrite de mesma origem, sem CORS</li>
+          <li>Sobrescreve <code>x-forwarded-for</code></li>
+          <li>Põe <code>x-atrium-edge</code> com o <code>EDGE_SECRET</code></li>
+          <li>Cache do rewrite desligado</li>
+        </ul>
+      </div>
+      <div class="hop">
+        <span class="where">3 · api</span>
+        <h3>Aplicação</h3>
+        <ul class="list">
+          <li>403 em <code>/v1</code> sem o segredo da borda</li>
+          <li><code>Origin</code> igual a <code>WEB_ORIGIN</code> ao mudar estado</li>
+          <li><code>Cache-Control: no-store</code> em toda resposta</li>
+          <li>Limites de taxa por e-mail, IP, convidado e usuário</li>
+          <li>Senha fora da IA, com argon2id</li>
+        </ul>
+      </div>
+      <div class="hop">
+        <span class="where">4 · modelo</span>
+        <h3>IA</h3>
+        <ul class="list">
+          <li>Contexto delimitado como não confiável</li>
+          <li>Recusa médica antes do gerador</li>
+          <li>Citações e telefones conferidos no domínio</li>
+          <li>Prompts com <code>PROMPT_VERSION</code> e teste de hash</li>
+          <li>Rastro só com metadados onde pode haver saúde</li>
+        </ul>
+      </div>
+    </div>
+    <p class="note" style="margin-top:24px">A LGPD entra pelo desenho: coleta mínima, consentimento por finalidade, retenção com prazo pelo <code>retention-job</code>, exportação e exclusão pelo próprio titular, com RIPD, ROPA e LIA em <code>docs/privacy</code>.</p>
+  </div>
+</section>
+
+<!-- CI -->
+<section class="slide" id="ci" aria-labelledby="t-ci">
+  <div class="wrap">
+    <p class="eyebrow">Integração contínua</p>
+    <h2 id="t-ci">Quatro jobs em paralelo, nenhum modelo ao vivo</h2>
+    <p class="lede">O <code>ci.yml</code> roda em toda pull request e em todo push na <code>main</code>. Ele prova o código, o contrato entre API e frontend e as jornadas de ponta a ponta com a API real.</p>
+    <figure class="diagram">
+      <div class="canvas">
+        <svg class="dg" viewBox="0 0 1240 430" style="--minw:1020px" role="img" aria-label="CI. Uma pull request ou um push na main dispara quatro jobs em paralelo: api com uv, Ruff, mypy e Pytest com pgvector; web com pnpm, ESLint, tsc, Vitest, Playwright simulado, build e Storybook; contract, que exporta o OpenAPI, gera os tipos e compara com git diff; e e2e, com a API real no adaptador demo, Postgres de serviço, vite preview e Playwright com axe e CSP. Os quatro verdes liberam o merge. O evals.yml roda só quando a pull request muda a IA, usa o Gemini de verdade e comenta na PR sem bloquear o merge.">
+          <defs>
+            <marker id="ci-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah" d="M0 0L10 5L0 10z"/></marker>
+            <marker id="ci-s" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="ah soft" d="M0 0L10 5L0 10z"/></marker>
+          </defs>
+          <!-- Gatilho -->
+          <rect class="box" x="24" y="154" width="132" height="72" rx="8"/>
+          <text class="t" x="38" y="178">PR ou push</text>
+          <text class="s" x="38" y="196">na main</text>
+          <text class="m" x="38" y="212">ci.yml</text>
+          <path class="edge" d="M156 190H190M190 56V308"/>
+          <path class="edge" d="M190 56H211" marker-end="url(#ci-a)"/>
+          <path class="edge" d="M190 140H211" marker-end="url(#ci-a)"/>
+          <path class="edge" d="M190 224H211" marker-end="url(#ci-a)"/>
+          <path class="edge" d="M190 308H211" marker-end="url(#ci-a)"/>
+          <!-- Rótulos dos jobs -->
+          <rect class="box hl" x="212" y="30" width="112" height="52" rx="8"/>
+          <text class="t mono" x="226" y="52">api</text>
+          <text class="s" x="226" y="70">Python 3.12</text>
+          <rect class="box hl" x="212" y="114" width="112" height="52" rx="8"/>
+          <text class="t mono" x="226" y="136">web</text>
+          <text class="s" x="226" y="154">Node 22 · pnpm</text>
+          <rect class="box hl" x="212" y="198" width="112" height="52" rx="8"/>
+          <text class="t mono" x="226" y="220">contract</text>
+          <text class="s" x="226" y="238">OpenAPI = tipos</text>
+          <rect class="box hl" x="212" y="282" width="112" height="52" rx="8"/>
+          <text class="t mono" x="226" y="304">e2e</text>
+          <text class="s" x="226" y="322">até 25 min</text>
+          <!-- api -->
+          <path class="edge soft" d="M324 56H347" marker-end="url(#ci-s)"/>
+          <rect class="chip" x="348" y="39" width="72" height="34" rx="7"/><text class="ct" x="384" y="60" text-anchor="middle">uv sync</text>
+          <path class="edge soft" d="M420 56H439" marker-end="url(#ci-s)"/>
+          <rect class="chip" x="440" y="39" width="56" height="34" rx="7"/><text class="ct" x="468" y="60" text-anchor="middle">Ruff</text>
+          <path class="edge soft" d="M496 56H515" marker-end="url(#ci-s)"/>
+          <rect class="chip" x="516" y="39" width="56" height="34" rx="7"/><text class="ct" x="544" y="60" text-anchor="middle">mypy</text>
+          <path class="edge soft" d="M572 56H591" marker-end="url(#ci-s)"/>
+          <rect class="chip" x="592" y="39" width="148" height="34" rx="7"/><text class="ct" x="666" y="60" text-anchor="middle">Pytest + pgvector</text>
+          <!-- web -->
+          <path class="edge soft" d="M324 140H347" marker-end="url(#ci-s)"/>
+          <rect class="chip" x="348" y="123" width="108" height="34" rx="7"/><text class="ct" x="402" y="144" text-anchor="middle">pnpm install</text>
+          <path class="edge soft" d="M456 140H475" marker-end="url(#ci-s)"/>
+          <rect class="chip" x="476" y="123" width="66" height="34" rx="7"/><text class="ct" x="509" y="144" text-anchor="middle">ESLint</text>
+          <path class="edge soft" d="M542 140H561" marker-end="url(#ci-s)"/>
+          <rect class="chip" x="562" y="123" width="50" height="34" rx="7"/><text class="ct" x="587" y="144" text-anchor="middle">tsc</text>
+          <path class="edge soft" d="M612 140H631" marker-end="url(#ci-s)"/>
+          <rect class="chip" x="632" y="123" width="66" height="34" rx="7"/><text class="ct" x="665" y="144" text-anchor="middle">Vitest</text>
+          <path class="edge soft" d="M698 140H717" marker-end="url(#ci-s)"/>
+          <rect class="chip" x="718" y="123" width="160" height="34" rx="7"/><text class="ct" x="798" y="144" text-anchor="middle">Playwright simulado</text>
+          <path class="edge soft" d="M878 140H897" marker-end="url(#ci-s)"/>
+          <rect class="chip" x="898" y="123" width="60" height="34" rx="7"/><text class="ct" x="928" y="144" text-anchor="middle">build</text>
+          <path class="edge soft" d="M958 140H977" marker-end="url(#ci-s)"/>
+          <rect class="chip" x="978" y="123" width="88" height="34" rx="7"/><text class="ct" x="1022" y="144" text-anchor="middle">Storybook</text>
+          <!-- contract -->
+          <path class="edge soft" d="M324 224H347" marker-end="url(#ci-s)"/>
+          <rect class="chip" x="348" y="207" width="148" height="34" rx="7"/><text class="ct" x="422" y="228" text-anchor="middle">exporta o OpenAPI</text>
+          <path class="edge soft" d="M496 224H515" marker-end="url(#ci-s)"/>
+          <rect class="chip" x="516" y="207" width="124" height="34" rx="7"/><text class="ct" x="578" y="228" text-anchor="middle">gera schema.ts</text>
+          <path class="edge soft" d="M640 224H659" marker-end="url(#ci-s)"/>
+          <rect class="chip" x="660" y="207" width="168" height="34" rx="7"/><text class="ct" x="744" y="228" text-anchor="middle">git diff --exit-code</text>
+          <!-- e2e -->
+          <path class="edge soft" d="M324 308H347" marker-end="url(#ci-s)"/>
+          <rect class="chip" x="348" y="291" width="132" height="34" rx="7"/><text class="ct" x="414" y="312" text-anchor="middle">API real · demo</text>
+          <path class="edge soft" d="M480 308H499" marker-end="url(#ci-s)"/>
+          <rect class="chip" x="500" y="291" width="160" height="34" rx="7"/><text class="ct" x="580" y="312" text-anchor="middle">Postgres de serviço</text>
+          <path class="edge soft" d="M660 308H679" marker-end="url(#ci-s)"/>
+          <rect class="chip" x="680" y="291" width="108" height="34" rx="7"/><text class="ct" x="734" y="312" text-anchor="middle">vite preview</text>
+          <path class="edge soft" d="M788 308H807" marker-end="url(#ci-s)"/>
+          <rect class="chip" x="808" y="291" width="180" height="34" rx="7"/><text class="ct" x="898" y="312" text-anchor="middle">Playwright · axe · CSP</text>
+          <!-- Junção -->
+          <path class="edge line" d="M740 56H1080M1066 140H1080M828 224H1080M988 308H1080M1080 56V308"/>
+          <path class="edge" d="M1080 190H1103" marker-end="url(#ci-a)"/>
+          <rect class="box okb" x="1104" y="154" width="112" height="72" rx="8"/>
+          <text class="t" x="1118" y="178">Checks verdes</text>
+          <text class="s" x="1118" y="196">liberam o merge</text>
+          <text class="m ok" x="1118" y="212">4 de 4</text>
+          <!-- evals -->
+          <path class="edge line" d="M24 352H1216" style="stroke-dasharray:3 5"/>
+          <rect class="box dash" x="24" y="372" width="132" height="44" rx="8"/>
+          <text class="t" x="38" y="391">PR na IA</text>
+          <text class="s" x="38" y="407">prompts ou corpus</text>
+          <path class="edge soft" d="M156 394H211" marker-end="url(#ci-s)"/>
+          <rect class="box dash" x="212" y="368" width="112" height="52" rx="8"/>
+          <text class="t mono" x="226" y="390">evals.yml</text>
+          <text class="s" x="226" y="408">LangSmith</text>
+          <path class="edge soft" d="M324 394H347" marker-end="url(#ci-s)"/>
+          <rect class="chip dash" x="348" y="377" width="128" height="34" rx="7"/><text class="ct" x="412" y="398" text-anchor="middle">migra e semeia</text>
+          <path class="edge soft" d="M476 394H495" marker-end="url(#ci-s)"/>
+          <rect class="chip dash" x="496" y="377" width="168" height="34" rx="7"/><text class="ct" x="580" y="398" text-anchor="middle">sincroniza o dataset</text>
+          <path class="edge soft" d="M664 394H683" marker-end="url(#ci-s)"/>
+          <rect class="chip dash" x="684" y="377" width="108" height="34" rx="7"/><text class="ct" x="738" y="398" text-anchor="middle">Gemini real</text>
+          <path class="edge soft" d="M792 394H811" marker-end="url(#ci-s)"/>
+          <rect class="chip dash" x="812" y="377" width="120" height="34" rx="7"/><text class="ct" x="872" y="398" text-anchor="middle">4 avaliadores</text>
+          <path class="edge soft" d="M932 394H951" marker-end="url(#ci-s)"/>
+          <rect class="chip dash" x="952" y="377" width="120" height="34" rx="7"/><text class="ct" x="1012" y="398" text-anchor="middle">comenta na PR</text>
+          <text class="s" x="1088" y="391">não bloqueia</text>
+          <text class="s" x="1088" y="407">o merge</text>
+        </svg>
+      </div>
+      <p class="swipe">Arraste o diagrama para o lado para ver tudo.</p>
+      <figcaption>Os testes usam <code>FakeChatProvider</code>, <code>DeterministicEmbeddingProvider</code> e <code>NoopFeedbackSink</code>. O <code>evals.yml</code> é o único que chama o modelo de verdade, e só quando a pull request mexe em prompts, workflows, corpus ou no conjunto de avaliação. Um <code>outcome_match</code> abaixo de 90% pede justificativa escrita na PR.</figcaption>
+    </figure>
+    <div class="grid g4" style="margin-top:28px">
+      <div class="panel"><span class="k">api</span><p>Ruff, mypy e Pytest contra <code>pgvector:pg18</code>. Sem o banco, a integração falha em vez de pular.</p></div>
+      <div class="panel"><span class="k">web</span><p>Lint, tipos, Vitest, Playwright com a API simulada, build e Storybook.</p></div>
+      <div class="panel"><span class="k">contract</span><p>O OpenAPI gerado e os tipos do frontend são iguais aos commitados.</p></div>
+      <div class="panel"><span class="k">e2e</span><p>Jornadas com a API real no adaptador <code>demo</code>, axe em cada página e falha em violação de CSP.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- CD -->
+<section class="slide" id="cd" aria-labelledby="t-cd">
+  <div class="wrap">
+    <p class="eyebrow">Entrega contínua</p>
+    <h2 id="t-cd">Do merge à produção, com um portão humano</h2>
+    <p class="lede">O <code>deploy.yml</code> publica o commit que a CI testou: primeiro em development, sozinho, e depois em production, quando alguém aprova no GitHub.</p>
+    <figure class="diagram">
+      <div class="canvas">
+        <svg class="dg" viewBox="0 0 1280 460" style="--minw:1060px" role="img" aria-label="CD. Depois da CI verde num push na main, o gate confere DEPLOY_ENABLED e se o commit ainda é o topo da main. O job development grava o commit em BUILD_SHA, roda railway up na api e no retention-job, faz o build e o deploy de preview na Vercel, liga o alias WEB_HOST e roda a fumaça. Depois da aprovação humana no Environment production, o job production confere o topo de novo, publica api, retention-job, Prometheus e Grafana na Railway, faz o deploy de produção na Vercel e roda a fumaça. Se algo falhar, a Railway mantém a versão anterior, a Vercel tem Instant Rollback e o banco não volta, porque as migrações seguem expand and contract.">
+          <defs>
+            <marker id="cd-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah" d="M0 0L10 5L0 10z"/></marker>
+            <marker id="cd-s" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah soft" d="M0 0L10 5L0 10z"/></marker>
+          </defs>
+          <!-- Início e gate -->
+          <rect class="box" x="24" y="130" width="124" height="64" rx="32"/>
+          <text class="t" x="86" y="158" text-anchor="middle">CI verde</text>
+          <text class="s" x="86" y="175" text-anchor="middle">push na main</text>
+          <rect class="box" x="180" y="112" width="140" height="100" rx="8"/>
+          <text class="t mono" x="194" y="136">gate</text>
+          <text class="m fgc" x="194" y="155">DEPLOY_ENABLED</text>
+          <text class="s" x="194" y="173">o commit ainda é</text>
+          <text class="s" x="194" y="189">o topo da main?</text>
+          <rect class="strip" x="180" y="252" width="140" height="48" rx="8"/>
+          <text class="s" x="250" y="272" text-anchor="middle">fica de fora: o</text>
+          <text class="s" x="250" y="288" text-anchor="middle">mais novo publica</text>
+          <path class="edge soft" d="M250 212V251" marker-end="url(#cd-s)"/>
+          <text class="lbl" x="258" y="236">não</text>
+          <!-- development -->
+          <rect class="box" x="352" y="40" width="268" height="252" rx="10"/>
+          <text class="t mono" x="368" y="66">development</text>
+          <text class="s" x="368" y="84">automático · Environment development</text>
+          <path class="edge line" d="M376 110V270"/>
+          <circle class="dot" cx="376" cy="110" r="4"/><text class="s fgc" x="392" y="114">grava o commit em <tspan class="mono">BUILD_SHA</tspan></text>
+          <circle class="dot" cx="376" cy="142" r="4"/><text class="s fgc" x="392" y="146"><tspan class="mono">railway up</tspan> api</text>
+          <circle class="dot" cx="376" cy="174" r="4"/><text class="s fgc" x="392" y="178"><tspan class="mono">railway up</tspan> retention-job</text>
+          <circle class="dot" cx="376" cy="206" r="4"/><text class="s fgc" x="392" y="210"><tspan class="mono">vercel</tspan> build e deploy de preview</text>
+          <circle class="dot" cx="376" cy="238" r="4"/><text class="s fgc" x="392" y="242">alias <tspan class="mono">WEB_HOST</tspan> pela API da Vercel</text>
+          <circle class="dot" cx="376" cy="270" r="4"/><text class="s fgc" x="392" y="274">fumaça em development</text>
+          <!-- Aprovação -->
+          <rect class="box warnb" x="652" y="104" width="156" height="116" rx="10"/>
+          <text class="t" x="666" y="130">Aprovação humana</text>
+          <text class="s" x="666" y="150">Environment</text>
+          <text class="m warn" x="666" y="166">production</text>
+          <text class="s" x="666" y="186">revisor: dono do repo</text>
+          <text class="s" x="666" y="204">pode levar dias</text>
+          <!-- production -->
+          <rect class="box" x="840" y="40" width="268" height="252" rx="10"/>
+          <text class="t mono" x="856" y="66">production</text>
+          <text class="s" x="856" y="84">depois da aprovação</text>
+          <path class="edge line" d="M864 110V270"/>
+          <circle class="dot" cx="864" cy="110" r="4"/><text class="s fgc" x="880" y="114">confere de novo o topo da main</text>
+          <circle class="dot" cx="864" cy="142" r="4"/><text class="s fgc" x="880" y="146"><tspan class="mono">railway up</tspan> api</text>
+          <circle class="dot" cx="864" cy="174" r="4"/><text class="s fgc" x="880" y="178"><tspan class="mono">railway up</tspan> retention-job</text>
+          <circle class="dot" cx="864" cy="206" r="4"/><text class="s fgc" x="880" y="210"><tspan class="mono">railway up</tspan> prometheus e grafana</text>
+          <circle class="dot" cx="864" cy="238" r="4"/><text class="s fgc" x="880" y="242"><tspan class="mono">vercel deploy --prod</tspan></text>
+          <circle class="dot" cx="864" cy="270" r="4"/><text class="s fgc" x="880" y="274">fumaça em production</text>
+          <!-- No ar -->
+          <rect class="box okb" x="1140" y="130" width="116" height="64" rx="32"/>
+          <text class="t" x="1198" y="152" text-anchor="middle">No ar</text>
+          <text class="m" x="1198" y="169" text-anchor="middle">atrium-gold</text>
+          <text class="m" x="1198" y="184" text-anchor="middle">.vercel.app</text>
+          <!-- Setas -->
+          <path class="edge" d="M148 162H179" marker-end="url(#cd-a)"/>
+          <path class="edge" d="M320 162H351" marker-end="url(#cd-a)"/>
+          <text class="lbl" x="336" y="154" text-anchor="middle">sim</text>
+          <path class="edge" d="M620 162H651" marker-end="url(#cd-a)"/>
+          <path class="edge" d="M808 162H839" marker-end="url(#cd-a)"/>
+          <path class="edge" d="M1108 162H1139" marker-end="url(#cd-a)"/>
+          <!-- Rollback -->
+          <text class="t" x="24" y="340">Se algo der errado</text>
+          <text class="s" x="168" y="340">a versão anterior continua no ar até a nova passar no /ready</text>
+          <rect class="box" x="24" y="356" width="400" height="80" rx="8"/>
+          <text class="t" x="40" y="380">API na Railway</text>
+          <text class="s" x="40" y="400">Um deploy que não passa no /ready não troca a versão.</text>
+          <text class="s" x="40" y="418">Rollback do deployment anterior, pelo painel ou pela API.</text>
+          <rect class="box" x="444" y="356" width="400" height="80" rx="8"/>
+          <text class="t" x="460" y="380">Frontend na Vercel</text>
+          <text class="s" x="460" y="400">Instant Rollback troca o domínio em segundos.</text>
+          <text class="s" x="460" y="418">Depois, <tspan class="mono">vercel promote</tspan> publica a correção.</text>
+          <rect class="box" x="864" y="356" width="392" height="80" rx="8"/>
+          <text class="t" x="880" y="380">Banco</text>
+          <text class="s" x="880" y="400">Não volta: migrações expand and contract.</text>
+          <text class="s" x="880" y="418">Com migração nova, a correção vai para frente.</text>
+        </svg>
+      </div>
+      <p class="swipe">Arraste o diagrama para o lado para ver tudo.</p>
+      <figcaption>O <code>gate</code> só deixa seguir o commit que ainda é o topo da <code>main</code>, para uma CI antiga que termine depois de uma nova não devolver código velho ao ar. Cada ambiente tem o próprio grupo de concorrência: uma aprovação pendente não segura o development.</figcaption>
+    </figure>
+    <div class="grid g2" style="margin-top:28px">
+      <div class="panel">
+        <h3>O que a fumaça confere</h3>
+        <ul class="list">
+          <li>Espera até 10 minutos o <code>/health</code> devolver o commit novo</li>
+          <li><code>/ready</code>, e <code>no-store</code> sem <code>HIT</code> no cache da Vercel</li>
+          <li>Cabeçalhos de segurança, uma rota da SPA e o 404 de um arquivo ausente em <code>/assets</code></li>
+          <li>O fluxo SSE pelo rewrite, com o primeiro evento chegando antes do fim</li>
+          <li>Direto na Railway: 403 em <code>/v1</code> sem o segredo e 200 em <code>/health</code></li>
+        </ul>
+      </div>
+      <div class="panel">
+        <h3>Regras do pipeline</h3>
+        <ul class="list">
+          <li>A variável <code>DEPLOY_ENABLED</code> liga o pipeline</li>
+          <li>Os serviços da Railway ficam presos a um commit: um push na <code>main</code> não publica nada sozinho</li>
+          <li>Pré-deploy na Railway: <code>alembic upgrade head</code>, admin e semente, todos idempotentes</li>
+          <li><code>RAILWAY_TOKEN</code> e <code>VERCEL_TOKEN</code> ficam em cada GitHub Environment, só nos passos que usam</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Observabilidade -->
+<section class="slide" id="observabilidade" aria-labelledby="t-obs">
+  <div class="wrap">
+    <p class="eyebrow">Observabilidade</p>
+    <h2 id="t-obs">Quatro sinais ligados pelo mesmo id</h2>
+    <p class="lede">Logs dizem o que aconteceu, rastros dizem onde o tempo foi, métricas mostram a tendência e o LangSmith mostra o que o modelo recebeu, recuperou e respondeu.</p>
+    <figure class="diagram">
+      <div class="canvas">
+        <svg class="dg" viewBox="0 0 1180 320" style="--minw:960px" role="img" aria-label="Observabilidade. Cada pedido carrega um request_id que vai para quatro sinais: logs JSON do structlog lidos na Railway, spans OpenTelemetry recebidos pela Railway, métricas coletadas pelo Prometheus a cada 30 segundos e mostradas no Grafana, que alerta no Discord, e rastros de IA mascarados no LangSmith, que alimentam a fila de anotação.">
+          <defs>
+            <marker id="ob-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah" d="M0 0L10 5L0 10z"/></marker>
+            <marker id="ob-o" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah obs" d="M0 0L10 5L0 10z"/></marker>
+          </defs>
+          <rect class="box hl" x="24" y="110" width="150" height="100" rx="8"/>
+          <text class="t" x="38" y="136">Pedido</text>
+          <text class="m fgc" x="38" y="155">x-request-id</text>
+          <text class="s" x="38" y="173">o mesmo id</text>
+          <text class="s" x="38" y="189">nos quatro sinais</text>
+          <path class="edge" d="M174 160H200M200 44V284"/>
+          <path class="edge" d="M200 44H229" marker-end="url(#ob-a)"/>
+          <path class="edge" d="M200 124H229" marker-end="url(#ob-a)"/>
+          <path class="edge" d="M200 204H229" marker-end="url(#ob-a)"/>
+          <path class="edge" d="M200 284H229" marker-end="url(#ob-a)"/>
+          <!-- Sinais -->
+          <rect class="box" x="230" y="16" width="200" height="56" rx="8"/>
+          <text class="t" x="244" y="39">Logs</text>
+          <text class="s" x="244" y="57">structlog em JSON, sem PII</text>
+          <rect class="box" x="230" y="96" width="200" height="56" rx="8"/>
+          <text class="t" x="244" y="119">Rastros de sistema</text>
+          <text class="s" x="244" y="137">HTTP, banco e provedores</text>
+          <rect class="box" x="230" y="176" width="200" height="56" rx="8"/>
+          <text class="t" x="244" y="199">Métricas</text>
+          <text class="s" x="244" y="217"><tspan class="mono">GET /metrics</tspan> com token</text>
+          <rect class="box" x="230" y="256" width="200" height="56" rx="8"/>
+          <text class="t" x="244" y="279">Rastros de IA</text>
+          <text class="s" x="244" y="297">política de rastro por passo</text>
+          <!-- Destinos -->
+          <rect class="box" x="490" y="16" width="180" height="56" rx="8"/>
+          <text class="t" x="504" y="39">Railway</text>
+          <text class="s" x="504" y="57">logs do serviço</text>
+          <rect class="box" x="490" y="96" width="180" height="56" rx="8"/>
+          <text class="t" x="504" y="119">Railway</text>
+          <text class="s" x="504" y="137">receptor OpenTelemetry</text>
+          <rect class="box" x="490" y="176" width="180" height="56" rx="8"/>
+          <text class="t" x="504" y="199">Prometheus</text>
+          <text class="s" x="504" y="217">coleta a cada 30 s</text>
+          <rect class="box" x="490" y="256" width="180" height="56" rx="8"/>
+          <text class="t" x="504" y="279">LangSmith</text>
+          <text class="s" x="504" y="297">EUA · <tspan class="mono">atrium-prod</tspan></text>
+          <rect class="box" x="730" y="176" width="180" height="56" rx="8"/>
+          <text class="t" x="744" y="199">Grafana</text>
+          <text class="s" x="744" y="217">4 painéis · 8 alertas</text>
+          <rect class="box" x="970" y="176" width="186" height="56" rx="8"/>
+          <text class="t" x="984" y="199">Discord</text>
+          <text class="s" x="984" y="217">canal da operação</text>
+          <rect class="box" x="730" y="256" width="180" height="56" rx="8"/>
+          <text class="t" x="744" y="279">Fila de anotação</text>
+          <text class="s" x="744" y="297">nota 0 ou grounding_failed</text>
+          <!-- Setas -->
+          <path class="edge obs" d="M430 44H489" marker-end="url(#ob-o)"/>
+          <text class="lbl" x="460" y="36" text-anchor="middle">stdout</text>
+          <path class="edge obs" d="M430 124H489" marker-end="url(#ob-o)"/>
+          <text class="lbl" x="460" y="116" text-anchor="middle">OTLP</text>
+          <path class="edge obs" d="M430 204H489" marker-end="url(#ob-o)"/>
+          <text class="lbl" x="460" y="196" text-anchor="middle">coleta</text>
+          <path class="edge obs" d="M430 284H489" marker-end="url(#ob-o)"/>
+          <text class="lbl" x="460" y="276" text-anchor="middle">mascarado</text>
+          <path class="edge obs" d="M670 204H729" marker-end="url(#ob-o)"/>
+          <text class="lbl" x="700" y="196" text-anchor="middle">PromQL</text>
+          <path class="edge obs" d="M910 204H969" marker-end="url(#ob-o)"/>
+          <text class="lbl" x="940" y="196" text-anchor="middle">alerta</text>
+          <path class="edge obs" d="M670 284H729" marker-end="url(#ob-o)"/>
+          <text class="lbl" x="700" y="276" text-anchor="middle">automação</text>
+        </svg>
+      </div>
+      <p class="swipe">Arraste o diagrama para o lado para ver tudo.</p>
+      <figcaption>O span de IA guarda o <code>langsmith.run_id</code> e o rastro do LangSmith guarda o <code>trace_id</code>, para pular de um para o outro. Logs e atributos de span nunca levam corpo de mensagem, e-mail, telefone, IP cru ou segredo.</figcaption>
+    </figure>
+    <div class="panel" style="margin-top:28px">
+      <h3>Alertas que chegam ao Discord</h3>
+      <ul class="chips">
+        <li class="chip"><b>5xx</b>acima de 2% por 10 min</li>
+        <li class="chip"><b>primeiro token</b>p95 acima de 3 s por 30 min</li>
+        <li class="chip"><b>qualidade</b>abstenção e falha de fundamentação acima de 25%</li>
+        <li class="chip"><b>orçamento</b>acima de 80%</li>
+        <li class="chip"><b>circuito</b>aberto por 5 min</li>
+        <li class="chip"><b>ingestão</b>versão com falha</li>
+        <li class="chip"><b>titular</b>pedido atrasado</li>
+        <li class="chip"><b>retenção</b>parada por 26 h</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- Processo -->
+<section class="slide" id="processo" aria-labelledby="t-proc">
+  <div class="wrap">
+    <p class="eyebrow">Processo</p>
+    <h2 id="t-proc">Especificação primeiro, uma etapa por vez</h2>
+    <p class="lede">O SDD é a fonte de verdade. O plano de ação quebra a construção em entregas do tamanho de uma pull request, e nenhuma etapa começa antes de a anterior ser aprovada.</p>
+    <figure class="diagram">
+      <div class="canvas">
+        <svg class="dg" viewBox="0 0 1200 200" style="--minw:1000px" role="img" aria-label="Fluxo de trabalho: SDD, plano de ação com a etapa N, branch feat/etapa-N, código e testes, CI verde com a definição de pronto DP-1 a DP-9, pull request com checklist, roteiro de teste humano, merge na main e deploy.yml. Ajustes pedidos na revisão voltam para o código.">
+          <defs>
+            <marker id="pr-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah" d="M0 0L10 5L0 10z"/></marker>
+            <marker id="pr-s" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah soft" d="M0 0L10 5L0 10z"/></marker>
+          </defs>
+          <rect class="box hl" x="24" y="40" width="110" height="72" rx="8"/>
+          <text class="t" x="36" y="64">SDD</text>
+          <text class="s" x="36" y="82">especificação</text>
+          <text class="s" x="36" y="98">vem primeiro</text>
+          <rect class="box" x="154" y="40" width="110" height="72" rx="8"/>
+          <text class="t" x="166" y="64">Plano de ação</text>
+          <text class="s" x="166" y="82">etapa N, com</text>
+          <text class="s" x="166" y="98">critérios</text>
+          <rect class="box" x="284" y="40" width="110" height="72" rx="8"/>
+          <text class="t" x="296" y="64">Branch</text>
+          <text class="m" x="296" y="82">feat/etapa-N</text>
+          <text class="s" x="296" y="98">a partir da main</text>
+          <rect class="box" x="414" y="40" width="110" height="72" rx="8"/>
+          <text class="t" x="426" y="64">Código</text>
+          <text class="s" x="426" y="82">e testes</text>
+          <text class="s" x="426" y="98">juntos</text>
+          <rect class="box" x="544" y="40" width="110" height="72" rx="8"/>
+          <text class="t" x="556" y="64">CI verde</text>
+          <text class="m" x="556" y="82">DP-1 a DP-9</text>
+          <rect class="box" x="674" y="40" width="110" height="72" rx="8"/>
+          <text class="t" x="686" y="64">Pull request</text>
+          <text class="s" x="686" y="82">checklist com</text>
+          <text class="s" x="686" y="98">evidências</text>
+          <rect class="box warnb" x="804" y="40" width="110" height="72" rx="8"/>
+          <text class="t" x="816" y="64">Roteiro</text>
+          <text class="s" x="816" y="82">teste manual</text>
+          <text class="s" x="816" y="98">humano</text>
+          <rect class="box" x="934" y="40" width="110" height="72" rx="8"/>
+          <text class="t" x="946" y="64">Merge</text>
+          <text class="s" x="946" y="82">na main</text>
+          <text class="s" x="946" y="98">etapa aprovada</text>
+          <rect class="box okb" x="1064" y="40" width="110" height="72" rx="8"/>
+          <text class="t mono" x="1076" y="64">deploy.yml</text>
+          <text class="s" x="1076" y="82">development</text>
+          <text class="s" x="1076" y="98">e production</text>
+          <path class="edge" d="M134 76H153" marker-end="url(#pr-a)"/>
+          <path class="edge" d="M264 76H283" marker-end="url(#pr-a)"/>
+          <path class="edge" d="M394 76H413" marker-end="url(#pr-a)"/>
+          <path class="edge" d="M524 76H543" marker-end="url(#pr-a)"/>
+          <path class="edge" d="M654 76H673" marker-end="url(#pr-a)"/>
+          <path class="edge" d="M784 76H803" marker-end="url(#pr-a)"/>
+          <path class="edge" d="M914 76H933" marker-end="url(#pr-a)"/>
+          <path class="edge" d="M1044 76H1063" marker-end="url(#pr-a)"/>
+          <path class="edge soft" d="M859 112V156H469V113" marker-end="url(#pr-s)"/>
+          <text class="lbl" x="664" y="176" text-anchor="middle">ajustes pedidos na revisão voltam para o código</text>
+        </svg>
+      </div>
+      <p class="swipe">Arraste o diagrama para o lado para ver tudo.</p>
+      <figcaption>Mudança de comportamento atualiza o SDD na mesma PR. Prompts são código: mudam por pull request, com versão nova e uma rodada do <code>evals.yml</code>. Código gerado por IA passa pela mesma revisão, pelos mesmos testes e pelo mesmo teste de arquitetura.</figcaption>
+    </figure>
+    <div class="grid g2" style="margin-top:28px">
+      <div class="panel">
+        <h3>Definição de pronto</h3>
+        <ul class="chips">
+          <li class="chip"><b>DP-1</b>CI verde</li>
+          <li class="chip"><b>DP-2</b>testes sem modelo ao vivo</li>
+          <li class="chip"><b>DP-3</b>teste de arquitetura</li>
+          <li class="chip"><b>DP-4</b>nenhum segredo</li>
+          <li class="chip"><b>DP-5</b>textos em português</li>
+          <li class="chip"><b>DP-6</b>SDD atualizado</li>
+          <li class="chip"><b>DP-7</b>Storybook</li>
+          <li class="chip"><b>DP-8</b>tokens, movimento reduzido e axe</li>
+          <li class="chip"><b>DP-9</b>critério ligado ao teste</li>
+        </ul>
+        <p style="margin-top:16px">As regras de camadas, design system e GSAP ficam em <code>.claude/rules</code>, e a skill <code>definicao-de-pronto</code> é carregada ao implementar ou revisar uma etapa.</p>
+      </div>
+      <div class="panel">
+        <h3>14 decisões registradas</h3>
+        <ul class="list" style="columns:2;column-gap:28px">
+          <li>SPA com rewrite</li><li>Postgres com pgvector</li><li>Cadastro como máquina de estados</li><li>Gemini atrás de portas</li><li>OpenTelemetry e LangSmith</li><li>Políticas de rastro</li><li>Prompts versionados</li><li>Entrega pelo GitHub Actions</li><li>Prometheus e Grafana</li><li>shadcn/ui sobre Radix</li><li>GSAP</li><li>Uma réplica da API</li><li>Railway configurada pela API</li><li>Adaptador <code>demo</code> na e2e</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Plano -->
+<section class="slide" id="plano" aria-labelledby="t-plano">
+  <div class="wrap">
+    <p class="eyebrow">Plano de ação</p>
+    <h2 id="t-plano">32 de 51 etapas aprovadas</h2>
+    <p class="lede">A versão 1 está publicada. As fases 11 a 16 saíram da auditoria de 7 de novembro, e as próximas são a resiliência da API, a experiência do visitante, a privacidade e a qualidade de IA.</p>
+    <div class="rm-head">
+      <span class="tag ok">32 aprovadas</span>
+      <span class="tag warn">3 débitos técnicos</span>
+      <span class="tag">16 pendentes</span>
+    </div>
+    <div class="rm-total" role="img" aria-label="32 etapas aprovadas, 3 adiadas como débito técnico e 16 pendentes, de 51">
+      <span class="bg-ok" style="flex:32"></span><span class="bg-debt" style="flex:3"></span><span class="bg-todo" style="flex:16"></span>
+    </div>
+    <ol class="phases">
+      <li class="phase"><span class="n">0</span><span class="name">Preparação</span><span class="stages"><span class="st ok" title="0.1 · Revisão final da especificação">0.1</span><span class="sr-only">aprovada</span></span></li>
+      <li class="phase"><span class="n">1</span><span class="name">Fundação</span><span class="stages"><span class="st ok" title="1.1 · Esqueleto do repositório e governança">1.1</span><span class="st ok" title="1.2 · API mínima">1.2</span><span class="st ok" title="1.3 · Shell do frontend e design system base">1.3</span><span class="st ok" title="1.4 · CI sem banco">1.4</span><span class="sr-only">4 aprovadas</span></span></li>
+      <li class="phase"><span class="n">2</span><span class="name">Banco, autenticação e segurança</span><span class="stages"><span class="st ok" title="2.1 · Banco, migrações, unidade de trabalho e prontidão">2.1</span><span class="st ok" title="2.2 · Autenticação, sessão e proteções HTTP">2.2</span><span class="sr-only">2 aprovadas</span></span></li>
+      <li class="phase"><span class="n">3</span><span class="name">Corpus</span><span class="stages"><span class="st ok" title="3.1 · Corpus fictício e modelo de documentos">3.1</span><span class="st ok" title="3.2 · Embedding, ingestão e semente">3.2</span><span class="st ok" title="3.3 · Busca híbrida">3.3</span><span class="sr-only">3 aprovadas</span></span></li>
+      <li class="phase"><span class="n">4</span><span class="name">Perguntas</span><span class="stages"><span class="st ok" title="4.1 · Pipeline de perguntas, sem HTTP">4.1</span><span class="st ok" title="4.2 · API de conversas com SSE">4.2</span><span class="st ok" title="4.3 · Telas de início e conversa">4.3</span><span class="st ok" title="4.4 · LangSmith e linha de base de avaliação">4.4</span><span class="sr-only">4 aprovadas</span></span></li>
+      <li class="phase"><span class="n">5</span><span class="name">Cadastro e consentimentos</span><span class="stages"><span class="st ok" title="5.1 · Domínio e API do cadastro">5.1</span><span class="st ok" title="5.2 · Telas do cadastro">5.2</span><span class="sr-only">2 aprovadas</span></span></li>
+      <li class="phase"><span class="n">6</span><span class="name">Direitos do titular e retenção</span><span class="stages"><span class="st ok" title="6.1 · Página da conta">6.1</span><span class="st ok" title="6.2 · Canal do titular, retenção e documentos de privacidade">6.2</span><span class="sr-only">2 aprovadas</span></span></li>
+      <li class="phase"><span class="n">7</span><span class="name">Admin</span><span class="stages"><span class="st ok" title="7.1 · Gestão de documentos">7.1</span><span class="st ok" title="7.2 · Visão geral e qualidade">7.2</span><span class="st ok" title="7.3 · Fila de pedidos de titular">7.3</span><span class="sr-only">3 aprovadas</span></span></li>
+      <li class="phase"><span class="n">8</span><span class="name">Observabilidade completa</span><span class="stages"><span class="st ok" title="8.1 · Rastros de sistema e métricas">8.1</span><span class="st ok" title="8.2 · Painéis, alertas e fila de anotação">8.2</span><span class="sr-only">2 aprovadas</span></span></li>
+      <li class="phase"><span class="n">9</span><span class="name">Acabamento de experiência</span><span class="stages"><span class="st ok" title="9.1 · Acessibilidade, movimento e desempenho">9.1</span><span class="st" title="9.2 · Teste de usabilidade (pendente)">9.2</span><span class="sr-only">1 aprovada e 1 pendente</span></span></li>
+      <li class="phase"><span class="n">10</span><span class="name">Publicação</span><span class="stages"><span class="st ok" title="10.1 · Pipeline de deploy e ambiente de development">10.1</span><span class="st ok" title="10.2 · Produção e rollback">10.2</span><span class="sr-only">2 aprovadas</span></span></li>
+      <li class="phase"><span class="n">11</span><span class="name">Rede de proteção da entrega</span><span class="stages"><span class="st ok" title="11.1 · CI que não passa vazia">11.1</span><span class="st debt" title="11.2 · Rollback e pré-deploy conferidos (débito técnico)">11.2</span><span class="st debt" title="11.3 · CI endurecida e dependências vigiadas (débito técnico)">11.3</span><span class="st debt" title="11.4 · Cobertura medida (débito técnico)">11.4</span><span class="sr-only">1 aprovada e 3 débitos técnicos</span></span></li>
+      <li class="phase"><span class="n">12</span><span class="name">Custo e disponibilidade do LLM</span><span class="stages"><span class="st ok" title="12.1 · Orçamento obrigatório">12.1</span><span class="st ok" title="12.2 · Todo token entra no orçamento">12.2</span><span class="st ok" title="12.3 · Histórico com janela">12.3</span><span class="st ok" title="12.4 · Provedores, breaker e banco com vida de processo">12.4</span><span class="st ok" title="12.5 · API acessível só pela Vercel">12.5</span><span class="sr-only">5 aprovadas</span></span></li>
+      <li class="phase"><span class="n">13</span><span class="name">Correção e resiliência da API</span><span class="stages"><span class="st" title="13.1 · Loop de eventos livre">13.1</span><span class="st" title="13.2 · Embedding resiliente atrás da porta">13.2</span><span class="st" title="13.3 · Cadastro sem perda de atualização">13.3</span><span class="st" title="13.4 · SDD e código alinhados">13.4</span><span class="st" title="13.5 · Banco e manutenção">13.5</span><span class="sr-only">5 pendentes</span></span></li>
+      <li class="phase"><span class="n">14</span><span class="name">Experiência do visitante</span><span class="stages"><span class="st" title="14.1 · Erros honestos">14.1</span><span class="st" title="14.2 · Pergunta preservada">14.2</span><span class="st" title="14.3 · Foco, rolagem e leitor de tela">14.3</span><span class="sr-only">3 pendentes</span></span></li>
+      <li class="phase"><span class="n">15</span><span class="name">Privacidade e superfície de ataque</span><span class="stages"><span class="st" title="15.1 · Conversa do membro só para o membro">15.1</span><span class="st" title="15.2 · Menos superfície exposta">15.2</span><span class="st" title="15.3 · Prompt e rastros mais seguros">15.3</span><span class="st" title="15.4 · Riscos aceitos por escrito">15.4</span><span class="sr-only">4 pendentes</span></span></li>
+      <li class="phase"><span class="n">16</span><span class="name">Qualidade de IA e operação</span><span class="stages"><span class="st" title="16.1 · Avaliações que medem de verdade">16.1</span><span class="st" title="16.2 · Lint mais rigoroso">16.2</span><span class="st" title="16.3 · Produção que se recupera">16.3</span><span class="sr-only">3 pendentes</span></span></li>
+    </ol>
+  </div>
+</section>
+
+<!-- Números -->
+<section class="slide" id="numeros" aria-labelledby="t-num">
+  <div class="wrap">
+    <p class="eyebrow">Qualidade e stack</p>
+    <h2 id="t-num">Testes, documentação e tecnologia</h2>
+    <p class="lede">Contagem feita no código em 8 de novembro de 2026. Nenhum teste automático chama o Gemini ou o LangSmith.</p>
+    <dl class="stats">
+      <div class="stat"><dt class="sr-only">Pytest</dt><dd style="margin:0"><b>372</b><span>funções <code>test_</code> na API, em 59 arquivos</span></dd></div>
+      <div class="stat"><dt class="sr-only">Vitest</dt><dd style="margin:0"><b>129</b><span>testes Vitest no frontend, em 18 arquivos</span></dd></div>
+      <div class="stat"><dt class="sr-only">Playwright</dt><dd style="margin:0"><b>10</b><span>arquivos Playwright: 6 com a API simulada e 4 com a real</span></dd></div>
+      <div class="stat"><dt class="sr-only">Storybook</dt><dd style="margin:0"><b>54</b><span>histórias no Storybook</span></dd></div>
+      <div class="stat"><dt class="sr-only">Migrações</dt><dd style="margin:0"><b>9</b><span>migrações Alembic, em expand and contract</span></dd></div>
+      <div class="stat"><dt class="sr-only">Avaliação</dt><dd style="margin:0"><b>11</b><span>casos no conjunto de avaliação do LangSmith</span></dd></div>
+      <div class="stat"><dt class="sr-only">Corpus</dt><dd style="margin:0"><b>12</b><span>documentos no corpus fictício do hospital</span></dd></div>
+      <div class="stat"><dt class="sr-only">ADRs</dt><dd style="margin:0"><b>14</b><span>registros de decisão de arquitetura</span></dd></div>
+    </dl>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th scope="col">Camada</th><th scope="col">Tecnologia</th></tr></thead>
+        <tbody>
+          <tr><th scope="row">Frontend</th><td>React 19, TypeScript, Vite, Tailwind CSS 4, shadcn/ui sobre Radix, TanStack Query, React Router e GSAP</td></tr>
+          <tr><th scope="row">API</th><td>Python 3.12, FastAPI, Pydantic, SQLAlchemy 2 assíncrono com asyncpg e Alembic</td></tr>
+          <tr><th scope="row">IA</th><td>LangChain nas perguntas, LangGraph no cadastro e Gemini atrás de portas próprias</td></tr>
+          <tr><th scope="row">Dados</th><td>PostgreSQL 18 com pgvector, busca híbrida vetorial e por texto completo</td></tr>
+          <tr><th scope="row">Testes</th><td>Pytest, Vitest, Testing Library, Playwright, axe e Storybook</td></tr>
+          <tr><th scope="row">Observabilidade</th><td>structlog, OpenTelemetry, Prometheus, Grafana e LangSmith</td></tr>
+          <tr><th scope="row">Entrega</th><td>GitHub Actions, CLI da Railway 5.71 e CLI da Vercel 65.2</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="foot">
+  <div class="wrap">
+    <p>Fontes: a especificação em <code>docs/sdd.md</code> e <code>docs/sdd/</code> (seções 6 a 8, 10, 13 e 17 a 24), os workflows em <code>.github/workflows</code>, <code>apps/web/vercel.ts</code>, <code>apps/api/Dockerfile</code>, <code>ops/</code>, o plano de ação e a configuração da Railway e da Vercel conferida em 8 de novembro de 2026. A versão em Markdown, com os diagramas em Mermaid, fica em <code>docs/engenharia/README.md</code>.</p>
+  </div>
+</footer>
+
+<div class="pctl" role="toolbar" aria-label="Apresentação">
+  <button type="button" data-prev aria-label="Tela anterior">←</button>
+  <output id="pcount" aria-live="polite">1 / 13</output>
+  <button type="button" data-next aria-label="Próxima tela">→</button>
+  <button type="button" data-stop>Sair</button>
+</div>
+
+<script>
+(function () {
+  var root = document.documentElement;
+  root.lang = "pt-BR";
+  var slides = Array.prototype.slice.call(document.querySelectorAll(".slide"));
+  var counter = document.getElementById("pcount");
+  var reduce = window.matchMedia ? window.matchMedia("(prefers-reduced-motion: reduce)") : { matches: false };
+  var presenting = false;
+  var usedFullscreen = false;
+
+  function behavior() { return reduce.matches ? "auto" : "smooth"; }
+  function topOf(el) { return el.getBoundingClientRect().top + window.scrollY; }
+  function current() {
+    var probe = window.scrollY + window.innerHeight * 0.3;
+    var idx = 0;
+    for (var i = 0; i < slides.length; i++) { if (topOf(slides[i]) <= probe) idx = i; }
+    return idx;
+  }
+  function update(i) {
+    if (counter) counter.textContent = ((typeof i === "number" ? i : current()) + 1) + " / " + slides.length;
+  }
+  function show(i) {
+    var n = Math.max(0, Math.min(slides.length - 1, i));
+    window.scrollTo({ top: topOf(slides[n]), behavior: behavior() });
+    update(n);
+  }
+  function next() {
+    var i = current();
+    var s = slides[i];
+    var bottom = topOf(s) + s.offsetHeight;
+    var viewBottom = window.scrollY + window.innerHeight;
+    if (bottom - viewBottom > 48) { window.scrollBy({ top: window.innerHeight * 0.85, behavior: behavior() }); }
+    else { show(i + 1); }
+  }
+  function prev() {
+    var i = current();
+    if (window.scrollY - topOf(slides[i]) > 48) { window.scrollBy({ top: -window.innerHeight * 0.85, behavior: behavior() }); }
+    else { show(i - 1); }
+  }
+  function start() {
+    var i = current();
+    presenting = true;
+    root.classList.add("presenting");
+    usedFullscreen = false;
+    if (document.fullscreenEnabled && !document.fullscreenElement && root.requestFullscreen) {
+      root.requestFullscreen().then(function () { usedFullscreen = true; show(i); }).catch(function () {});
+    }
+    show(i);
+  }
+  function stop() {
+    var i = current();
+    presenting = false;
+    root.classList.remove("presenting");
+    if (document.fullscreenElement && document.exitFullscreen) { document.exitFullscreen().catch(function () {}); }
+    window.scrollTo({ top: topOf(slides[i]), behavior: "auto" });
+  }
+
+  Array.prototype.forEach.call(document.querySelectorAll("[data-present]"), function (b) { b.addEventListener("click", start); });
+  var p = document.querySelector("[data-prev]"); if (p) p.addEventListener("click", prev);
+  var n = document.querySelector("[data-next]"); if (n) n.addEventListener("click", next);
+  var x = document.querySelector("[data-stop]"); if (x) x.addEventListener("click", stop);
+
+  document.addEventListener("fullscreenchange", function () {
+    if (!document.fullscreenElement && presenting && usedFullscreen) stop();
+  });
+  document.addEventListener("keydown", function (e) {
+    if (!presenting || e.altKey || e.ctrlKey || e.metaKey) return;
+    var k = e.key;
+    if (k === "ArrowRight" || k === "ArrowDown" || k === "PageDown" || k === " ") { e.preventDefault(); next(); }
+    else if (k === "ArrowLeft" || k === "ArrowUp" || k === "PageUp") { e.preventDefault(); prev(); }
+    else if (k === "Home") { e.preventDefault(); show(0); }
+    else if (k === "End") { e.preventDefault(); show(slides.length - 1); }
+    else if (k === "Escape") { stop(); }
+  });
+  window.addEventListener("scroll", function () { if (presenting) update(); }, { passive: true });
+})();
+</script>
+
+</html>
