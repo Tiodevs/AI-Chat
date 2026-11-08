@@ -85,6 +85,22 @@ def origin_is_allowed(*, method: str, origin: str | None, web_origin: str) -> bo
     return bool(origin) and origin == web_origin
 
 
+EDGE_HEADER = "x-atrium-edge"
+
+
+def edge_is_trusted(*, presented: str | None, secret: str) -> bool:
+    """O pedido veio pela Vercel quando traz o segredo da borda. Seção 10.3 do SDD.
+
+    Sem segredo, o portão fica aberto: é o caso de `local` e `test`, em que o Vite faz o proxy
+    sem o cabeçalho. A comparação leva o mesmo tempo para qualquer valor errado.
+    """
+    if not secret:
+        return True
+    if not presented:
+        return False
+    return hmac.compare_digest(presented.encode("utf-8"), secret.encode("utf-8"))
+
+
 def fixed_window_start(now: datetime, window: timedelta) -> datetime:
     if now.tzinfo is None:
         raise ValueError("now must be timezone-aware")

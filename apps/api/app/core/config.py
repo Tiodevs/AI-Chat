@@ -38,6 +38,7 @@ class Settings(BaseSettings):
     metrics_token: str = ""
     rate_limit_hmac_key: str = ""
     pseudonym_key: str = ""
+    edge_secret: str = ""
     privacy_contact_email: str = ""
     log_level: str = "INFO"
     langsmith_tracing: bool = False
@@ -97,3 +98,14 @@ def require_safeguards(settings: Settings) -> None:
     missing = missing_safeguards(settings)
     if missing:
         raise MissingSafeguards(settings.app_env, missing)
+
+
+def edge_guard_secret(settings: Settings) -> str:
+    """O segredo que a API exige em /v1. Seção 10.3 do SDD.
+
+    Só vale em `development` e `production`: em `local` e `test`, o Vite faz o proxy sem o
+    cabeçalho da Vercel. Vazio deixa o portão aberto.
+    """
+    if settings.app_env not in CLOUD_ENVIRONMENTS:
+        return ""
+    return settings.edge_secret.strip()

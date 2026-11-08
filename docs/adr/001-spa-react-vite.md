@@ -10,7 +10,7 @@ SPA React com Vite na Vercel, com rewrite de `/backend` para a API.
 
 ## Consequências
 
-Sem servidor de frontend para manter. O fluxo SSE pelo rewrite precisa do teste de fumaça.
+Sem servidor de frontend para manter. O fluxo SSE pelo rewrite precisa do teste de fumaça. A API continua pública na Railway, então o rewrite de `/backend` manda o cabeçalho `x-atrium-edge` com um segredo que a API exige em `/v1` (seção 10.3, Etapa 12.5).
 
 ## Alternativas
 

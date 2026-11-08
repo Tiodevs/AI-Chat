@@ -12,6 +12,7 @@ from app.domain.auth import (
     SESSION_COOKIE_NAME,
     SESSION_MAX_AGE_SECONDS,
     bucket_key,
+    edge_is_trusted,
     email_is_valid,
     fixed_window_start,
     hash_session_secret,
@@ -138,3 +139,18 @@ def test_legal_acceptance_follows_the_current_version() -> None:
     assert needs_legal_acceptance(None) is True
     assert needs_legal_acceptance("2000-01-01.1") is True
     assert needs_legal_acceptance(LEGAL_DOCUMENT_VERSION) is False
+
+
+def test_edge_secret_must_match_exactly_when_configured() -> None:
+    """Seção 10.3: com o segredo da borda, só o pedido que veio pela Vercel passa."""
+    assert edge_is_trusted(presented="segredo-da-borda", secret="segredo-da-borda")
+    assert not edge_is_trusted(presented=None, secret="segredo-da-borda")
+    assert not edge_is_trusted(presented="", secret="segredo-da-borda")
+    assert not edge_is_trusted(presented="outro", secret="segredo-da-borda")
+    assert not edge_is_trusted(presented="segredo-da-borda ", secret="segredo-da-borda")
+
+
+def test_edge_gate_is_open_without_a_secret() -> None:
+    """Em local e test, o Vite faz o proxy sem o cabeçalho da Vercel."""
+    assert edge_is_trusted(presented=None, secret="")
+    assert edge_is_trusted(presented="qualquer", secret="")

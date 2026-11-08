@@ -67,7 +67,7 @@ Algumas etapas precisam de contas e chaves que só você pode criar. A IA para e
 | Projeto Google com faturamento ativo para a chave de produção | Etapa 10.2 | Google Cloud |
 | Cinco participantes por persona para o teste de usabilidade | Etapa 9.2 | Você |
 | Webhook do Discord em `DISCORD_WEBHOOK_URL`, gravado antes do deploy que troca o contato, porque sem ele o Grafana não sobe | Já, para os alertas da seção 18.3 | Discord e Railway, serviço `grafana` de `production` |
-| Segredo `EDGE_SECRET`, o mesmo na Vercel e no serviço `api` da Railway | Etapa 12.5 | Vercel e Railway |
+| Segredo `EDGE_SECRET`, um valor por ambiente, o mesmo na Vercel e no serviço `api` da Railway: na Vercel (Preview e Production) antes do merge da 12.5a, na Railway depois do deploy dela e antes da 12.5b | Etapa 12.5 | Vercel e Railway |
 
 ## 3. Etapas
 
@@ -990,9 +990,15 @@ As Fases 11 a 16 vêm da auditoria de 2026-11-07 (SDD 23, passo 11). Elas fecham
 **Achados.** O IP vem do primeiro item de `x-forwarded-for`, e o Uvicorn aceita esse cabeçalho de qualquer origem. Quem chama a URL da Railway direto troca o IP a cada pedido. O `routes.rewrite` do `@vercel/config` aceita `requestHeaders`, então a Vercel pode injetar um segredo que a API exige.
 
 **Entregas.**
-- Rewrite de `/backend` no `vercel.ts` com `requestHeaders` e `deploymentEnv("EDGE_SECRET")`.
+- Rewrite de `/backend` no `vercel.ts` com `requestHeaders` e `deploymentEnv("EDGE_SECRET")`. Na CLI da Vercel 65.2.0, esse rewrite vira uma rota de baixo nível, que não convive com `rewrites` e `headers`: o `vercel.ts` passa a declarar tudo em `routes`, com as mesmas rotas que a Vercel gerava antes.
 - Middleware que recusa `/v1/*` sem o cabeçalho certo fora de `local` e `test`, com `hmac.compare_digest`.
 - Fumaça que confere o 403 num pedido direto à Railway.
+
+**Publicação em duas partes.** O `deploy.yml` publica a API antes da Vercel. Se a API passasse a exigir o cabeçalho no mesmo deploy em que a Vercel começa a mandá-lo, o app ficaria alguns minutos com 403 em `/v1`. Por isso a etapa sai em duas PRs:
+- **12.5a.** A Vercel manda o cabeçalho, e a API só o exige quando `EDGE_SECRET` existe na Railway.
+- **12.5b.** A API não sobe sem `EDGE_SECRET` em development e production, e a fumaça confere o 403 direto e o `/health` aberto.
+
+Ordem: grave `EDGE_SECRET` na Vercel (Preview e Production, um valor por ambiente) antes do merge da 12.5a; depois do deploy dela em cada ambiente, grave o mesmo valor no serviço `api` da Railway daquele ambiente; só então faça o merge da 12.5b.
 
 **Critérios de aceite.**
 - CA-1. Um pedido direto à Railway em `/v1/conversations` recebe 403.
@@ -1001,6 +1007,8 @@ As Fases 11 a 16 vêm da auditoria de 2026-11-07 (SDD 23, passo 11). Elas fecham
 - CA-4. As seções 10.3 e 10.4 dizem que o IP passa a vir da Vercel.
 
 **Como testar.** `curl -i <URL da Railway>/v1/conversations` devolve 403, e J1 pela Vercel continua funcionando.
+
+**Resultado da 12.5a.** O `vercel.ts` declara só `routes`: as sete rotas que o `getTransformedRoutes` da Vercel gerava dos `rewrites` e `headers` de antes, iguais fora o escape das barras na regex da API, e a rota de `/backend` com o `transform` que põe `x-atrium-edge` com `$EDGE_SECRET`. A normalização da CLI 65.2.0, lida no código dela, deixa essas rotas como estão. `src/deploy/vercel-config.test.ts` trava a lista. Na API, `ApiGuardMiddleware` recusa com 403 `forbidden` um pedido a `/v1` sem o cabeçalho certo, comparado com `hmac.compare_digest`, quando `APP_ENV` é `development` ou `production` e `EDGE_SECRET` existe. `/health`, `/ready` e `/metrics` ficam fora. A conferência das rotas no ar acontece na fumaça do deploy em development.
 
 ---
 
@@ -1341,7 +1349,7 @@ A IA atualiza esta tabela em cada PR.
 | 12.2 | Todo token entra no orçamento | Aprovada |
 | 12.3 | Histórico com janela | Aprovada |
 | 12.4 | Provedores, breaker e banco com vida de processo | Aprovada |
-| 12.5 | API acessível só pela Vercel | Pendente |
+| 12.5 | API acessível só pela Vercel | Em revisão (12.5a), 12.5b em seguida |
 | 13.1 | Loop de eventos livre | Pendente |
 | 13.2 | Embedding resiliente atrás da porta | Pendente |
 | 13.3 | Cadastro sem perda de atualização | Pendente |
