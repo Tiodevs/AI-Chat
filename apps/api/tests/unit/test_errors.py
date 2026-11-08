@@ -1,3 +1,12 @@
+"""Cada erro de domínio vira o status e o envelope de erro da seção 12. Seção 6.2, "Erros".
+
+O teste parametrizado confere o par status e `code` de cada erro de `app/domain/errors.py`
+pelo `status_for` de `app/core/errors.py`. Os demais registram uma rota `/_test/...` num app
+de `create_app()` que só levanta o erro, e leem a resposta por um `TestClient`: o envelope tem
+`code`, `message` e o `request_id` do cabeçalho, e só ganha `message_id`, `field_errors` ou
+`retry_after_seconds` quando o erro os traz. Não usa banco nem rede.
+"""
+
 from uuid import UUID
 
 import pytest

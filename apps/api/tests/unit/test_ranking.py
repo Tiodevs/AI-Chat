@@ -1,4 +1,9 @@
-"""A fusão é pura e os ranks começam em 1. Seção 8.4."""
+"""A fusão por reciprocal rank fusion usa a constante 60 e ranks a partir de 1. Seção 8.4 do SDD.
+
+Testa a função pura `reciprocal_rank_fusion` de `app/domain/ranking.py` com listas de
+identificadores. Não usa banco nem rede. A busca híbrida inteira, com o pgvector, fica em
+`tests/integration/test_retrieval.py`.
+"""
 
 from app.domain.ranking import RRF_K, reciprocal_rank_fusion
 

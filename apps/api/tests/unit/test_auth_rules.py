@@ -1,3 +1,14 @@
+"""As regras puras de login, sessão, origem, limites e segredo da borda. NFR-12, seção 10.
+
+Testa `app/domain/auth.py`, `app/domain/legal.py` e `new_session_secret` sem banco nem rede: a
+mensagem de login que não revela o e-mail, o e-mail em minúsculas, a senha de 12 a 72
+caracteres (seção 8.5), o segredo de sessão de 256 bits guardado só como SHA-256 (seção 8.1),
+o cookie `atrium_session` sem `Domain` (seção 10.3), a exigência de `Origin` nos métodos que
+mudam estado, as janelas fixas e o HMAC diário dos baldes (seção 10.4), a versão vigente dos
+documentos legais (seção 11.11) e a comparação do `x-atrium-edge` (seção 10.3, Etapa 12.5).
+O login com o banco fica em `tests/integration/test_auth.py`.
+"""
+
 import base64
 from datetime import UTC, datetime, timedelta
 
@@ -79,6 +90,7 @@ def test_fixed_window_and_retry_after() -> None:
     ip_start = fixed_window_start(now, LOGIN_IP_WINDOW)
     assert email_start == datetime(2026, 10, 27, 12, 0, tzinfo=UTC)
     assert ip_start == datetime(2026, 10, 27, 12, 0, tzinfo=UTC)
+    # A janela de 15 minutos do e-mail começou às 12:00 e fecha às 12:15: faltam 450 s.
     assert retry_after_seconds(now, email_start, LOGIN_EMAIL_WINDOW) == 450
 
 

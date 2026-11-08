@@ -1,4 +1,11 @@
-"""O admin inicial é criado uma vez e o último não sai. Seção 10.5 do SDD."""
+"""O admin inicial é criado uma vez e o último não sai. Seções 6.4 e 10.5 do SDD.
+
+Usa o `BootstrapAdminService` de verdade, o mesmo do script `bootstrap_admin` do pré-deploy.
+`_demote_admins` rebaixa os admins que já existem no banco e `_restore_admins` os devolve no
+fim. A corrida roda dois `ensure` com `asyncio.gather`, e o `pg_advisory_xact_lock` deixa só um
+criar o admin. Precisa de PostgreSQL com pgvector local (`migrated_database`); sem ele pula, e
+com `REQUIRE_INTEGRATION_DB=1` falha.
+"""
 
 import asyncio
 from collections.abc import Coroutine
@@ -62,6 +69,7 @@ def test_concurrent_bootstrap_creates_a_single_admin(migrated_database: str) -> 
 
 
 def _service(database_url: str) -> BootstrapAdminService:
+    """O `BootstrapAdminService` de verdade, com o relógio do sistema e o argon2id."""
     return BootstrapAdminService(
         database_url=database_url,
         clock=SystemClock(),
@@ -70,14 +78,17 @@ def _service(database_url: str) -> BootstrapAdminService:
 
 
 def _email() -> str:
+    """E-mail único de admin, num domínio que só este arquivo usa."""
     return f"admin-{uuid4().hex}@bootstrap.test"
 
 
 def _run[T](coro: Coroutine[object, object, T]) -> T:
+    """Roda a corrotina num loop novo e devolve o resultado."""
     return asyncio.run(coro)
 
 
 async def _create_together(database_url: str, email: str) -> list[bool]:
+    """Roda dois `ensure` ao mesmo tempo e devolve o que cada um respondeu."""
     first, second = await asyncio.gather(
         _service(database_url).ensure(email=email, password=PASSWORD),
         _service(database_url).ensure(email=email, password=PASSWORD),
@@ -86,6 +97,11 @@ async def _create_together(database_url: str, email: str) -> list[bool]:
 
 
 async def _demote_admins(database_url: str) -> list[UUID]:
+    """Rebaixa a `member` todos os admins do banco e devolve os ids deles.
+
+    O serviço só cria um admin quando não há nenhum (seção 10.5), então o teste começa sem
+    admin. `_restore_admins` devolve o papel no fim.
+    """
     async with open_session(database_url) as session, UnitOfWork(session):
         found = await session.scalars(select(User.id).where(User.role == "admin"))
         ids = list(found.all())
@@ -95,6 +111,7 @@ async def _demote_admins(database_url: str) -> list[UUID]:
 
 
 async def _restore_admins(database_url: str, ids: list[UUID]) -> None:
+    """Devolve o papel `admin` aos ids rebaixados por `_demote_admins`."""
     if not ids:
         return
     async with open_session(database_url) as session, UnitOfWork(session):
@@ -102,6 +119,7 @@ async def _restore_admins(database_url: str, ids: list[UUID]) -> None:
 
 
 async def _insert_admin(database_url: str, *, email: str) -> None:
+    """Grava um segundo admin, para o primeiro poder sair."""
     async with open_session(database_url) as session, UnitOfWork(session):
         await UserRepository(session).insert(
             email=email,
@@ -113,6 +131,7 @@ async def _insert_admin(database_url: str, *, email: str) -> None:
 
 
 async def _delete_email(database_url: str, email: str) -> None:
+    """Apaga o usuário pelo e-mail, com as sessões dele."""
     async with open_session(database_url) as session, UnitOfWork(session):
         users = UserRepository(session)
         user = await users.get_by_email(email)
@@ -123,12 +142,14 @@ async def _delete_email(database_url: str, email: str) -> None:
 
 
 async def _count_admins(database_url: str) -> int:
+    """Quantos usuários têm o papel `admin`."""
     async with open_session(database_url) as session, UnitOfWork(session):
         count = await UserRepository(session).count_by_role("admin")
     return count
 
 
 async def _count_email(database_url: str, email: str) -> int:
+    """1 se existe usuário com o e-mail, 0 se não."""
     async with open_session(database_url) as session, UnitOfWork(session):
         user = await UserRepository(session).get_by_email(email)
     return 0 if user is None else 1

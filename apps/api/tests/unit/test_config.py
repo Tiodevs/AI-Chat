@@ -1,3 +1,13 @@
+"""A configuração reescreve a URL do banco e recusa subir na nuvem sem as proteções. NFR-13.
+
+Seções 7.1, 10.3, 10.4, 17 e 19 do SDD e Etapas 12.1 e 12.5b. `rewrite_database_url` troca
+`postgresql://` por `postgresql+asyncpg://`. `missing_safeguards` e `require_safeguards` exigem,
+em `development` e `production`, teto de tokens maior que zero e `RATE_LIMIT_HMAC_KEY`,
+`PSEUDONYM_KEY` e `EDGE_SECRET` preenchidas; `local` e `test` aceitam tudo vazio. O helper
+`_settings` monta um `Settings` sem ler o `.env`. Os dois últimos testes sobem `create_app()`
+com variáveis de ambiente e esperam o `MissingSafeguards`. Não usa banco nem rede.
+"""
+
 from typing import Literal
 
 import pytest
@@ -128,6 +138,7 @@ def _settings(
     pseudonym_key: str = "pseudonym-key",
     edge_secret: str = "edge-secret",
 ) -> Settings:
+    """`Settings` sem `.env`, por padrão em `production` com teto e as três chaves preenchidas."""
     return Settings(
         _env_file=None,
         app_env=app_env,

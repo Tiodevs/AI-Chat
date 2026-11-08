@@ -1,4 +1,12 @@
-"""Avaliadores e o arquivo dos 11 casos. Seção 21.2."""
+"""Os avaliadores, o limiar de 90% e o arquivo dos 11 casos de avaliação. Seção 21.2 do SDD.
+
+Testa `app/evals` sem LangSmith e sem Gemini: `load_cases` lê `evals/public_qa.jsonl`, os
+avaliadores de código (`outcome_match`, `source_match`, `no_unknown_phone`) recebem saídas
+escritas no teste, o `groundedness` usa o `FakeChatProvider` como juiz, e `plan_sync` decide o
+que criar, atualizar e apagar no dataset remoto, aqui representado por `RemoteExample`. Não usa
+banco nem rede. A Etapa 16.1 amplia o arquivo para 40 a 60 casos, porque com 4 casos que
+esperam resposta uma falha já derruba a taxa para 75%.
+"""
 
 import asyncio
 
@@ -135,6 +143,8 @@ def test_answer_match_needs_ninety_percent_of_the_answer_cases() -> None:
 def test_sync_plan_creates_updates_and_deletes() -> None:
     cases = load_cases()
     first = cases[0]
+    # Só o primeiro caso existe no remoto, com a pergunta desatualizada. `dup` repete o mesmo
+    # caso, `orphan` não tem `case_id` e `gone` aponta para um caso que saiu do arquivo.
     remote = (
         RemoteExample(
             example_id="keep",

@@ -1,3 +1,13 @@
+"""Spans só com os atributos permitidos, `/metrics` com token e log de pedido sem dado pessoal.
+
+Seções 18.1, 18.2 e 18.3 do SDD, NFR-6 e NFR-7. A fixture `exporter` troca o tracer de
+`app/core/telemetry.py` por um que grava os spans na memória. A fixture `client` sobe o app
+com `METRICS_TOKEN` de teste dentro de um `with`, então o `lifespan` roda. Sem `DATABASE_URL`,
+nada toca o banco. Com a URL no ambiente ou no `apps/api/.env`, o `lifespan` abre o pool e
+confere as versões presas, e o `/metrics` lê os pedidos de titular e a retenção nesse banco; uma
+falha ali só vira log. Não usa rede.
+"""
+
 import json
 from collections.abc import Iterator
 
@@ -18,6 +28,7 @@ from app.main import create_app
 
 @pytest.fixture
 def exporter(monkeypatch: pytest.MonkeyPatch) -> Iterator[InMemorySpanExporter]:
+    """Põe no módulo de telemetria um tracer que guarda os spans terminados na memória."""
     memory = InMemorySpanExporter()
     provider = TracerProvider()
     provider.add_span_processor(SimpleSpanProcessor(memory))
@@ -63,6 +74,7 @@ def test_span_ids_come_from_the_active_span(exporter: InMemorySpanExporter) -> N
 
 @pytest.fixture
 def client(monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
+    """App com `METRICS_TOKEN` de teste, aberto num `with` para o `lifespan` rodar."""
     monkeypatch.setenv("METRICS_TOKEN", "segredo-de-teste")
     get_settings.cache_clear()
     with TestClient(create_app()) as test_client:

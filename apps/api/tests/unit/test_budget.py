@@ -1,4 +1,13 @@
-"""Teto diário. Zero desliga. A partir de 100% degrada. Seção 7.1."""
+"""O teto diário de tokens: zero desliga, acima de 80% avisa e a partir de 100% degrada. NFR-13.
+
+Seção 7.1 do SDD, "Orçamento e degradação". Testa `budget_level` e `usage_day` de
+`app/domain/budget.py`, o `log_budget` e o `PostgresTokenBudget` de `app/services/budget.py`,
+e o `QuestionService` montado com os falsos `_Workflow` e `_MemoryBudget`. Com o orçamento
+estourado, o serviço devolve `degraded` sem chamar o workflow. Não usa banco nem rede: com teto
+zero, o `PostgresTokenBudget` não abre a URL da porta 1. O contador no banco fica em
+`tests/integration/test_token_budget.py`, e o teto nas perguntas e no cadastro por HTTP, em
+`test_conversations.py` e `test_registration.py` da mesma pasta.
+"""
 
 import asyncio
 import json
@@ -35,6 +44,9 @@ def test_usage_day_is_utc() -> None:
 
 
 def test_zero_budget_does_not_open_the_database() -> None:
+    # A porta 1 recusa conexão: se `exceeded` abrisse o banco com o teto zero, o teste falharia.
+    # `record(0, 0)` também não abre, porque o par zero e zero não grava nada; um uso positivo
+    # seria gravado mesmo com o teto desligado (seção 7.1).
     budget = PostgresTokenBudget("postgresql+asyncpg://127.0.0.1:1/none", _Clock(), 0)
 
     async def check() -> None:
@@ -82,11 +94,15 @@ def test_open_budget_records_the_workflow_tokens() -> None:
 
 
 class _Clock:
+    """Relógio fixo em 2026-10-27 UTC, no lugar do `SystemClock`."""
+
     def now(self) -> datetime:
         return datetime(2026, 10, 27, tzinfo=UTC)
 
 
 class _MemoryBudget:
+    """Falso da porta `TokenBudget`: responde `exceeded` fixo e guarda cada `record`."""
+
     def __init__(self, *, exceeded: bool) -> None:
         self._exceeded = exceeded
         self.recorded: list[tuple[int, int]] = []
@@ -99,6 +115,8 @@ class _MemoryBudget:
 
 
 class _Workflow:
+    """Falso do `QaWorkflow`: conta as chamadas e responde `answered` com 3 e 4 tokens."""
+
     def __init__(self) -> None:
         self.calls = 0
         self.request_ids: list[str] = []
@@ -130,5 +148,6 @@ class _Workflow:
 
 
 def _events(capsys: pytest.CaptureFixture[str]) -> list[dict[str, object]]:
+    """Lê os eventos JSON que o `structlog` escreveu na stdout capturada."""
     output = capsys.readouterr().out
     return [json.loads(line) for line in output.splitlines() if line.startswith("{")]

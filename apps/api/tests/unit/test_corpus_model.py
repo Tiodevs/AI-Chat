@@ -1,4 +1,10 @@
-"""O modelo de chunks segue a seção 8.1 do SDD."""
+"""O modelo `Chunk` segue a seção 8.1 do SDD: vetor de 768 dimensões e `tsv` em português.
+
+Lê só os metadados da tabela no SQLAlchemy, sem banco nem rede: o tipo `Vector` com
+`EMBEDDING_DIMENSIONS` (seção 8.3), o `heading` anulável e a coluna gerada com
+`CHUNK_TSV_EXPRESSION`, a mesma expressão que a migração `0002_corpus` usa. A coluna criada no
+PostgreSQL é conferida em `tests/integration/test_corpus_schema.py`.
+"""
 
 from app.models import Chunk
 from app.models.chunk import CHUNK_TSV_EXPRESSION

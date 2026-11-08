@@ -1,4 +1,11 @@
-"""O hash trava o texto na versão. Seção 10.2 do SDD."""
+"""Cada prompt fica preso à versão, e as respostas fixas são as do SDD. Seções 10.1 e 10.2.
+
+O primeiro teste calcula o SHA-256 de cada prompt versionado de `app/prompts` (perguntas,
+avaliação e cadastro) e compara com `_LOCKED_HASHES`: mudar uma letra de um prompt sem criar
+uma `PROMPT_VERSION` nova falha aqui (ADR-007). Uma versão nova entra na tabela com o hash
+novo. O segundo teste confere os quatro textos fixos da seção 10.1 e o desfecho que usa cada
+um. Não usa banco nem rede.
+"""
 
 import hashlib
 

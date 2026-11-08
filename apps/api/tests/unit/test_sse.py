@@ -1,4 +1,10 @@
-"""Formato do fluxo e o comentário de manutenção. Seção 7.1 do SDD."""
+"""O formato dos eventos SSE, o comentário de manutenção e o fluxo de diagnóstico. Seção 7.1.
+
+Cobre `app/core/sse.py` e o `render_ask_event` do controlador de conversas: o quadro
+`event:`/`data:`, o `: keepalive` a cada 15 segundos, a espera que devolve o próximo item, a
+manutenção ou a desconexão (seção 6.4) e os três `tick` de `GET /v1/diagnostics/stream`
+(seção 12). Roda as corrotinas com `asyncio.run` e intervalos curtos. Não usa banco nem rede.
+"""
 
 import asyncio
 import json
@@ -50,6 +56,11 @@ def test_diagnostics_yields_three_indexes() -> None:
 
 
 async def _wait() -> list[object]:
+    """Pede três itens a `next_stream_item`: o da fila, a manutenção e a desconexão.
+
+    O intervalo de 0,01 s faz a manutenção chegar logo, porque a fila já está vazia. Com o
+    evento de desconexão ligado, a terceira espera termina antes do intervalo de 1 s.
+    """
     queue: asyncio.Queue[object] = asyncio.Queue()
     disconnected = asyncio.Event()
     await queue.put("token")
@@ -61,4 +72,5 @@ async def _wait() -> list[object]:
 
 
 async def _ticks() -> list[int]:
+    """Coleta os índices do diagnóstico com intervalo zero, sem esperar um segundo por tick."""
     return [index async for index in iter_diagnostic_indexes(0)]

@@ -1,0 +1,94 @@
+# unit
+
+Testes de unidade da API: regras do domínio, configuração, HTTP, workflows de IA, observabilidade e arquivos do repositório, sem banco e sem rede, com os falsos da seção 17. São 39 arquivos, 253 funções de teste e 332 casos coletados, porque o pytest conta cada caso de um `parametrize`. Seção 21.1 do SDD.
+
+## Arquivos
+
+A contagem entre parênteses é a de casos coletados pelo pytest.
+
+| Arquivo | O que prova | O que cobre |
+|---|---|---|
+| [`__init__.py`](__init__.py) | Vazio. Faz da pasta um pacote, para o pytest importar `tests.unit.test_registration` sem confundir com o arquivo de mesmo nome da integração | O pytest |
+| [`test_account_rules.py`](test_account_rules.py) | A correção do perfil muda só os campos enviados, os campos que podem indicar saúde exigem a personalização, os Termos só aceitam `true`, a maioridade não muda e um admin não exclui a própria conta (8) | `app/domain/account.py`. FR-9, seções 8.5, 10.5, 11.5 e 12 |
+| [`test_auth_rules.py`](test_auth_rules.py) | A mensagem de login não revela o e-mail, o e-mail fica em minúsculas, a senha tem de 12 a 72 caracteres, o segredo de sessão tem 256 bits e só o SHA-256 dele é guardado, o cookie `atrium_session` não tem `Domain`, os métodos que mudam estado exigem `Origin`, os baldes usam janela fixa e HMAC diário, e o `x-atrium-edge` é comparado exatamente (13) | `app/domain/auth.py`, `app/domain/legal.py`, `app/adapters/session_secret.py`. NFR-12, seções 8.1, 8.5, 10.3, 10.4 e 11.11 |
+| [`test_budget.py`](test_budget.py) | Zero desliga o teto, acima de 80% avisa e a partir de 100% degrada; o dia do contador é UTC; com o teto estourado, a pergunta devolve `degraded` sem chamar o workflow; com o teto aberto, os tokens do workflow são gravados (7) | `app/domain/budget.py`, `app/services/budget.py`, `app/services/question.py`. NFR-13, seção 7.1 |
+| [`test_chunking.py`](test_chunking.py) | O divisor não cruza títulos, o texto antes do primeiro título fica sem seção, e os pedaços têm até 1.000 caracteres com 150 de sobreposição (4) | `app/domain/chunking.py`. Seção 7.3 |
+| [`test_config.py`](test_config.py) | `postgresql://` vira `postgresql+asyncpg://`; em `development` e `production`, a API não sobe sem teto de tokens, `RATE_LIMIT_HMAC_KEY`, `PSEUDONYM_KEY` e `EDGE_SECRET`, e o erro nomeia cada variável; `local` e `test` aceitam tudo vazio (21) | `app/core/config.py`, `create_app`. NFR-13, seções 7.1, 10.3, 10.4, 17 e 19, Etapas 12.1 e 12.5b |
+| [`test_corpus_catalog.py`](test_corpus_catalog.py) | Os doze arquivos de `content/corpus` têm os fatos da tabela da seção 9 e nenhum telefone ou faixa de horário fora dela, e o `README.md` do corpus segue a mesma regra (4) | `docs/sdd/corpus.md`, `content/corpus`, `app/domain/phones.py`. Seções 3.3 e 9 |
+| [`test_corpus_model.py`](test_corpus_model.py) | A coluna `embedding` é `vector(768)`, o `heading` é anulável e o `tsv` é gerado em português pela mesma expressão da migração (1) | `app/models/chunk.py`, `app/models/vector.py`. Seções 8.1 e 8.3 |
+| [`test_demo_adapter.py`](test_demo_adapter.py) | O `DemoChatProvider` classifica por palavras, responde com a primeira frase do primeiro bloco e a citação dele, lê o campo do cadastro pelo passo atual e deixa a frase cair na cópia fixa; o `LexicalEmbeddingProvider` aproxima textos com palavras em comum; `Settings` recusa `demo` na nuvem (17) | `app/adapters/demo_chat.py`, `app/adapters/lexical_embedding.py`, `chat_factory.py`, `embedding_factory.py`. Seções 17 e 21.1, ADR-014 |
+| [`test_document_rules.py`](test_document_rules.py) | O tipo vem da extensão e é conferido no conteúdo, o limite é de 10 MB, o nome guardado perde o caminho, o título cai no nome do arquivo, o slug é ASCII sem colisão, o balde aceita 30 uploads por hora e uma versão em `processing` bloqueia por 15 minutos (8) | `app/domain/documents.py`. FR-10, NFR-10, seções 7.3, 10.4 e 12 |
+| [`test_embedding_text.py`](test_embedding_text.py) | Os prefixos de documento e de pergunta são os da seção 8.3, o falso de embedding devolve um vetor unitário estável de 768 dimensões, e a segunda semente diz que nada foi embedado (3) | `app/domain/embedding_text.py`, `app/adapters/deterministic_embedding.py`, `app/prompts/corpus.py`. FR-13, seções 8.3 e 17 |
+| [`test_errors.py`](test_errors.py) | Cada erro de domínio tem o status e o `code` da seção 12, e o envelope traz `code`, `message` e `request_id`, com `message_id`, `field_errors` ou `retry_after_seconds` só quando o erro os tem (14) | `app/domain/errors.py`, `app/core/errors.py`. Seções 6.2 e 12 |
+| [`test_evaluators.py`](test_evaluators.py) | O arquivo de avaliação tem os 11 casos, os avaliadores de código e o `groundedness` com o juiz falso dão a nota certa, o limiar de 90% vale sobre os casos que esperam resposta, e a sincronização cria, atualiza e apaga os exemplos certos (8) | `app/evals`, `evals/public_qa.jsonl`. Seção 21.2, Etapa 16.1 |
+| [`test_feedback_delivery.py`](test_feedback_delivery.py) | Útil vira `user_helpful` 1 e não útil vira 0, o envio usa a execução da mensagem, e uma falha do LangSmith fica no log sem subir (4) | `app/domain/feedback.py`, `app/services/conversations.py`, `LangSmithFeedbackSink`. FR-14, seção 18.4 |
+| [`test_grounding.py`](test_grounding.py) | Uma citação só vale com o bloco correspondente, um grupo como `[1, 2]` conta cada índice, uma citação repetida fica uma vez, e um telefone ausente do contexto reprova o rascunho (9) | `app/domain/grounding.py`. FR-2, FR-4, seção 7.1 |
+| [`test_health.py`](test_health.py) | O `/health` responde 200 sem banco e sem carregar o driver, devolve o commit de `app/BUILD_SHA` ou do `RAILWAY_GIT_COMMIT_SHA` e recusa um valor que não é alfanumérico; o log de pedido tem os campos da seção 18.1 e a rota pelo modelo do caminho (7) | `app/controllers/health.py`, `app/core/build.py`, `app/core/logging.py`. NFR-6, seções 12, 18.1 e 22.3 |
+| [`test_history.py`](test_history.py) | A janela tem as 6 últimas trocas e até 6.000 caracteres, com mensagens inteiras, e começa por uma pergunta do visitante (8) | `app/domain/history.py`. NFR-13, seção 7.1, Etapa 12.3 |
+| [`test_http_guards.py`](test_http_guards.py) | `Origin` diferente ou ausente recebe 403 `bad_origin`, `/v1` sai com `no-store`, a validação usa o envelope, o CORS só aceita `WEB_ORIGIN`, e na nuvem `/v1` sem o segredo da borda recebe 403 enquanto `/health`, `/ready` e `/metrics` continuam abertos (10) | `app/core/middleware.py`, `create_app`. NFR-11, NFR-12, seções 10.3 e 12, Etapa 12.5 |
+| [`test_insight_rules.py`](test_insight_rules.py) | Os períodos são de 7 ou 30 dias com a janela anterior de mesmo tamanho, as taxas ficam nulas sem denominador, a intenção vem do desfecho, e o motivo da revelação, o link do rastro, o pseudônimo e a razão do orçamento seguem a seção 12 (8) | `app/domain/insights.py`. FR-15, seções 11.8, 12 e 15.5 |
+| [`test_layout.py`](test_layout.py) | As pastas da seção 6.3 existem, cada ADR tem as quatro seções e está na tabela da seção 24, as regras de `.claude/rules` citam a sua seção, o `.env.example` lista exatamente os campos de `Settings` com os segredos vazios, e os documentos de privacidade existem (5) | O repositório. Seções 6.3, 10.6, 11.11, 17, 20 e 24 |
+| [`test_logging.py`](test_logging.py) | O processador descarta as chaves da lista de recusa, também aninhadas, troca e-mail e telefone dos valores por marcadores, e a linha JSON tem os campos obrigatórios (2) | `app/core/logging.py`. NFR-7, seção 18.1 |
+| [`test_observability.py`](test_observability.py) | Os spans guardam só os atributos permitidos, mais `request_id`, `langsmith.run_id` e `error.type`, e um span desconhecido é recusado; `/metrics` exige o token e responde 404 sem ele; as métricas usam o modelo da rota ou `unmatched`; o log de pedido não tem dado pessoal (8) | `app/core/telemetry.py`, `app/core/metrics.py`, `app/controllers/metrics.py`. NFR-6, NFR-7, seções 18.1, 18.2 e 18.3 |
+| [`test_ops_files.py`](test_ops_files.py) | Os quatro painéis e os oito alertas têm os títulos, uids e limiares da seção 18.3, o contato do Discord vem de `DISCORD_WEBHOOK_URL`, o contato de e-mail antigo é apagado, a coleta é de 30 s com o token, e cada consulta usa uma série que a API expõe (34) | `ops/grafana`, `ops/prometheus/prometheus.yml`, `app/core/metrics.py`. Seção 18.3 |
+| [`test_password_hasher.py`](test_password_hasher.py) | A senha vira um hash `$argon2id$` sem o texto, e só a senha certa confere (1) | `app/adapters/password_hasher.py`. FR-7, seção 8.5, Etapa 13.1 |
+| [`test_privacy_queue_rules.py`](test_privacy_queue_rules.py) | Só um pedido aberto e vencido é atrasado, fechar exige nota e grava `closed_at`, um pedido fechado não muda, o motivo de `dsr.update` leva só a troca de status, e um e-mail que um `mailto:` partiria ou um caractere de controle são recusados (27) | `app/domain/privacy.py`. FR-16, seções 11.5 e 12, Etapa 7.3 |
+| [`test_privacy_rules.py`](test_privacy_rules.py) | O prazo é de 15 dias corridos, o pedido é limpo e validado, o sexto pedido do IP no dia é limitado, e cada regra de retenção tem o período e o corte da seção 11.6 (15) | `app/domain/privacy.py`, `app/domain/retention.py`. FR-16, seções 10.4, 11.5 e 11.6 |
+| [`test_prompt_versions.py`](test_prompt_versions.py) | O SHA-256 de cada prompt bate com a versão travada, e os quatro textos fixos são os da seção 10.1, cada um no seu desfecho (2) | `app/prompts`. Seções 10.1 e 10.2, ADR-007 |
+| [`test_qa.py`](test_qa.py) | O portão por intenção e confiança, a abstenção abaixo do piso, o `grounding_failed`, o contexto não confiável e as temperaturas, o rastro sem a pergunta original nem dado de saúde, `degraded` com o circuito aberto, `error` antes da geração, a janela do histórico, o uso parcial de uma resposta cancelada e o script `ask` (21) | `app/workflows/qa.py`, `app/domain/outcomes.py`, `app/scripts/ask.py`. FR-2, FR-3, FR-4, FR-17, NFR-13, seções 6.4, 7.1, 10.2 e 18.4 |
+| [`test_qa_provider.py`](test_qa_provider.py) | O modelo do LangChain tem 120 s, nenhuma nova tentativa do SDK e thinking budget 0; 429 e 503 repetem depois de 20 s e 500 não; tentativas esgotadas contam uma falha; cinco falhas abrem o circuito por 60 s; o tempo limite não repete; e o backend lê saída estruturada, ferramenta, texto e uso (12) | `app/adapters/gemini_chat.py`, `langchain_chat.py`, `provider_status.py`, `circuit_breaker.py`. Seções 5.3, 7.1 e 17 |
+| [`test_questions.py`](test_questions.py) | A mensagem médica é gravada como o marcador, o dono é o usuário ou a chave de convidado, o cookie `atrium_guest` dura 30 dias, os baldes de pergunta e de diagnóstico abrem no limite e fecham acima dele, e a restrição de desfechos lista todos (5) | `app/domain/questions.py`, `app/domain/outcomes.py`. FR-17, seções 7.1, 8.1, 10.3 e 10.4, Etapa 15.1 |
+| [`test_ranking.py`](test_ranking.py) | A reciprocal rank fusion usa a constante 60 e ranks a partir de 1 (2) | `app/domain/ranking.py`. Seção 8.4 |
+| [`test_readiness.py`](test_readiness.py) | O `/ready` responde 503 e registra `database_unconfigured` ou `database_unreachable`, sem a senha da URL no log (3) | `app/services/readiness.py`. NFR-7, NFR-9, seção 12 |
+| [`test_registration.py`](test_registration.py) | A ferramenta `set_fields` recusa `role`, senha e consentimentos, a transcrição não guarda senha, a máquina pula opcionais e volta para a correção, a conclusão exige os Termos e a maioridade, e os campos de saúde caem sem a personalização (7) | `app/domain/registration.py`, `app/domain/fields.py`. FR-5, FR-7, FR-8, seções 7.2, 8.5 e 10.2 |
+| [`test_registration_workflow.py`](test_registration_workflow.py) | O grafo não tem checkpointer, a falha da frase usa a pergunta modelo, `role` na ferramenta é recusado, uma dúvida mantém o passo, e o e-mail já usado, o valor inválido e a revisão respondem com texto fixo, sem o modelo (8) | `app/workflows/registration.py`, `app/prompts/registration.py`. FR-5, seções 7.2 e 10.2, ADR-003 |
+| [`test_seed_script.py`](test_seed_script.py) | Sem `GEMINI_API_KEY`, `--skip-without-key` adia a semente e sai com sucesso, e sem a opção o script sai com código 1 (2) | `app/scripts/seed.py`. Seção 22.1, Etapa 10.1 |
+| [`test_session.py`](test_session.py) | O `sslmode` da URL vira o `ssl` do asyncpg, e uma URL sem ele fica igual (2) | `app/db/session.py`. Seção 17 |
+| [`test_sse.py`](test_sse.py) | O quadro `event:` e `data:`, o `: keepalive` de 15 s, a espera que devolve o item, a manutenção ou a desconexão, e os três `tick` do diagnóstico (5) | `app/core/sse.py`, `app/controllers/conversations.py`. Seções 6.4, 7.1 e 12 |
+| [`test_text_extractor.py`](test_text_extractor.py) | Markdown e texto são lidos como UTF-8, o texto de um PDF montado no teste é extraído, e o extrator assíncrono funciona (3) | `app/adapters/text_extractor.py`. Seções 6.4 e 7.3 |
+| [`test_trace_policy.py`](test_trace_policy.py) | `full`, `masked` e `metadata_only` deixam sair só o permitido, os clientes do LangSmith aplicam a mesma projeção, o endpoint vazio usa os Estados Unidos, o pseudônimo muda com a chave, o `flush` tolera falha, o `ci.yml` não cita o LangSmith e o pytest mantém o rastreamento desligado (10) | `app/domain/trace_policy.py`, `app/adapters/langsmith_tracing.py`, `app/domain/pseudonym.py`, `.github/workflows/ci.yml`. NFR-3, seção 18.4, ADR-006 |
+| [`test_unit_of_work.py`](test_unit_of_work.py) | A unidade de trabalho confirma e fecha, desfaz quando o corpo falha, e registra `unit_of_work.slow` acima de 2 s, não em 2 s (4) | `app/db/unit_of_work.py`. Seção 6.4 |
+
+## Como ler
+
+Por assunto, do mais simples ao que monta mais peças:
+
+1. **Domínio puro.** `test_grounding.py`, `test_ranking.py`, `test_chunking.py`, `test_history.py`, `test_registration.py`, `test_questions.py`, `test_auth_rules.py`, `test_account_rules.py`, `test_document_rules.py`, `test_privacy_rules.py`, `test_privacy_queue_rules.py`, `test_insight_rules.py` e `test_embedding_text.py`. Funções puras, sem framework: o lugar das regras do SDD.
+2. **Configuração e HTTP.** `test_config.py`, `test_errors.py`, `test_http_guards.py`, `test_health.py`, `test_readiness.py`, `test_sse.py`, `test_session.py`, `test_unit_of_work.py`, `test_budget.py`, `test_password_hasher.py`, `test_text_extractor.py` e `test_seed_script.py`.
+3. **IA.** `test_qa.py`, `test_qa_provider.py`, `test_registration_workflow.py`, `test_demo_adapter.py`, `test_evaluators.py`, `test_prompt_versions.py` e `test_feedback_delivery.py`.
+4. **Observabilidade.** `test_logging.py`, `test_observability.py`, `test_trace_policy.py` e `test_ops_files.py`.
+5. **Arquivos do repositório.** `test_layout.py`, `test_corpus_catalog.py` e `test_corpus_model.py`. Eles leem `docs/`, `content/`, `ops/`, `.github/workflows/ci.yml`, `.env.example` e `.claude/rules`, então editar esses arquivos pode quebrar a suíte de unidade: é a lista "Cuidados que os testes cobram" do `CONTRIBUTING.md`.
+
+Conceitos que ajudam:
+
+- **Portas e falsos.** Os workflows recebem as portas pelo construtor (seção 6.2), então o teste passa um falso. Os de uso geral ficam em `app/adapters`: `FakeChatProvider` (`fake_chat.py`), que devolve a saída estruturada, a chamada de ferramenta e os tokens escritos no teste, e `DeterministicEmbeddingProvider` (`deterministic_embedding.py`). Os falsos de um arquivo só ficam nele, com `_` no nome, como `_Embeddings`, `_Search` e `_RecordingTracer` em `test_qa.py` ou `_Backend` e `_Clock` em `test_qa_provider.py`.
+- **`asyncio.run`.** A suíte não usa `pytest-asyncio`. Um teste síncrono roda a corrotina com `asyncio.run`, às vezes por um helper (`_run`, `_wait`).
+- **Configuração em cache.** `get_settings` guarda o `Settings`. Um teste que troca variáveis com `monkeypatch.setenv` chama `get_settings.cache_clear()` antes de `create_app()`. O helper `_settings` de `test_config.py` monta o `Settings` sem ler o `.env`.
+- **`TestClient` com ou sem `with`.** Sem `with`, o `lifespan` não roda. Com `with`, como em `test_observability.py`, ele roda e abre o pool do banco quando há `DATABASE_URL`.
+- **Logs como dado.** O `structlog` escreve uma linha JSON por evento na stdout. Os testes a capturam com `capsys` e a leem com `json.loads`.
+- **Tempo sem espera.** Instantes fixos (`NOW`), relógios falsos (`_Clock`), uma espera falsa e o `time.perf_counter` trocado medem prazos sem dormir.
+
+## Testes
+
+Em `apps/api`:
+
+```bash
+uv run pytest tests/unit
+uv run pytest tests/unit/test_qa.py -k cancelled
+```
+
+Sem o `uv` no PATH, o mesmo comando é `python -m uv run --no-sync pytest tests/unit -q -p no:cacheprovider`.
+
+A suíte não precisa de banco nem de rede: nenhum teste chama o Gemini nem o LangSmith (NFR-3). A exceção é `test_observability.py`: com `DATABASE_URL` no ambiente ou no `apps/api/.env`, o `lifespan` abre o pool e confere as versões presas, e o `/metrics` lê o banco, mas uma falha ali só vira log. Para nada tocar banco nenhum, rode com `DATABASE_URL=` vazia.
+
+O [`conftest.py`](../conftest.py) da pasta de cima vale para esta suíte: ele deixa `LANGSMITH_TRACING=false` e, antes e depois de cada teste, limpa o cache de `get_settings` e o runtime do LangSmith. Na CI, o job `api` roda esta suíte junto com as outras, num `uv run pytest` só.
+
+## Leia também
+
+- [SDD 21.1, CI padrão](../../../../docs/sdd/entrega.md#211-ci-padrão)
+- [SDD 17, portas dos provedores](../../../../docs/sdd/observabilidade.md#17-portas-dos-provedores)
+- [SDD 6.2, as camadas](../../../../docs/sdd/arquitetura.md#62-mvc-com-as-camadas-de-que-um-sistema-de-ia-precisa)
+- [SDD 7.1, fazer uma pergunta](../../../../docs/sdd/arquitetura.md#71-fazer-uma-pergunta) e [7.2, cadastro](../../../../docs/sdd/arquitetura.md#72-cadastro)
+- [SDD 18.4, LangSmith](../../../../docs/sdd/observabilidade.md#184-langsmith)
+- [README das suítes](../README.md) e [testes de integração](../integration/README.md)
+- [Guia, parte 13: testes](../../../../docs/guia/13-testes.md)

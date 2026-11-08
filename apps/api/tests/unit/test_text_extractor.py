@@ -1,4 +1,9 @@
-"""Extração de Markdown, texto e PDF. Seção 7.3."""
+"""A extração lê Markdown e texto como UTF-8 e o texto de um PDF pelo `pypdf`. Seção 7.3.
+
+Testa `extract_text` e o `FileTextExtractor`, que roda a extração com `asyncio.to_thread`
+(seção 6.4). O PDF nasce no próprio teste, pelo helper `_pdf`, sem arquivo de fixture. Não usa
+banco nem rede.
+"""
 
 import asyncio
 from io import BytesIO
@@ -26,7 +31,12 @@ def test_async_extractor_reads_plain_text() -> None:
 
 
 def _pdf(text: str) -> bytes:
-    safe = text.replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")
+    """Monta à mão um PDF 1.4 de uma página com `text` em Helvetica.
+
+    Escapa parênteses e barras do texto, grava os cinco objetos e calcula a tabela `xref` com
+    os deslocamentos de cada um. Antes de devolver, confere que o `pypdf` abre o arquivo.
+    """
+    safe =text.replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")
     stream = f"BT /F1 12 Tf 72 720 Td ({safe}) Tj ET".encode("latin-1")
     objects = [
         b"<< /Type /Catalog /Pages 2 0 R >>",

@@ -1,4 +1,12 @@
-"""A pergunta de visita acha o chunk certo, o piso corta e o arquivo some. Seção 8.4."""
+"""A pergunta de visita acha o chunk certo, o piso corta e o arquivo some. FR-2 e FR-12.
+
+Seções 8.2 a 8.4 do SDD. Ingere Markdown pelo `IngestionService` e busca pelo
+`RetrievalService`, os dois de verdade, contra o pgvector. Os falsos `_AlignedEmbedding` e
+`_SameEmbedding` escolhem os vetores, porque o `DeterministicEmbeddingProvider` não aproxima
+textos de mesmo sentido. Destrutivo: três testes usam o slug `02-visiting` do corpus semeado e
+apagam esse documento antes e depois. Precisa de PostgreSQL com pgvector local
+(`migrated_database`); sem ele pula, e com `REQUIRE_INTEGRATION_DB=1` falha.
+"""
 
 import asyncio
 from uuid import UUID, uuid4
@@ -22,6 +30,12 @@ VISITING_QUESTION = "Qual é o horário de visita?"
 
 
 class _AlignedEmbedding:
+    """Dá o vetor da pergunta de visita a todo texto com "11:00" e outro vetor ao resto.
+
+    O `DeterministicEmbeddingProvider` gera vetores por hash, sem relação de sentido entre a
+    pergunta e o chunk, então o teste alinha os vetores à mão. Guarda as perguntas recebidas.
+    """
+
     def __init__(self, visiting: list[float], other: list[float]) -> None:
         self._visiting = visiting
         self._other = other
@@ -44,6 +58,8 @@ class _AlignedEmbedding:
 
 
 class _SameEmbedding:
+    """Dá o mesmo vetor a todo texto: todo chunk fica com similaridade 1."""
+
     def __init__(self, vector: list[float]) -> None:
         self._vector = vector
         self.model_name = "same"
@@ -78,6 +94,7 @@ def test_retrieval_returns_at_most_six_chunks(migrated_database: str) -> None:
 
 
 async def _visiting(database_url: str) -> None:
+    """Ingere o documento de visitas e confere que a busca o devolve primeiro."""
     slug = "02-visiting"
     noise = f"noise-{uuid4().hex}"
     await _delete_slugs(database_url, [slug, noise])
@@ -111,6 +128,11 @@ async def _visiting(database_url: str) -> None:
 
 
 async def _floor(database_url: str) -> None:
+    """Ingere o documento de visitas e um ruído que casa com a pergunta só por palavra.
+
+    O ruído passa no texto completo, mas fica abaixo do piso de similaridade, e a busca o
+    descarta (seção 8.4).
+    """
     visiting = "02-visiting"
     noise = f"keyword-{uuid4().hex}"
     await _delete_slugs(database_url, [visiting, noise])
@@ -151,6 +173,7 @@ async def _floor(database_url: str) -> None:
 
 
 async def _archived(database_url: str) -> None:
+    """Ingere e arquiva o documento de visitas e confere que ele sai da busca (FR-12)."""
     slug = "02-visiting"
     await _delete_slugs(database_url, [slug])
     try:
@@ -183,6 +206,7 @@ async def _archived(database_url: str) -> None:
 
 
 async def _limit(database_url: str) -> None:
+    """Ingere 8 seções com o mesmo vetor e confere que a busca devolve 6 (seção 8.4)."""
     slug = f"many-{uuid4().hex}"
     await _delete_slugs(database_url, [slug])
     try:
@@ -215,6 +239,7 @@ async def _limit(database_url: str) -> None:
 
 
 async def _insert_admin(database_url: str) -> UUID:
+    """Grava um admin para `created_by`. Ele fica no banco depois do teste."""
     engine = create_async_engine(database_url)
     try:
         async with engine.begin() as connection:
@@ -232,6 +257,7 @@ async def _insert_admin(database_url: str) -> UUID:
 
 
 async def _delete_slugs(database_url: str, slugs: list[str]) -> None:
+    """Apaga documentos, versões e chunks destes slugs, se existirem."""
     engine = create_async_engine(database_url)
     try:
         async with engine.begin() as connection:
@@ -265,6 +291,7 @@ async def _delete_slugs(database_url: str, slugs: list[str]) -> None:
 
 
 async def _keyword_match_count(database_url: str, slug: str, question: str) -> int:
+    """Quantos chunks ativos do slug casam com a pergunta no `tsv`."""
     engine = create_async_engine(database_url)
     try:
         async with engine.connect() as connection:

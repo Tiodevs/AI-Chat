@@ -1,4 +1,10 @@
-"""token_usage_days soma o dia UTC e não vaza para outro dia. Seção 8.1."""
+"""`token_usage_days` soma o dia UTC e não vaza para outro dia. NFR-13, seções 7.1 e 8.1.
+
+Grava pelo `TokenUsageRepository` e confere o `PostgresTokenBudget` com o relógio `_FixedClock`
+em dias de 1999, que nenhum outro teste usa, e apaga as duas linhas no fim. Precisa de
+PostgreSQL com pgvector local (`migrated_database`); sem ele pula, e com
+`REQUIRE_INTEGRATION_DB=1` falha.
+"""
 
 import asyncio
 from datetime import UTC, datetime
@@ -24,6 +30,11 @@ def test_daily_token_counter_accumulates_and_degrades_at_the_budget(
 
 
 async def _exercise(database_url: str) -> None:
+    """Soma tokens no dia `_DAY` e confere o teto do `PostgresTokenBudget`.
+
+    O uso de 13 iguala o teto de 13 e estoura; 14 tem folga; 0 desliga o teto; e o outro dia
+    começa vazio (seção 7.1). No fim, apaga as duas linhas de 1999.
+    """
     try:
         async with open_session(database_url) as session, UnitOfWork(session):
             await TokenUsageRepository(session).add(_DAY.date(), 4, 6)
@@ -55,6 +66,8 @@ async def _exercise(database_url: str) -> None:
 
 
 class _FixedClock:
+    """Relógio parado no instante dado."""
+
     def __init__(self, moment: datetime) -> None:
         self._moment = moment
 

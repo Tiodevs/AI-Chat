@@ -1,4 +1,12 @@
-"""Máquina, lista de permissão e conclusão do cadastro. Seções 7.2, 8.5 e 10.2."""
+"""A máquina de estados, a lista de permissão e a conclusão do cadastro. FR-5, FR-7 e FR-8.
+
+Seções 7.2, 8.5 e 10.2 do SDD e ADR-003. Testa o domínio puro de `app/domain/registration.py`
+e `app/domain/fields.py`, sem modelo, banco ou rede: a ferramenta `set_fields` não tem `role`,
+senha nem consentimento, o serializador da transcrição descarta uma senha, a máquina pula os
+opcionais e volta para a correção, a conclusão exige os Termos na versão vigente e a
+maioridade, e `visitor_type` e `visit_reason` caem sem a personalização. O helper
+`_ready_fields` monta os campos de um cadastro pronto para concluir.
+"""
 
 from datetime import UTC, datetime
 
@@ -43,6 +51,7 @@ def test_registration_tool_rejects_role_password_and_consents() -> None:
     assert "password" not in properties
 
     kept = new_machine()
+    # Uma chave fora da lista recusa a carga inteira: nem o nome válido junto com ela entra.
     for extra in (
         {"role": "admin"},
         {"password": "correct-horse-1"},
@@ -157,6 +166,7 @@ def test_registration_draft_discards_sensitive_fields_without_personalization() 
 
 
 def _ready_fields() -> FieldSet:
+    """Nome e e-mail preenchidos e os três opcionais pulados."""
     return FieldSet(
         full_name="Ana Costa",
         email="ana@example.com",

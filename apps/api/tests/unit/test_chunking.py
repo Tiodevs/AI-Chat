@@ -1,4 +1,10 @@
-"""O divisor respeita títulos, tamanho e sobreposição. Seção 7.3."""
+"""O divisor de chunks respeita títulos, o limite de tamanho e a sobreposição. Seção 7.3 do SDD.
+
+É a linha "O divisor de chunks respeita títulos e o limite de tamanho" da seção 21.1. Testa a
+função pura `split_markdown`, de `app/domain/chunking.py`, sem banco nem rede. A seção 6.4
+pede o divisor num threadpool; hoje `app/services/ingestion.py` o chama no loop de eventos, e
+a Etapa 13.1 muda a chamada sem mexer nesta função.
+"""
 
 from app.domain.chunking import CHUNK_SIZE, split_markdown
 

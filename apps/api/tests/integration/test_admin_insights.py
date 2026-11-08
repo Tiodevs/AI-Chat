@@ -1,7 +1,11 @@
-"""Visão geral, qualidade, inspetor e revelação contra o PostgreSQL. Etapa 7.2, CA-1 e CA-2.
+"""Visão geral, qualidade, inspetor e revelação do admin. FR-15, NFR-10 e seção 11.8 do SDD.
 
-Seções 11.8, 12 e 15.5 do SDD. O relógio fica em 2031 para os agregados só verem os dados
-deste teste, mesmo num banco compartilhado.
+Seções 12 e 15.5 do SDD, critérios CA-1 e CA-2 da Etapa 7.2. A fixture `world` grava em SQL
+cru o cenário de `_build`: um admin, um membro que consentiu a melhoria, outro que revogou,
+um convidado, cinco conversas, feedback, sessões de cadastro e o uso de tokens do dia. O
+relógio fica em 2031 para os agregados só verem os dados deste teste, mesmo num banco
+compartilhado. `_cleanup` apaga tudo pelos ids. Precisa de PostgreSQL com pgvector local
+(`migrated_database`); sem ele pula, e com `REQUIRE_INTEGRATION_DB=1` falha.
 """
 
 import asyncio
@@ -37,12 +41,16 @@ BUDGET = 1000
 
 
 class FrozenClock:
+    """Relógio parado em `NOW`, em 2031, longe dos dados dos outros testes."""
+
     def now(self) -> datetime:
         return NOW
 
 
 @dataclass
 class _World:
+    """Ids do cenário que `_build` grava, com o cliente do admin logado."""
+
     client: TestClient
     database_url: str
     admin_id: UUID
@@ -58,6 +66,11 @@ class _World:
 
 @pytest.fixture
 def world(monkeypatch: pytest.MonkeyPatch, migrated_database: str) -> Iterator[_World]:
+    """API com o relógio em 2031, o cenário de `_build` gravado e o admin logado.
+
+    O teto de tokens fica em `BUDGET` e o `LANGSMITH_RUN_URL_TEMPLATE` aponta para um host falso,
+    para a visão geral ter `ratio` e o inspetor ter `trace_url`. `_cleanup` apaga tudo no fim.
+    """
     monkeypatch.setenv("DATABASE_URL", migrated_database)
     monkeypatch.setenv("RATE_LIMIT_HMAC_KEY", HMAC_KEY)
     monkeypatch.setenv("PSEUDONYM_KEY", PSEUDONYM_KEY)
@@ -217,6 +230,7 @@ def test_a_member_gets_403_on_insight_routes(world: _World) -> None:
 
 
 def _login(client: TestClient, email: str) -> None:
+    """Entra com `PASSWORD` de um IP único. O cookie fica no pote do cliente."""
     response = client.post(
         "/v1/auth/login",
         headers={"Origin": ORIGIN, "X-Forwarded-For": f"insights-{uuid4().hex}"},
@@ -226,14 +240,28 @@ def _login(client: TestClient, email: str) -> None:
 
 
 def _run(coro: Coroutine[object, object, Any]) -> Any:
+    """Roda a corrotina num loop novo e devolve o resultado."""
     return asyncio.run(coro)
 
 
 async def _exec(session: Any, sql: str, **params: Any) -> None:
+    """Executa um SQL cru com parâmetros nomeados."""
     await session.execute(text(sql), params)
 
 
 async def _build(database_url: str) -> dict[str, Any]:
+    """Grava o cenário em SQL cru, numa transação, e devolve os ids.
+
+    - `conv_guest`, do convidado: duas perguntas no período, `answered` com citação e feedback
+      útil, e `abstained`.
+    - `conv_yes`, do membro com o consentimento de melhoria: `answered` com feedback não útil.
+    - `conv_no`, do membro que revogou o consentimento: `refused`, só nos agregados.
+    - `conv_old`, do membro com o consentimento, há 20 dias: só no período de 30 dias.
+    - `conv_previous`, do convidado, há 10 dias: o período anterior da visão de 7 dias.
+
+    Mais três sessões de cadastro (chat concluída, chat no começo e formulário concluído) e 850
+    tokens no dia, de um teto de 1.000.
+    """
     tag = uuid4().hex
     hashed = get_password_hasher().hash_password(PASSWORD)
     admin, yes, no = uuid4(), uuid4(), uuid4()
@@ -366,6 +394,7 @@ async def _build(database_url: str) -> dict[str, Any]:
 
 
 async def _consent(session: Any, user_id: UUID, purpose: str, *, revoked: bool = False) -> None:
+    """Grava um consentimento na versão vigente, há 60 dias, revogado ontem se `revoked`."""
     await _exec(
         session,
         "INSERT INTO consent_records (user_id, purpose, document_version, granted_at, "
@@ -379,6 +408,7 @@ async def _consent(session: Any, user_id: UUID, purpose: str, *, revoked: bool =
 
 
 async def _audit(database_url: str, actor: UUID) -> list[tuple[str, str, str | None]]:
+    """Eventos de auditoria do ator: ação, alvo e motivo, na ordem de gravação."""
     async with open_session(database_url) as session:
         result = await session.execute(
             text(
@@ -391,6 +421,7 @@ async def _audit(database_url: str, actor: UUID) -> list[tuple[str, str, str | N
 
 
 async def _email_of(database_url: str, user_id: UUID) -> str:
+    """E-mail do usuário com este id."""
     async with open_session(database_url) as session:
         value = await session.scalar(
             text("SELECT email FROM users WHERE id = :id"), {"id": user_id}
@@ -399,6 +430,7 @@ async def _email_of(database_url: str, user_id: UUID) -> str:
 
 
 async def _cleanup(database_url: str, built: dict[str, Any]) -> None:
+    """Apaga o cenário pelos ids gravados em `_build`, os filhos antes dos pais."""
     ids = built["ids"]
     async with open_session(database_url) as session, UnitOfWork(session):
         conversations = built["conversations"]

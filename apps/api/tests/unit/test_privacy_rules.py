@@ -1,4 +1,12 @@
-"""Regras puras do canal do titular e dos prazos de retenção. Seções 10.4, 11.5 e 11.6."""
+"""As regras puras do canal do titular e os prazos de retenção. FR-16, seções 10.4, 11.5 e 11.6.
+
+Testa `app/domain/privacy.py` e `app/domain/retention.py` sem banco nem rede: o prazo de 15
+dias corridos, a limpeza e a validação do pedido, o limite de 5 pedidos por IP por dia e o
+período de cada regra da seção 11.6, com o corte estrito (o que está exatamente no corte não
+venceu). `REGISTRATION_SESSIONS` tem período zero porque o corte é o próprio `expires_at` da
+sessão, que já expira em 24 horas. As regras rodando no banco ficam em
+`tests/integration/test_retention.py`.
+"""
 
 from datetime import UTC, datetime, timedelta
 

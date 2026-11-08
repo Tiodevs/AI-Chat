@@ -1,4 +1,13 @@
-"""Painéis, alertas e coleta versionados em ops/. Seção 18.3 do SDD."""
+"""Os painéis, os alertas e a coleta versionados em `ops/` seguem a seção 18.3 do SDD.
+
+Lê os JSON de `ops/grafana` e o `ops/prometheus/prometheus.yml`: quatro painéis com uid único
+e a fonte `prometheus`, oito alertas com os limiares e prazos da seção 18.3, o contato no
+webhook do Discord lido de `DISCORD_WEBHOOK_URL`, a remoção do contato de e-mail antigo e a
+coleta a cada 30 s com o `METRICS_TOKEN`. O teste parametrizado confere que cada consulta usa
+uma série que o `REGISTRY` de `app/core/metrics.py` expõe. A fixture `loaded_snapshot` simula
+a primeira leitura do banco, para as séries de privacidade e retenção existirem. Não usa banco
+nem rede.
+"""
 
 import json
 import re
@@ -33,6 +42,11 @@ ALERT_TITLES = {
 
 @pytest.fixture(autouse=True)
 def loaded_snapshot(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Põe um `DatabaseSnapshot` já carregado, como depois da primeira coleta com banco.
+
+    Sem `loaded=True`, o coletor não emite `atrium_dsr_open` nem as séries de retenção, e as
+    consultas que as usam pareceriam apontar para séries inexistentes.
+    """
     monkeypatch.setattr(
         metrics,
         "SNAPSHOT",
@@ -47,6 +61,11 @@ def loaded_snapshot(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def _series_names() -> set[str]:
+    """Os nomes das séries que o Prometheus vê, com os sufixos que o `prometheus_client` põe.
+
+    Contadores ganham `_total` e histogramas viram `_bucket`, `_count` e `_sum`. `up` entra
+    porque é a série do próprio Prometheus que o painel de saúde usa.
+    """
     names = {"up"}
     for family in REGISTRY.collect():
         if family.type == "counter":
@@ -59,6 +78,7 @@ def _series_names() -> set[str]:
 
 
 def _expressions() -> list[tuple[str, str]]:
+    """Cada consulta PromQL dos painéis e dos alertas, com o lugar de onde veio."""
     found: list[tuple[str, str]] = []
     for path in DASHBOARDS:
         for panel in json.loads(path.read_text(encoding="utf-8"))["panels"]:

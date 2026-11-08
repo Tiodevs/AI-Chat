@@ -1,4 +1,12 @@
-"""Login, sessão, limite e autorização contra o PostgreSQL. Seções 10.3 a 10.5."""
+"""Login, sessão, limites e autorização. FR-7, NFR-7, NFR-10 e NFR-11, seções 10.3, 10.4 e 12.
+
+O `TestClient` chama a API real com o relógio `FrozenClock` e a chave de HMAC de teste. Os
+usuários entram pelo `UserRepository` com a senha em argon2id, e `_delete_email` os apaga no
+fim. O limite por IP é preparado com a janela já cheia em `rate_limit_windows`; o limite por
+e-mail, com 11 tentativas de verdade. Outros arquivos importam daqui o relógio, as constantes
+e os helpers de login e de usuário. Precisa de PostgreSQL com pgvector local
+(`migrated_database`); sem ele pula, e com `REQUIRE_INTEGRATION_DB=1` falha.
+"""
 
 import asyncio
 from collections.abc import Coroutine
@@ -32,12 +40,19 @@ FIXED = datetime(2026, 10, 27, 12, 7, tzinfo=UTC)
 
 
 class FrozenClock:
+    """Relógio parado em `FIXED`. Outros arquivos da integração importam este relógio.
+
+    Às 12:07, faltam 8 minutos na janela de 15 minutos do login por e-mail (480 s) e 53 na
+    janela de uma hora (3180 s): são os `retry_after_seconds` que os testes esperam.
+    """
+
     def now(self) -> datetime:
         return FIXED
 
 
 @pytest.fixture
 def api(monkeypatch: pytest.MonkeyPatch, migrated_database: str) -> TestClient:
+    """API real com o relógio parado, a chave de HMAC de teste e `APP_ENV=local`."""
     monkeypatch.setenv("DATABASE_URL", migrated_database)
     monkeypatch.setenv("RATE_LIMIT_HMAC_KEY", HMAC_KEY)
     monkeypatch.setenv("WEB_ORIGIN", ORIGIN)
@@ -144,6 +159,7 @@ def test_login_above_the_ip_limit_returns_429(api: TestClient, migrated_database
     key = bucket_key(purpose="login_ip", subject=ip, day=FIXED.date(), key=HMAC_KEY)
     try:
         _run(_insert_user(migrated_database, email=email, role="member"))
+        # A janela do IP já tem as 30 tentativas da hora (seção 10.4).
         _run(_seed_window(migrated_database, key=key, start=start, count=30))
         response = _login(api, email, WRONG_PASSWORD, ip=ip)
     finally:
@@ -190,6 +206,7 @@ def test_production_cookie_is_secure(
     monkeypatch.setenv("RATE_LIMIT_HMAC_KEY", HMAC_KEY)
     monkeypatch.setenv("WEB_ORIGIN", ORIGIN)
     monkeypatch.setenv("APP_ENV", "production")
+    # Em production, `create_app` exige o teto, as duas chaves e o segredo da borda (seção 7.1).
     monkeypatch.setenv("LLM_DAILY_TOKEN_BUDGET", "1000")
     monkeypatch.setenv("PSEUDONYM_KEY", "pseudonym-key")
     monkeypatch.setenv("EDGE_SECRET", "edge-secret")
@@ -215,6 +232,7 @@ def _login(
     *,
     ip: str | None = None,
 ) -> Any:
+    """`POST /v1/auth/login` com `Origin`, um IP único (ou `ip`) e o `User-Agent` do pytest."""
     return client.post(
         "/v1/auth/login",
         headers={
@@ -227,6 +245,10 @@ def _login(
 
 
 def _exhaust_email(client: TestClient, email: str) -> Any:
+    """Erra a senha 11 vezes do mesmo IP e devolve a última resposta.
+
+    As 10 primeiras dão 401; a 11ª passa do limite de 10 por 15 minutos (seção 10.4).
+    """
     ip = _ip()
     response: Any = None
     for attempt in range(1, 12):
@@ -239,6 +261,7 @@ def _exhaust_email(client: TestClient, email: str) -> Any:
 
 
 def _cookie_value(response: Any) -> str:
+    """Valor do primeiro cookie do `set-cookie`."""
     header = response.headers["set-cookie"]
     if not isinstance(header, str):
         raise AssertionError(header)
@@ -246,6 +269,7 @@ def _cookie_value(response: Any) -> str:
 
 
 def _cookie_attributes(response: Any) -> dict[str, str]:
+    """Atributos do `set-cookie` em minúsculas, com valor vazio quando não têm valor."""
     header = response.headers["set-cookie"]
     if not isinstance(header, str):
         raise AssertionError(header)
@@ -257,18 +281,22 @@ def _cookie_attributes(response: Any) -> dict[str, str]:
 
 
 def _email(label: str) -> str:
+    """E-mail único por chamada, para os testes não colidirem no banco compartilhado."""
     return f"{label}-{uuid4().hex}@example.com"
 
 
 def _ip() -> str:
+    """IP falso e único por chamada: cada teste ganha o próprio balde de limite."""
     return f"test-{uuid4().hex}"
 
 
 def _run(coro: Coroutine[object, object, None]) -> None:
+    """Roda a corrotina num loop novo e descarta o resultado."""
     asyncio.run(coro)
 
 
 async def _insert_user(database_url: str, *, email: str, role: str) -> None:
+    """Grava um usuário com o papel `role` e a senha `PASSWORD` em argon2id."""
     async with open_session(database_url) as session, UnitOfWork(session):
         await UserRepository(session).insert(
             email=email,
@@ -280,6 +308,10 @@ async def _insert_user(database_url: str, *, email: str, role: str) -> None:
 
 
 async def _delete_email(database_url: str, email: str) -> None:
+    """Apaga o usuário pelo e-mail, com as sessões e a auditoria dele.
+
+    `auth_sessions` não apaga em cascata; consentimentos e conversas, sim.
+    """
     async with open_session(database_url) as session, UnitOfWork(session):
         users = UserRepository(session)
         user = await users.get_by_email(email)
@@ -291,11 +323,13 @@ async def _delete_email(database_url: str, email: str) -> None:
 
 
 async def _seed_window(database_url: str, *, key: str, start: datetime, count: int) -> None:
+    """Grava uma janela de limite já com `count` pedidos, para o próximo passar do limite."""
     async with open_session(database_url) as session, UnitOfWork(session):
         session.add(RateLimitWindow(bucket_key=key, window_start=start, count=count))
 
 
 async def _assert_hashes(database_url: str, *, email: str, password: str, secret: str) -> None:
+    """Confere que o banco guarda a senha em argon2id e só o SHA-256 do segredo da sessão."""
     async with open_session(database_url) as session:
         stored_password = await session.scalar(
             text("SELECT password_hash FROM users WHERE email = :email"),
@@ -318,6 +352,7 @@ async def _assert_hashes(database_url: str, *, email: str, password: str, secret
 
 
 async def _assert_revoked(database_url: str, secret: str) -> None:
+    """Confere que a sessão deste segredo tem `revoked_at`."""
     async with open_session(database_url) as session:
         revoked_at = await session.scalar(
             text("SELECT revoked_at FROM auth_sessions WHERE token_hash = :token_hash"),

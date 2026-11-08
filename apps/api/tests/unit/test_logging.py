@@ -1,3 +1,11 @@
+"""Os logs saem sem e-mail, telefone, IP nem segredo, com os campos da seção 18.1. NFR-7.
+
+O primeiro teste chama o processador `redact_sensitive` direto: ele descarta as chaves da
+lista de recusa, também dentro de dicionários, e troca e-mails e telefones dos valores por
+marcadores. O segundo configura o `structlog` com `configure_logging` e lê a linha JSON da
+stdout com `capsys`, conferindo a redação e os campos obrigatórios. Não usa banco nem rede.
+"""
+
 import json
 
 import pytest

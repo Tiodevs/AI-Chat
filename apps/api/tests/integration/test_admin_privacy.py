@@ -1,7 +1,10 @@
-"""Fila de pedidos de titular do admin contra o PostgreSQL. Etapa 7.3, CA-1 e CA-2.
+"""Fila de pedidos de titular do admin: ordem, prazos e `dsr.update`. FR-16, NFR-10 e NFR-12.
 
-Seções 11.5, 12 e 15.5 do SDD (FR-16). O banco pode ter pedidos de outros testes, então
-as asserções olham só os pedidos criados aqui e a ordem relativa da fila inteira.
+Seções 11.5, 12 e 15.5 do SDD, critérios CA-1 e CA-2 da Etapa 7.3. A fixture `world` grava em
+SQL cru um admin, um membro e quatro pedidos com prazos contados do relógio parado em 2032. O
+banco pode ter pedidos de outros testes, então as asserções olham só os pedidos criados aqui e
+a ordem relativa da fila inteira. `_cleanup` apaga tudo pelos ids. Precisa de PostgreSQL com
+pgvector local (`migrated_database`); sem ele pula, e com `REQUIRE_INTEGRATION_DB=1` falha.
 """
 
 import asyncio
@@ -34,12 +37,16 @@ NOTE = "Conta apagada e titular avisado por e-mail."
 
 
 class FrozenClock:
+    """Relógio parado em `NOW`, em 2032: os prazos dos pedidos contam a partir dele."""
+
     def now(self) -> datetime:
         return NOW
 
 
 @dataclass
 class _World:
+    """Ids do cenário que `_build` grava, com o cliente do admin logado."""
+
     client: TestClient
     database_url: str
     admin_id: UUID
@@ -53,6 +60,7 @@ class _World:
 
 @pytest.fixture
 def world(monkeypatch: pytest.MonkeyPatch, migrated_database: str) -> Iterator[_World]:
+    """API com o relógio em 2032, os quatro pedidos de `_build` e o admin logado."""
     monkeypatch.setenv("DATABASE_URL", migrated_database)
     monkeypatch.setenv("RATE_LIMIT_HMAC_KEY", HMAC_KEY)
     monkeypatch.setenv("WEB_ORIGIN", ORIGIN)
@@ -208,6 +216,7 @@ def test_a_member_gets_403_and_a_visitor_401(world: _World) -> None:
 
 
 def _ids(world: _World) -> set[UUID]:
+    """Os quatro pedidos deste teste, para filtrar a fila que tem pedidos de outros testes."""
     return {world.on_time, world.late_in_progress, world.most_late, world.closed}
 
 
@@ -222,10 +231,12 @@ def _rank(item: dict[str, Any]) -> tuple[int, float]:
 
 
 def _patch(client: TestClient, url: str, body: dict[str, Any]) -> Any:
+    """`PATCH` com o `Origin` certo."""
     return client.patch(url, headers={"Origin": ORIGIN}, json=body)
 
 
 def _login(client: TestClient, email: str) -> None:
+    """Entra com `PASSWORD` de um IP único. O cookie fica no pote do cliente."""
     response = client.post(
         "/v1/auth/login",
         headers={"Origin": ORIGIN, "X-Forwarded-For": f"dsr-{uuid4().hex}"},
@@ -235,14 +246,23 @@ def _login(client: TestClient, email: str) -> None:
 
 
 def _run(coro: Coroutine[object, object, Any]) -> Any:
+    """Roda a corrotina num loop novo e devolve o resultado."""
     return asyncio.run(coro)
 
 
 async def _exec(session: Any, sql: str, **params: Any) -> None:
+    """Executa um SQL cru com parâmetros nomeados."""
     await session.execute(text(sql), params)
 
 
 async def _build(database_url: str) -> dict[str, Any]:
+    """Grava um admin, um membro e quatro pedidos de eliminação, com prazos contados de `NOW`.
+
+    - `on_time`: aberto, vence em 10 dias.
+    - `late_in_progress`: em andamento, venceu há 2 dias.
+    - `most_late`: aberto, venceu há 5 dias e é do membro, então tem conta ligada.
+    - `closed`: concluído ontem, com nota.
+    """
     tag = uuid4().hex
     hashed = get_password_hasher().hash_password(PASSWORD)
     admin, member = uuid4(), uuid4()
@@ -299,6 +319,7 @@ async def _build(database_url: str) -> dict[str, Any]:
 
 
 async def _audit(database_url: str, actor: UUID) -> list[tuple[str, str, str, str | None]]:
+    """Eventos de auditoria do ator: ação, tipo e id do alvo e motivo."""
     async with open_session(database_url) as session:
         result = await session.execute(
             text(
@@ -311,6 +332,7 @@ async def _audit(database_url: str, actor: UUID) -> list[tuple[str, str, str, st
 
 
 async def _row(database_url: str, request_id: UUID) -> tuple[str, str | None, datetime | None]:
+    """Status, nota e `closed_at` gravados do pedido."""
     async with open_session(database_url) as session:
         result = await session.execute(
             text(
@@ -324,6 +346,7 @@ async def _row(database_url: str, request_id: UUID) -> tuple[str, str | None, da
 
 
 async def _cleanup(database_url: str, built: dict[str, Any]) -> None:
+    """Apaga os pedidos do cenário e os dois usuários, com auditoria, sessões e consentimentos."""
     async with open_session(database_url) as session, UnitOfWork(session):
         await _exec(
             session,

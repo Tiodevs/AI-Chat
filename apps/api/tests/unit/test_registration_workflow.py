@@ -1,4 +1,12 @@
-"""Grafo do cadastro sem checkpointer. A frase modelo cobre a falha do modelo."""
+"""O grafo do cadastro sem checkpointer e as frases de cada turno. FR-5, seções 7.2 e 10.2.
+
+Testa o `RegistrationWorkflow` de `app/workflows/registration.py` (ADR-003) com o
+`FakeChatProvider`, que devolve a chamada de ferramenta e a frase escritas no teste. Prova que
+o grafo tem os nós `extract`, `decide_next` e `phrase` sem checkpointer, que a falha da frase
+usa a pergunta modelo do passo, que uma carga com `role` é recusada, que uma dúvida sem campo
+mantém o passo, e que o e-mail já usado, o valor inválido e a revisão respondem com texto fixo,
+sem chamar o modelo. Não usa banco nem rede.
+"""
 
 import asyncio
 
@@ -61,6 +69,7 @@ def test_registration_workflow_rejects_a_tool_payload_with_role() -> None:
 def test_registration_question_without_a_field_stays_in_the_chat() -> None:
     question = "O que seria o melhor email?"
     reply = "Use um e-mail que você abre todo dia. Qual é o seu e-mail?"
+    # `name` vazio é o modelo respondendo sem chamar a ferramenta: não há campo a gravar.
     chat = FakeChatProvider(
         tool_result=ToolResult(name="", arguments={}, text=""),
         structured=PhraseText(text=reply),
@@ -86,6 +95,7 @@ def test_registration_question_without_a_field_stays_in_the_chat() -> None:
 
 
 def _email_step() -> Machine:
+    """Máquina com o nome já entendido, esperando o e-mail."""
     return Machine(
         status=Status.COLLECTING_REQUIRED,
         fields=FieldSet(full_name="Felipe Santos"),
@@ -138,6 +148,8 @@ def test_registration_review_lists_the_fields_in_the_chat() -> None:
         ),
         structured=PhraseText(text="Qual é o seu nome completo?"),
     )
+    # Com a senha já definida, o último opcional leva direto à revisão. A frase escrita no
+    # falso não pode aparecer, porque a revisão não chama o modelo.
     machine = Machine(
         status=Status.COLLECTING_OPTIONAL,
         fields=FieldSet(

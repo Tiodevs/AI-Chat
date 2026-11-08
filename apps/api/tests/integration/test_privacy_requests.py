@@ -1,4 +1,10 @@
-"""Canal do titular contra o PostgreSQL. Seções 8.1, 10.4 e 11.5, critério CA-2 da 6.2."""
+"""Canal do titular: prazo de 15 dias, limite por IP e validação. FR-16 e NFR-12.
+
+Seções 8.1, 10.4, 11.5 e 12 do SDD, critério CA-2 da Etapa 6.2. O `TestClient` chama a API
+real com o relógio `FrozenClock`. `_submit` abre um pedido de eliminação de um IP escolhido, e
+cada teste apaga os pedidos e o usuário que criou. Precisa de PostgreSQL com pgvector local
+(`migrated_database`); sem ele pula, e com `REQUIRE_INTEGRATION_DB=1` falha.
+"""
 
 import asyncio
 from collections.abc import Coroutine
@@ -29,12 +35,15 @@ FIXED = datetime(2026, 11, 3, 9, 30, tzinfo=UTC)
 
 
 class FrozenClock:
+    """Relógio parado em `FIXED`: `received_at` e `due_at` saem dele."""
+
     def now(self) -> datetime:
         return FIXED
 
 
 @pytest.fixture
 def api(monkeypatch: pytest.MonkeyPatch, migrated_database: str) -> TestClient:
+    """API real com o adaptador `fake` e o relógio parado."""
     monkeypatch.setenv("DATABASE_URL", migrated_database)
     monkeypatch.setenv("RATE_LIMIT_HMAC_KEY", HMAC_KEY)
     monkeypatch.setenv("WEB_ORIGIN", ORIGIN)
@@ -160,6 +169,7 @@ def test_the_channel_needs_the_origin(api: TestClient) -> None:
 
 
 def _submit(client: TestClient, *, ip: str, email: str = "titular@example.com") -> Any:
+    """Abre um pedido de eliminação pelo canal, com o `Origin` certo e o IP `ip`."""
     return client.post(
         "/v1/privacy/requests",
         headers={"Origin": ORIGIN, "X-Forwarded-For": ip},
@@ -172,14 +182,17 @@ def _submit(client: TestClient, *, ip: str, email: str = "titular@example.com") 
 
 
 def _ip() -> str:
+    """IP falso e único por chamada: cada teste ganha o próprio balde de limite."""
     return f"test-{uuid4().hex}"
 
 
 def _run(coro: Coroutine[object, object, Any]) -> Any:
+    """Roda a corrotina num loop novo e devolve o resultado."""
     return asyncio.run(coro)
 
 
 async def _row(database_url: str, request_id: UUID) -> DataSubjectRequest:
+    """O pedido gravado com este id."""
     async with open_session(database_url) as session:
         row = await session.scalar(
             select(DataSubjectRequest).where(DataSubjectRequest.id == request_id)
@@ -189,6 +202,7 @@ async def _row(database_url: str, request_id: UUID) -> DataSubjectRequest:
 
 
 async def _delete(database_url: str, ids: list[UUID]) -> None:
+    """Apaga os pedidos criados pelo teste."""
     if not ids:
         return
     async with open_session(database_url) as session, UnitOfWork(session):
@@ -196,6 +210,7 @@ async def _delete(database_url: str, ids: list[UUID]) -> None:
 
 
 async def _insert_member(database_url: str, email: str) -> None:
+    """Grava um membro com `PASSWORD` e o aceite vigente dos Termos."""
     from app.domain.legal import LEGAL_DOCUMENT_VERSION
     from app.domain.registration import ConsentGrant, Purpose
     from app.repositories.consents import ConsentRepository
@@ -217,6 +232,7 @@ async def _insert_member(database_url: str, email: str) -> None:
 
 
 async def _delete_email(database_url: str, email: str) -> None:
+    """Apaga o usuário pelo e-mail, com as sessões e a auditoria dele."""
     from app.models.audit_event import AuditEvent
 
     async with open_session(database_url) as session, UnitOfWork(session):

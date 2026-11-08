@@ -1,3 +1,13 @@
+"""Banco da suíte, esquema migrado e prontidão. NFR-5 e NFR-9, seções 8.1 e 21.1 do SDD.
+
+As quatro primeiras funções não usam banco: conferem a regra do `conftest.py`, que aceita só
+um host local, pula sem banco e falha com `REQUIRE_INTEGRATION_DB=1`. As outras comparam o
+esquema da revisão `0009_message_request_id` com os modelos, conferem que as restrições
+recusam linhas inválidas e chamam `/ready` por um `TestClient`. A que remove a extensão
+`vector` recria no fim as tabelas das migrações 0002 a 0009 vazias. Precisa de PostgreSQL com
+pgvector local (`migrated_database`); sem ele pula, e com `REQUIRE_INTEGRATION_DB=1` falha.
+"""
+
 import asyncio
 import json
 from datetime import UTC, datetime
@@ -270,6 +280,11 @@ def test_ready_fails_without_the_vector_extension(
     migrated_database: str,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
+    """Remove a extensão `vector` e confere o 503 com `vector_missing`.
+
+    Destrutivo: o `finally` recria a extensão e volta as tabelas das migrações 0002 a 0009
+    vazias.
+    """
     asyncio.run(_set_vector_extension(migrated_database, present=False))
     try:
         get_settings.cache_clear()
@@ -287,6 +302,7 @@ def test_ready_fails_without_the_vector_extension(
 
 
 async def _assert_schema(database_url: str) -> None:
+    """Confere a extensão, a revisão `0009_message_request_id`, as colunas e as restrições."""
     engine = create_async_engine(database_url)
     try:
         async with engine.connect() as connection:
@@ -304,6 +320,7 @@ async def _assert_schema(database_url: str) -> None:
 
 
 async def _assert_columns(connection: object) -> None:
+    """Compara as colunas e a nulidade de cada tabela com `EXPECTED_COLUMNS` e os modelos."""
     from sqlalchemy.ext.asyncio import AsyncConnection
 
     assert isinstance(connection, AsyncConnection)
@@ -326,6 +343,7 @@ async def _assert_columns(connection: object) -> None:
 
 
 async def _assert_constraints(connection: object) -> None:
+    """Confere que cada tabela tem pelo menos as restrições de `EXPECTED_CONSTRAINTS`."""
     from sqlalchemy.ext.asyncio import AsyncConnection
 
     assert isinstance(connection, AsyncConnection)
@@ -348,6 +366,11 @@ async def _assert_constraints(connection: object) -> None:
 
 
 async def _exercise_rows(engine: AsyncEngine) -> None:
+    """Grava linhas válidas e confere que as restrições recusam as inválidas.
+
+    E-mail com maiúscula ou repetido, papel e `visitor_type` desconhecidos e conversa sem dono
+    levantam `IntegrityError`. As linhas válidas ficam no banco, com sufixo único.
+    """
     suffix = uuid4().hex
     email = f"visitor-{suffix}@example.com"
     async with engine.begin() as connection:
@@ -428,6 +451,7 @@ async def _exercise_rows(engine: AsyncEngine) -> None:
 
 
 async def _set_vector_extension(database_url: str, *, present: bool) -> None:
+    """Cria ou remove a extensão `vector`. A remoção leva junto o que depende do tipo."""
     engine = create_async_engine(database_url)
     # chunks.embedding depende do tipo. Sem CASCADE o drop falha.
     statement = (
@@ -443,6 +467,13 @@ async def _set_vector_extension(database_url: str, *, present: bool) -> None:
 
 
 def _restore_vector_and_corpus(database_url: str) -> None:
+    """Recria a extensão e as tabelas depois do `DROP EXTENSION vector CASCADE`.
+
+    O `CASCADE` derrubou `chunks.embedding` e o índice HNSW, e recriar a extensão não os traz de
+    volta. Por isso o Alembic volta a `0001_initial` e sobe a `head`: as tabelas das migrações
+    0002 a 0009 voltam vazias, e o downgrade da 0006 apaga a auditoria de usuários que não
+    existem mais.
+    """
     from alembic import command
     from alembic.config import Config
 

@@ -1,4 +1,10 @@
-"""Janela do histórico que vai ao modelo. Seção 7.1 do SDD."""
+"""A janela do histórico que vai ao modelo: 6 trocas e 6.000 caracteres. Seção 7.1, NFR-13.
+
+Testa a função pura `history_window`, de `app/domain/history.py`, entregue na Etapa 12.3. As
+conversas são listas de `_Turn` com rótulos curtos, como `p5` e `r5`, completados com pontos
+até o tamanho pedido. O uso da janela no `QaWorkflow` fica em `test_qa.py`. Não usa banco nem
+rede.
+"""
 
 from dataclasses import dataclass
 
@@ -7,11 +13,14 @@ from app.domain.history import HISTORY_MAX_CHARS, HISTORY_MAX_EXCHANGES, history
 
 @dataclass(frozen=True, slots=True)
 class _Turn:
+    """Uma mensagem da conversa com o `role` e o `content` que `history_window` lê."""
+
     role: str
     content: str
 
 
 def _conversation(exchanges: int, *, size: int = 10) -> list[_Turn]:
+    """Monta `exchanges` trocas `pN`/`rN`, cada mensagem com `size` caracteres."""
     turns: list[_Turn] = []
     for number in range(1, exchanges + 1):
         turns.append(_Turn("user", f"p{number}".ljust(size, ".")))
@@ -20,6 +29,7 @@ def _conversation(exchanges: int, *, size: int = 10) -> list[_Turn]:
 
 
 def _labels(turns: tuple[_Turn, ...]) -> list[str]:
+    """Devolve os rótulos `pN`/`rN` da janela, sem os pontos de enchimento."""
     return [turn.content.rstrip(".") for turn in turns]
 
 

@@ -1,4 +1,11 @@
-"""Regras puras da conta do membro. Seções 8.5, 10.5, 11.5 e 11.6."""
+"""As regras puras da conta do membro: correção do perfil, consentimentos e exclusão. FR-9.
+
+Seções 8.5, 10.5, 11.5 e 12 do SDD (`PATCH /v1/me`, `PUT /v1/me/consents/{purpose}` e
+`DELETE /v1/me`). Testa `app/domain/account.py` sem banco nem rede: só os campos enviados
+mudam, os campos que podem indicar saúde exigem a personalização, os Termos só aceitam `true`,
+a maioridade não muda e um admin não exclui a própria conta. As rotas com o banco ficam em
+`tests/integration/test_account.py`.
+"""
 
 from app.domain.account import (
     delete_is_allowed,

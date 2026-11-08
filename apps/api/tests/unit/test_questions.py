@@ -1,4 +1,12 @@
-"""Regras puras da pergunta por HTTP. Seções 7.1, 8.1 e 10.4."""
+"""As regras puras da pergunta por HTTP: marcador, dono, cookie e limites. FR-17.
+
+Testa `app/domain/questions.py` e `app/domain/outcomes.py` sem banco nem rede: a mensagem de
+orientação médica é gravada como o marcador (FR-17, seção 7.1), o dono da conversa é o usuário
+ou a chave de convidado, o cookie `atrium_guest` dura 30 dias (seção 10.3), os baldes de
+pergunta e de diagnóstico abrem no limite e fecham acima dele (seção 10.4), e a restrição
+`messages_outcome` lista todo desfecho (seção 8.1). Hoje a chave de convidado ainda abre uma
+conversa que já passou para um membro; a Etapa 15.1 fecha isso.
+"""
 
 from datetime import UTC, datetime
 from uuid import uuid4
@@ -96,6 +104,7 @@ def test_question_buckets_open_at_the_limit_and_close_above_it() -> None:
         window_start=question_window,
     )
     assert limited.limited is True
+    # NOW é 12:07 e a janela de uma hora fecha às 13:00: faltam 53 minutos, 3.180 s.
     assert limited.retry_after_seconds == 3180
     assert not member_question_rate_decision(
         user_count=120,

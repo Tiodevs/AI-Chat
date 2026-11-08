@@ -1,4 +1,14 @@
-"""API de conversas com SSE. Seções 6.4, 7.1, 10.3, 10.4 e 12."""
+"""API de conversas com SSE: resposta citada, recusa, limites, idempotência e cancelamento.
+
+FR-1 a FR-4, FR-9, FR-14, FR-17, FR-18, NFR-6, NFR-11 e NFR-13, seções 6.4, 7.1, 10.3, 10.4 e
+12 do SDD. O `TestClient` chama a API real com o adaptador `fake`, e `_use` troca o
+`get_qa_workflow` por um `QaWorkflow` com o `FakeChatProvider` roteirizado no teste, o
+embedding `_Embeddings` e a busca `_Search`, que devolve chunks escritos à mão: a busca contra
+o pgvector fica em `test_retrieval.py`. Os testes de desconexão falam ASGI direto para mandar
+`http.disconnect` no meio do fluxo. `_delete_guest` apaga a chave de convidado, e as conversas
+caem em cascata. Outros arquivos importam daqui os helpers de conversa. Precisa de PostgreSQL
+com pgvector local (`migrated_database`); sem ele pula, e com `REQUIRE_INTEGRATION_DB=1` falha.
+"""
 
 import asyncio
 import json
@@ -58,6 +68,7 @@ from tests.integration.test_auth import (
 pytestmark = pytest.mark.integration
 
 ORIGIN = "http://localhost:5173"
+# 12:07 deixa 53 minutos na janela de uma hora: os limites esperam `retry_after_seconds` 3180.
 FIXED = datetime(2026, 10, 27, 12, 7, tzinfo=UTC)
 CHUNK = UUID("00000000-0000-4000-8000-0000000000c1")
 VISITING = "Qual é o horário de visita?"
@@ -66,6 +77,7 @@ HEALTH = "Estou com dor no peito"
 
 @pytest.fixture
 def api(monkeypatch: pytest.MonkeyPatch, migrated_database: str) -> TestClient:
+    """API real com o adaptador `fake` e o relógio parado. `_use` troca o workflow por teste."""
     _configure(monkeypatch, migrated_database)
     application = create_app()
     application.dependency_overrides[get_clock] = FrozenClock
@@ -81,6 +93,8 @@ def test_guest_asks_and_receives_a_cited_answer(
     conversation_id = UUID(created.json()["id"])
     secret = _guest_secret(created)
 
+    # O gancho roda quando o fluxo começa. Só a pergunta pode estar gravada nesse momento,
+    # porque a geração corre fora da transação (seção 6.4).
     async def hook() -> None:
         rows = await _messages(migrated_database, conversation_id)
         seen.append([row.role for row in rows])
@@ -159,7 +173,11 @@ def test_disconnect_records_the_partial_usage(
     monkeypatch: pytest.MonkeyPatch,
     migrated_database: str,
 ) -> None:
-    """CA-3 da Etapa 12.2: os tokens que o modelo já gerou entram na mensagem e no orçamento."""
+    """CA-3 da Etapa 12.2: os tokens que o modelo já gerou entram na mensagem e no orçamento.
+
+    A classificação conta (20, 3) e o primeiro token, (0, 5): 20 de entrada e 8 de saída. Os
+    (40, 0) do fim do fluxo nunca entram, porque o fluxo é cancelado antes.
+    """
     _configure(monkeypatch, migrated_database)
     chat = FakeChatProvider(
         structured=_classification("Horário de visita", "public_info", 0.9),
@@ -184,6 +202,7 @@ def test_medical_question_is_stored_as_the_marker(
     created = _create(api)
     conversation_id = UUID(created.json()["id"])
     secret = _guest_secret(created)
+    # Confiança baixa de propósito: `medical_advice` recusa mesmo abaixo de 0,6 (seção 7.1).
     chat = FakeChatProvider(structured=_classification("dor no peito", "medical_advice", 0.4))
     embeddings = _Embeddings()
     _fastapi(api).dependency_overrides[get_qa_workflow] = lambda: QaWorkflow(
@@ -251,6 +270,8 @@ def test_history_sent_to_the_model_comes_from_the_database_without_health_text(
     try:
         _ask(api, conversation_id, HEALTH)
         stored = asyncio.run(_messages(migrated_database, conversation_id))
+        # O mesmo falso responde a segunda pergunta como informação pública. A reescrita dela
+        # recebe o histórico lido do banco, com o marcador no lugar do texto (seção 11.4).
         chat.script(
             structured=_classification("Horário de visita", "public_info", 0.9),
             tokens=["11:00 [1]."],
@@ -272,6 +293,8 @@ def test_feedback_reaches_the_sink_for_the_assistant_run(
     seen: list[tuple[UUID, str, float]] = []
 
     class Sink:
+        """Falso do `FeedbackSink`: guarda cada nota em vez de mandar ao LangSmith."""
+
         async def record(self, run_id: UUID, key: str, score: float) -> None:
             seen.append((run_id, key, score))
 
@@ -349,6 +372,7 @@ def test_only_the_owner_reads_the_conversation(
     api: TestClient,
     migrated_database: str,
 ) -> None:
+    # Cada `TestClient` tem o próprio pote de cookies: `owner` e `other` são dois convidados.
     owner = TestClient(api.app)
     other = TestClient(api.app)
     created = _create(owner)
@@ -414,6 +438,7 @@ def test_guest_question_rate_limit_returns_429(api: TestClient, migrated_databas
     _use(api, chat, [_hit()])
     try:
         guest_id = asyncio.run(_guest_id(migrated_database, secret))
+        # A janela da chave de convidado já tem as 30 perguntas da hora (seção 10.4).
         asyncio.run(
             _seed_window(
                 migrated_database,
@@ -440,6 +465,7 @@ def test_guest_ip_and_member_question_buckets(
     api: TestClient,
     migrated_database: str,
 ) -> None:
+    """O membro não recebe cookie de convidado e para no balde de 120 perguntas por hora."""
     email = f"member-{uuid4().hex}@example.com"
     ip = f"member-{uuid4().hex}"
     try:
@@ -491,6 +517,7 @@ def test_diagnostics_stream_emits_three_ticks_one_second_apart(api: TestClient) 
     assert response.status_code == 200
     assert response.headers["content-type"].startswith("text/event-stream")
     assert events == [("tick", {"index": 1}), ("tick", {"index": 2}), ("tick", {"index": 3})]
+    # Três ticks, um por segundo, dão dois intervalos de 1 s; 1,8 deixa folga ao relógio.
     assert elapsed >= 1.8
 
 
@@ -505,6 +532,7 @@ def test_diagnostics_rate_limit_returns_429(api: TestClient, migrated_database: 
     assert response.status_code == 429
     assert response.json()["error"]["message"] == DIAGNOSTICS_RATE_LIMITED
     assert response.json()["error"]["retry_after_seconds"] == 3180
+    # O 429 sai antes de o fluxo começar, sem esperar nenhum tick.
     assert elapsed < 1
 
 
@@ -520,6 +548,7 @@ def test_budget_exhaustion_does_not_call_the_model(
     chat = FakeChatProvider(structured=_classification("visita", "public_info", 0.9))
     application.dependency_overrides[get_qa_workflow] = lambda: _workflow(chat, [_hit()])
     client = TestClient(application)
+    # O uso do dia iguala o teto de 1, e igualar já degrada (seção 7.1).
     asyncio.run(_seed_usage(migrated_database))
     created = _create(client)
     secret = _guest_secret(created)
@@ -566,6 +595,7 @@ def test_member_lists_only_their_conversations(
 
 
 def _configure(monkeypatch: pytest.MonkeyPatch, database_url: str) -> None:
+    """Variáveis da API dos testes: banco local, adaptador `fake` e teto de tokens desligado."""
     monkeypatch.setenv("DATABASE_URL", database_url)
     monkeypatch.setenv("RATE_LIMIT_HMAC_KEY", HMAC_KEY)
     monkeypatch.setenv("WEB_ORIGIN", ORIGIN)
@@ -576,11 +606,13 @@ def _configure(monkeypatch: pytest.MonkeyPatch, database_url: str) -> None:
 
 
 def _use(api: TestClient, chat: FakeChatProvider, hits: list[RetrievedChunk]) -> None:
+    """Troca o `get_qa_workflow` do app por um `QaWorkflow` com o chat e os chunks do teste."""
     workflow = _workflow(chat, hits)
     _fastapi(api).dependency_overrides[get_qa_workflow] = lambda: workflow
 
 
 def _fastapi(client: TestClient) -> FastAPI:
+    """O `FastAPI` por trás do `TestClient`, para mexer nos `dependency_overrides`."""
     app = client.app
     if not isinstance(app, FastAPI):
         raise AssertionError(type(app))
@@ -588,10 +620,12 @@ def _fastapi(client: TestClient) -> FastAPI:
 
 
 def _workflow(chat: FakeChatProvider, hits: Sequence[RetrievedChunk]) -> QaWorkflow:
+    """`QaWorkflow` com o chat do teste, `_Embeddings`, `_Search` com `hits` e piso 0,5."""
     return QaWorkflow(chat, _Embeddings(), _Search(list(hits)), minimum_similarity=0.5)
 
 
 def _create(client: TestClient) -> Any:
+    """`POST /v1/conversations`. Sem sessão, a API cria a chave e o cookie de convidado."""
     return client.post("/v1/conversations", headers=_headers())
 
 
@@ -604,6 +638,7 @@ def _ask(
     ip: str | None = None,
     cookie: str | None = None,
 ) -> Any:
+    """Envia uma pergunta e devolve a resposta com o fluxo SSE inteiro no corpo."""
     return client.post(
         f"/v1/conversations/{conversation_id}/messages",
         headers=_headers(ip=ip, cookie=cookie),
@@ -612,6 +647,7 @@ def _ask(
 
 
 def _headers(ip: str | None = None, cookie: str | None = None) -> dict[str, str]:
+    """`Origin` certo e um IP único, mais o `cookie` quando informado."""
     headers = {"Origin": ORIGIN, "X-Forwarded-For": ip or f"test-{uuid4().hex}"}
     if cookie is not None:
         headers["cookie"] = cookie
@@ -619,6 +655,7 @@ def _headers(ip: str | None = None, cookie: str | None = None) -> dict[str, str]
 
 
 def _guest_secret(response: Any) -> str:
+    """Segredo do cookie `atrium_guest` da resposta. Falha sem ele."""
     secret = response.cookies.get("atrium_guest")
     if not isinstance(secret, str) or not secret:
         raise AssertionError(response.headers)
@@ -626,6 +663,7 @@ def _guest_secret(response: Any) -> str:
 
 
 def _events(body: str) -> list[tuple[str, dict[str, Any]]]:
+    """Lê o corpo SSE como pares de evento e carga JSON, na ordem."""
     found: list[tuple[str, dict[str, Any]]] = []
     name = ""
     for line in body.splitlines():
@@ -640,6 +678,7 @@ def _events(body: str) -> list[tuple[str, dict[str, Any]]]:
 
 
 def _assistant(rows: list[MessageRecord]) -> MessageRecord:
+    """A mensagem do assistente entre as gravadas."""
     return next(row for row in rows if row.role == "assistant")
 
 
@@ -648,6 +687,7 @@ def _classification(
     intent: Literal["public_info", "medical_advice", "other"],
     confidence: float,
 ) -> QuestionClassification:
+    """Saída estruturada da reescrita: pergunta autônoma, intenção e confiança (seção 7.1)."""
     return QuestionClassification(
         standalone_question=question,
         intent=intent,
@@ -656,6 +696,7 @@ def _classification(
 
 
 def _hit(content: str = "11:00 às 20:00.") -> RetrievedChunk:
+    """Chunk recuperado do documento de visitas, com similaridade 0,9 e o id fixo `CHUNK`."""
     return RetrievedChunk(
         chunk_id=CHUNK,
         document_slug="02-visiting",
@@ -667,6 +708,8 @@ def _hit(content: str = "11:00 às 20:00.") -> RetrievedChunk:
 
 
 class _Embeddings:
+    """Embedding falso de 3 dimensões: guarda as perguntas e falha se embedar documento."""
+
     model_name = "fake-embedding"
     dimensions = 3
 
@@ -682,6 +725,8 @@ class _Embeddings:
 
 
 class _Search:
+    """Busca falsa: devolve os chunks escritos no teste, sem tocar no banco."""
+
     def __init__(self, hits: list[RetrievedChunk]) -> None:
         self._hits = hits
 
@@ -695,6 +740,7 @@ class _Search:
 
 
 async def _disconnect(database_url: str) -> None:
+    """Desconecta depois do primeiro token e confere `cancelled` sem o rascunho parcial."""
     chat = FakeChatProvider(
         structured=_classification("Horário de visita", "public_info", 0.9),
         tokens=["rascunho parcial", "resto"],
@@ -713,7 +759,12 @@ async def _cancel_after_first_token(
     database_url: str,
     chat: FakeChatProvider,
 ) -> tuple[list[MessageRecord], tuple[int, int]]:
-    """Desconecta depois do primeiro token. Devolve as mensagens e os tokens da resposta."""
+    """Desconecta depois do primeiro token. Devolve as mensagens e os tokens da resposta.
+
+    O `chat` precisa de `pause_after=1`: o falso segura o fluxo depois do primeiro token por até
+    3 s. Sem o cancelamento, ele levantaria `ProviderUnavailable`, e o teste não veria
+    `cancelled`. Monta um app próprio e apaga a chave de convidado no fim.
+    """
     application = create_app()
     application.dependency_overrides[get_clock] = FrozenClock
     application.dependency_overrides[get_qa_workflow] = lambda: _workflow(chat, [_hit()])
@@ -735,6 +786,7 @@ async def _cancel_after_first_token(
 
 
 async def _message_tokens(database_url: str, message_id: UUID) -> tuple[int, int]:
+    """Tokens de entrada e de saída gravados na mensagem."""
     async with open_session(database_url) as session, UnitOfWork(session):
         row = (
             await session.execute(
@@ -745,13 +797,20 @@ async def _message_tokens(database_url: str, message_id: UUID) -> tuple[int, int
 
 
 async def _day_usage(database_url: str) -> tuple[int, int]:
+    """Tokens do dia de `FIXED` em `token_usage_days`."""
     async with open_session(database_url) as session, UnitOfWork(session):
         return await TokenUsageRepository(session).totals(FIXED.date())
+    # Inalcançável: o `__aexit__` do `UnitOfWork` devolve `bool`, então o mypy supõe que o bloco
+    # pode engolir a exceção e exige um fim depois dele.
     raise AssertionError("token usage")
 
 
 async def _close_after_first_token(app: object, conversation_id: str, secret: str) -> None:
-    """Envia http.disconnect depois do primeiro token. O httpx espera o app terminar."""
+    """Envia `http.disconnect` depois do primeiro token. O httpx espera o app terminar.
+
+    Por isso o teste chama o app ASGI direto: `receive` entrega o corpo e depois espera o
+    primeiro `event: token` chegar em `send` para devolver `http.disconnect`.
+    """
     body = json.dumps(
         {"text": VISITING, "client_message_id": str(uuid4())},
     ).encode()
@@ -800,6 +859,7 @@ async def _close_after_first_token(app: object, conversation_id: str, secret: st
 
 
 async def _messages(database_url: str, conversation_id: UUID) -> list[MessageRecord]:
+    """Mensagens da conversa, lidas pelo repositório."""
     found: list[MessageRecord] = []
     async with open_session(database_url) as session, UnitOfWork(session):
         found = await ConversationRepository(session).list_messages(conversation_id)
@@ -807,6 +867,7 @@ async def _messages(database_url: str, conversation_id: UUID) -> list[MessageRec
 
 
 async def _delete_guest(database_url: str, secret: str) -> None:
+    """Apaga a chave de convidado. Conversas, mensagens e feedback dela caem em cascata."""
     async with open_session(database_url) as session, UnitOfWork(session):
         await session.execute(
             delete(GuestKey).where(GuestKey.token_hash == hash_session_secret(secret))
@@ -814,6 +875,7 @@ async def _delete_guest(database_url: str, secret: str) -> None:
 
 
 async def _guest_count(database_url: str, secret: str) -> int:
+    """Quantas chaves de convidado têm o hash deste segredo."""
     async with open_session(database_url) as session:
         rows = await session.scalars(
             select(GuestKey.id).where(GuestKey.token_hash == hash_session_secret(secret))
@@ -822,6 +884,7 @@ async def _guest_count(database_url: str, secret: str) -> int:
 
 
 async def _guest_id(database_url: str, secret: str) -> UUID:
+    """Id da chave de convidado deste segredo."""
     async with open_session(database_url) as session:
         guest_id = await session.scalar(
             select(GuestKey.id).where(GuestKey.token_hash == hash_session_secret(secret))
@@ -832,6 +895,7 @@ async def _guest_id(database_url: str, secret: str) -> UUID:
 
 
 async def _stored_hash(database_url: str, secret: str) -> str:
+    """`token_hash` gravado para este segredo de convidado."""
     async with open_session(database_url) as session:
         stored = await session.scalar(
             select(GuestKey.token_hash).where(GuestKey.token_hash == hash_session_secret(secret))
@@ -842,11 +906,13 @@ async def _stored_hash(database_url: str, secret: str) -> str:
 
 
 async def _seed_window(database_url: str, *, key: str, start: datetime, count: int) -> None:
+    """Grava uma janela de limite já com `count` pedidos, para o próximo passar do limite."""
     async with open_session(database_url) as session, UnitOfWork(session):
         session.add(RateLimitWindow(bucket_key=key, window_start=start, count=count))
 
 
 async def _seed_usage(database_url: str) -> None:
+    """Põe 1 token de entrada no dia de `FIXED`, o bastante para o teto de 1 estourar."""
     async with open_session(database_url) as session, UnitOfWork(session):
         await session.execute(delete(TokenUsageDay).where(TokenUsageDay.day == FIXED.date()))
         session.add(TokenUsageDay(day=FIXED.date(), input_tokens=1, output_tokens=0))

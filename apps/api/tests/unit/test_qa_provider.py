@@ -1,4 +1,12 @@
-"""Tempo limite, nova tentativa e circuit breaker do chat. Seção 17."""
+"""O adaptador de chat: tempo limite, nova tentativa, circuit breaker e leitura do LangChain.
+
+Seções 5.3, 7.1 e 17 do SDD. O `GeminiChatProvider` roda sobre o falso `_Backend`, com o
+relógio `_Clock` e uma espera falsa, então 429 e 503 repetem depois de 20 s sem esperar de
+verdade e cinco falhas abrem o circuito por 60 s. Os falsos `_StructuredModel`, `_ToolModel`
+e `_TalkModel` fazem o papel do `ChatGoogleGenerativeAI` dentro do `LangChainChatBackend`.
+`build_langchain_model` monta o modelo de verdade, com uma chave de teste, sem chamá-lo. Não
+usa banco nem rede.
+"""
 
 import asyncio
 import time
@@ -24,6 +32,8 @@ from app.ports.chat import Message, RunContext, TokenUsage, Tool, ToolResult
 
 
 class _Note(BaseModel):
+    """Schema de saída estruturada mínimo; o padrão `ok` dispensa dados do falso."""
+
     text: str = "ok"
 
 
@@ -91,6 +101,8 @@ def test_a_503_is_retried() -> None:
 
 
 def test_exhausted_retries_count_as_one_failure() -> None:
+    # Cada pedido faz 3 tentativas e conta uma falha no circuito: 5 pedidos, 15 chamadas, e o
+    # sexto pedido para no circuito aberto sem chegar ao backend.
     backend = _Backend(failures=100, status=429)
     provider = _provider(backend)
     for _ in range(5):
@@ -206,6 +218,8 @@ def test_a_reply_without_a_tool_call_keeps_the_text() -> None:
 
 
 class _TalkModel:
+    """Falso do modelo LangChain que responde com texto, sem chamar a ferramenta."""
+
     temperature = 0.0
 
     def model_copy(self, *, update: dict[str, float]) -> "_TalkModel":
@@ -231,18 +245,24 @@ class _TalkModel:
 
 
 class _StatusError(Exception):
+    """Erro de provedor com o status HTTP em `status_code`."""
+
     def __init__(self, status_code: int) -> None:
         super().__init__(f"status {status_code}")
         self.status_code = status_code
 
 
 class _CodeError(Exception):
+    """Erro de provedor com o status em `code`, como os erros do SDK `google-genai`."""
+
     def __init__(self, code: int) -> None:
         super().__init__(str(code))
         self.code = code
 
 
 class _Clock:
+    """Relógio que só anda com `advance`, para abrir e fechar o circuito sem esperar."""
+
     def __init__(self) -> None:
         self.moment = datetime(2026, 10, 27, tzinfo=UTC)
 
@@ -254,6 +274,12 @@ class _Clock:
 
 
 class _Backend:
+    """Falso do `ChatBackend`: falha `failures` vezes com `status`, conta chamadas e temperaturas.
+
+    `sleep_seconds` atrasa a saída estruturada para o tempo limite vencer. O fluxo devolve
+    `Olá [1]` em dois pedaços, com o uso de cada um.
+    """
+
     def __init__(
         self,
         *,
@@ -308,6 +334,12 @@ class _Backend:
 
 
 class _StructuredModel:
+    """Falso do modelo LangChain para `with_structured_output(include_raw=True)`.
+
+    Devolve o objeto validado e a mensagem crua com `usage_metadata`, e guarda a temperatura
+    de cada chamada.
+    """
+
     def __init__(self) -> None:
         self.temperature = 0.0
         self.temperatures: list[float] = []
@@ -342,6 +374,8 @@ class _StructuredModel:
 
 
 class _ToolModel:
+    """Falso do modelo LangChain que chama `set_fields` com o nome `Ana`."""
+
     temperature = 0.0
 
     def model_copy(self, *, update: dict[str, float]) -> "_ToolModel":
@@ -373,6 +407,8 @@ def _provider(
     sleep: object | None = None,
     timeout_seconds: float = 20,
 ) -> GeminiChatProvider:
+    """`GeminiChatProvider` sobre o `_Backend`, com relógio falso e espera que volta na hora."""
+
     async def immediate(_delay: float) -> None:
         return None
 
@@ -389,6 +425,8 @@ def _provider(
 
 
 def _record(slept: list[float]) -> object:
+    """Espera falsa que anota em `slept` cada atraso pedido, sem esperar."""
+
     async def sleep(delay: float) -> None:
         slept.append(delay)
 
@@ -396,6 +434,7 @@ def _record(slept: list[float]) -> object:
 
 
 def _context(*, temperature: float = 0) -> RunContext:
+    """`RunContext` de uma chamada de reescrita, com a temperatura pedida."""
     return RunContext(
         run_id=uuid4(),
         request_id="req-1",

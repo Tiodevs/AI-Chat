@@ -1,4 +1,13 @@
-"""Pipeline de perguntas sem HTTP. Seção 7.1 do SDD."""
+"""O pipeline de perguntas sem HTTP: portão, abstenção, fundamentação, rastro e uso de tokens.
+
+FR-2, FR-3, FR-4, FR-17 e NFR-13, seções 6.4, 7.1, 10.1, 10.2 e 18.4 do SDD. Monta o
+`QaWorkflow` de `app/workflows/qa.py` com o `FakeChatProvider` e os falsos locais
+`_Embeddings` (vetor fixo de 3 dimensões), `_Search` (devolve os chunks dados) e
+`_RecordingTracer` (guarda os `TraceEvent`). `_parts` e `_run` montam o cenário de cada teste.
+Prova o portão por intenção e confiança, a abstenção abaixo do piso, o `grounding_failed`, o
+rastro que deixa sair só o que a política permite, a janela do histórico e o uso parcial de
+uma resposta cancelada. Também cobre o script `app.scripts.ask`. Não usa banco nem rede.
+"""
 
 import asyncio
 from collections.abc import Sequence
@@ -190,6 +199,8 @@ def test_answer_without_a_valid_citation_is_grounding_failed() -> None:
 
 
 def test_public_info_answers_with_temperature_citation_and_untrusted_context() -> None:
+    # A confiança 0,6 é o próprio limiar do portão. Os tokens somam a reescrita (2, 1) e o
+    # fluxo (5, 7). O `visitor_type` só entra na reescrita, nunca na geração.
     chat, embeddings, search = _parts(
         _classification("Horário de visita", "public_info", 0.6),
         hits=[_hit("11:00 às 20:00.")],
@@ -313,6 +324,8 @@ def test_rewrite_and_generation_receive_only_the_history_window() -> None:
         tokens=["11:00 [1]."],
     )
     result = _run(chat, embeddings, search, "E no domingo?", history=history)
+    # A janela são as 6 últimas trocas, 12 mensagens. O `[1:-1]` tira a instrução de sistema
+    # e a pergunta atual, que abrem e fecham a lista de mensagens.
     expected = [turn.content for turn in history[-12:]]
     rewrite = [message.content for message in chat.structured_calls[0][0]]
     generate = [message.content for message in chat.stream_calls[0][0]]
@@ -324,6 +337,9 @@ def test_rewrite_and_generation_receive_only_the_history_window() -> None:
 
 def test_cancelled_generation_leaves_the_partial_usage_in_the_tally() -> None:
     """Etapa 12.2: o uso já contado de uma resposta cancelada no meio chega a quem chamou."""
+    # `pause_after=1` para o fluxo depois do primeiro token, e o teste cancela a tarefa ali.
+    # O uso esperado é a reescrita (20, 3) mais um token (0, 5). O `stream_usage` só entraria
+    # no fim do fluxo, que nunca chega.
     chat = FakeChatProvider(
         structured=_classification("Horário de visita", "public_info", 0.9),
         structured_usage=(20, 3),
@@ -354,6 +370,7 @@ def test_cancelled_generation_leaves_the_partial_usage_in_the_tally() -> None:
 
 
 def test_tally_matches_the_tokens_of_a_complete_answer() -> None:
+    # Entrada: 20 da reescrita e 40 do fim do fluxo. Saída: 3 da reescrita e 5 por token.
     chat = FakeChatProvider(
         structured=_classification("Horário de visita", "public_info", 0.9),
         structured_usage=(20, 3),
@@ -409,6 +426,11 @@ def _parts(
     structured_usage: tuple[int, int] = (0, 0),
     stream_usage: tuple[int, int] = (0, 0),
 ) -> tuple[FakeChatProvider, "_Embeddings", "_Search"]:
+    """Os três falsos de um cenário: o chat, o embedding e a busca.
+
+    `structured` é a classificação da reescrita ou o erro que ela levanta; `hits` são os chunks
+    que a busca devolve, e `tokens`, o rascunho em fluxo.
+    """
     return (
         FakeChatProvider(
             structured=structured,
@@ -434,6 +456,10 @@ def _run(
     run_id: UUID | None = None,
     tracer: "_RecordingTracer | None" = None,
 ) -> QaResult:
+    """Monta o `QaWorkflow` com os falsos e roda uma pergunta com `asyncio.run`.
+
+    O piso padrão é o `RETRIEVAL_MIN_SIMILARITY` de 0,50 da seção 7.1, e o `request_id` é fixo.
+    """
     workflow = QaWorkflow(
         chat,
         embeddings,
@@ -460,6 +486,7 @@ def _classification(
     intent: Literal["public_info", "medical_advice", "other"],
     confidence: float,
 ) -> QuestionClassification:
+    """A saída estruturada da reescrita: pergunta autônoma, intenção e confiança."""
     return QuestionClassification(
         standalone_question=question,
         intent=intent,
@@ -468,6 +495,7 @@ def _classification(
 
 
 def _hit(content: str = "11:00 às 20:00.", *, similarity: float = 0.8) -> RetrievedChunk:
+    """Um chunk do documento `02-visiting` com a similaridade pedida, acima do piso por padrão."""
     return RetrievedChunk(
         chunk_id=_CHUNK,
         document_slug="02-visiting",
@@ -479,6 +507,8 @@ def _hit(content: str = "11:00 às 20:00.", *, similarity: float = 0.8) -> Retri
 
 
 class _RecordingTracer:
+    """Falso da porta `TraceRecorder`: guarda os `TraceEvent` em vez de enviá-los ao LangSmith."""
+
     def __init__(self) -> None:
         self.events: list[TraceEvent] = []
 
@@ -487,6 +517,7 @@ class _RecordingTracer:
 
 
 def _trace_text(events: Sequence[TraceEvent]) -> str:
+    """Junta entradas, saídas e metadados de todos os eventos, para buscar um texto que vazou."""
     chunks: list[str] = []
     for event in events:
         chunks.append(str(event.inputs))
@@ -496,6 +527,11 @@ def _trace_text(events: Sequence[TraceEvent]) -> str:
 
 
 class _Embeddings:
+    """Falso da porta de embedding: guarda cada consulta e devolve um vetor fixo.
+
+    `embed_documents` falha de propósito, porque a pergunta só embeda a consulta.
+    """
+
     model_name = "fake-embedding"
     dimensions = 3
 
@@ -511,6 +547,8 @@ class _Embeddings:
 
 
 class _Search:
+    """Falso da porta `HybridSearch`: devolve `hits` e guarda a pergunta e o vetor pedidos."""
+
     def __init__(self, hits: list[RetrievedChunk]) -> None:
         self._hits = hits
         self.calls: list[tuple[str, list[float]]] = []
