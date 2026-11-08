@@ -1,7 +1,19 @@
+/**
+ * Rótulo sobre o `Label` do Radix, do shadcn/ui, sem mudança de classe.
+ *
+ * O `Label` do Radix renderiza um `<label>`. Com `htmlFor`, clicar no
+ * rótulo foca ou marca o controle, e o texto vira o nome acessível dele.
+ * É a base do `FieldLabel` e o rótulo das caixas do `ConsentFieldSet`.
+ *
+ * `peer-disabled:` e `group-data-[disabled=true]:` esmaecem o rótulo
+ * quando o controle irmão ou o `Field` pai estão desabilitados. Seção
+ * 14.6.
+ */
 import * as React from "react"
 import { cn } from "cn"
 import { Label as LabelPrimitive } from "radix-ui"
 
+/** Rótulo de um controle. Ligue-o com `htmlFor` ao `id` do controle. */
 function Label({
   className,
   ...props

@@ -1,14 +1,44 @@
+/**
+ * Moldura de gráfico do shadcn/ui sobre o Recharts. Não usa Radix.
+ *
+ * Usada pelo `TrendChartCard` e pelo `GroupedBarCard` na visão geral do
+ * admin (`/admin`). O Recharts só é baixado nas rotas de admin (seção
+ * 13.1).
+ *
+ * O `ChartContainer` recebe um `ChartConfig` com o rótulo e a cor de cada
+ * série, gera as variáveis `--color-<série>` num `<style>` só deste
+ * gráfico e pinta eixos, grade e cursor com tokens (`fill-muted-foreground`,
+ * `stroke-border`, `fill-muted`).
+ *
+ * O que o projeto mudou: o shadcn pinta a grade e os pontos filtrando pelo
+ * atributo `stroke` com a cor crua padrão do Recharts. O teste de cores
+ * cruas (`styles/raw-color.test.ts`) barra cor em hexadecimal no código,
+ * então aqui o seletor vale para toda linha de grade, todo ponto e todo
+ * setor. Também saiu o `"use client"`, e o `cn` vem do pacote `cn`.
+ *
+ * `ChartTooltip`, `ChartTooltipContent`, `ChartLegend` e
+ * `ChartLegendContent` vieram do modelo e não têm uso: os cartões desenham
+ * a própria legenda e o próprio cursor (M4). Seções 14.6 e 15.8.
+ */
 import * as React from "react"
 import { cn } from "cn"
 import * as RechartsPrimitive from "recharts"
 import type { TooltipValueType } from "recharts"
 
 // Format: { THEME_NAME: CSS_SELECTOR }
+// O `index.html` põe `class="dark"` na raiz, então vale sempre o `.dark`.
 const THEMES = { light: "", dark: ".dark" } as const
 
+// Tamanho do primeiro desenho, antes de o `ResponsiveContainer` medir o pai.
 const INITIAL_DIMENSION = { width: 320, height: 200 } as const
 type TooltipNameType = number | string
 
+/**
+ * Configuração das séries: para cada chave do dado (`primary`, `first`),
+ * o rótulo, um ícone opcional e a cor. A cor vem como `color` única ou
+ * como `theme`, uma por tema. Os cartões passam `var(--chart-N)`, os
+ * tokens de série da seção 14.2.
+ */
 export type ChartConfig = Record<
   string,
   {
@@ -26,6 +56,7 @@ type ChartContextProps = {
 
 const ChartContext = React.createContext<ChartContextProps | null>(null)
 
+/** Lê o `ChartConfig` do `ChartContainer` mais próximo. Fora dele, falha. */
 function useChart() {
   const context = React.useContext(ChartContext)
 
@@ -36,6 +67,16 @@ function useChart() {
   return context
 }
 
+/**
+ * Contêiner do gráfico.
+ *
+ * 1. Gera o id do gráfico com o `useId`, sem os dois-pontos, que não
+ *    cabem num seletor de atributo sem aspas, e o põe em `data-chart`.
+ * 2. Injeta o `ChartStyle` com as cores das séries.
+ * 3. Embrulha o gráfico no `ResponsiveContainer` do Recharts, que mede o
+ *    pai e repassa largura e altura ao gráfico. Por isso o chamador dá a
+ *    altura (`h-56`) e troca o `aspect-video` por `aspect-auto`.
+ */
 function ChartContainer({
   id,
   className,
@@ -53,6 +94,7 @@ function ChartContainer({
     height: number
   }
 }) {
+  // 1.
   const uniqueId = React.useId()
   const chartId = `chart-${id ?? uniqueId.replace(/:/g, "")}`
 
@@ -61,13 +103,17 @@ function ChartContainer({
       <div
         data-slot="chart"
         data-chart={chartId}
+        // Os seletores `[&_.recharts-...]` alcançam as classes que o
+        // Recharts põe no SVG e trocam as cores padrão por tokens.
         className={cn(
           "flex aspect-video justify-center text-xs [&_.recharts-cartesian-axis-tick_text]:fill-muted-foreground [&_.recharts-cartesian-grid_line]:stroke-border/50 [&_.recharts-curve.recharts-tooltip-cursor]:stroke-border [&_.recharts-dot]:stroke-transparent [&_.recharts-layer]:outline-hidden [&_.recharts-polar-grid_*]:stroke-border [&_.recharts-radial-bar-background-sector]:fill-muted [&_.recharts-rectangle.recharts-tooltip-cursor]:fill-muted [&_.recharts-reference-line_line]:stroke-border [&_.recharts-sector]:outline-hidden [&_.recharts-sector]:stroke-transparent [&_.recharts-surface]:outline-hidden",
           className
         )}
         {...props}
       >
+        {/* 2. */}
         <ChartStyle id={chartId} config={config} />
+        {/* 3. */}
         <RechartsPrimitive.ResponsiveContainer
           initialDimension={initialDimension}
         >
@@ -78,6 +124,12 @@ function ChartContainer({
   )
 }
 
+/**
+ * Escreve, para cada tema de `THEMES`, as regras `--color-<série>: <cor>`
+ * sob `[data-chart=<id>]`. Assim as séries usam `var(--color-first)` sem
+ * vazar para outro gráfico. Por ser um `<style>` em linha, depende do
+ * `style-src 'unsafe-inline'` da política de segurança da seção 13.4.
+ */
 const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
   const colorConfig = Object.entries(config).filter(
     ([, config]) => config.theme ?? config.color
@@ -111,8 +163,15 @@ ${colorConfig
   )
 }
 
+/** O `Tooltip` do Recharts, reexportado. Sem uso no projeto. */
 const ChartTooltip = RechartsPrimitive.Tooltip
 
+/**
+ * Conteúdo de tooltip do modelo do shadcn, sem uso no projeto: o
+ * `TrendChartCard` desenha a própria pílula de data (M4). Usa
+ * `bg-background` e `shadow-xl`, e não o `--popover` e a sombra
+ * `shadow-overlay` que a seção 14.4 pede para tooltips.
+ */
 function ChartTooltipContent({
   active,
   payload,
@@ -267,8 +326,13 @@ function ChartTooltipContent({
   )
 }
 
+/** A `Legend` do Recharts, reexportada. Sem uso no projeto. */
 const ChartLegend = RechartsPrimitive.Legend
 
+/**
+ * Legenda do modelo do shadcn, sem uso: os cartões desenham a legenda
+ * deles, escondida do leitor de tela, que lê a tabela equivalente.
+ */
 function ChartLegendContent({
   className,
   hideIcon = false,
@@ -324,6 +388,11 @@ function ChartLegendContent({
   )
 }
 
+/**
+ * Acha a entrada do `ChartConfig` de um item que o Recharts entrega ao
+ * tooltip ou à legenda: primeiro pelo valor da chave no item, depois pela
+ * própria chave.
+ */
 function getPayloadConfigFromPayload(
   config: ChartConfig,
   payload: unknown,

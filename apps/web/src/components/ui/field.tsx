@@ -1,3 +1,19 @@
+/**
+ * Peças de formulário do shadcn/ui: `FieldSet`, `FieldGroup`, `Field`,
+ * rótulo, descrição e erro. São marcação e classes; só o `FieldLabel`
+ * usa o Radix, pelo `Label`.
+ *
+ * A seção 14.8 manda os formulários usarem `FieldGroup` e `Field`, com
+ * `aria-invalid` no controle. Aparecem no `Composer`, no `PasswordCard`,
+ * no `ConsentFieldSet`, no `ProfileSummaryCard` e nos formulários das
+ * telas: entrar, cadastro, conta, privacidade e admin.
+ *
+ * O estado chega por atributo no `Field`: `data-invalid` pinta o texto de
+ * `--danger`, e `data-disabled` esmaece o rótulo. Quem liga o controle à
+ * dica e ao erro é o chamador, com `id` e `aria-describedby`. As cores vêm
+ * de `text-destructive` e `text-muted-foreground`, que `tokens.css` liga a
+ * `--danger` e `--muted-foreground`. Seção 14.6.
+ */
 import { useMemo } from "react"
 import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "cn"
@@ -5,6 +21,11 @@ import { cn } from "cn"
 import { Label } from "@/components/ui/label.tsx"
 import { Separator } from "@/components/ui/separator.tsx"
 
+/**
+ * `<fieldset>` que agrupa campos relacionados. O `disabled` nativo do
+ * `fieldset` desabilita todos os controles de dentro, como no
+ * `ConsentFieldSet` durante o envio.
+ */
 function FieldSet({ className, ...props }: React.ComponentProps<"fieldset">) {
   return (
     <fieldset
@@ -18,6 +39,10 @@ function FieldSet({ className, ...props }: React.ComponentProps<"fieldset">) {
   )
 }
 
+/**
+ * Legenda do `fieldset`. O leitor de tela a lê ao entrar no grupo.
+ * `variant="label"` usa o tamanho de rótulo, em vez do de título.
+ */
 function FieldLegend({
   className,
   variant = "legend",
@@ -36,6 +61,10 @@ function FieldLegend({
   )
 }
 
+/**
+ * Pilha de campos com `gap`, sem `space-y` (seção 14.8). É um contêiner
+ * `@container`, que a orientação `responsive` do `Field` consulta.
+ */
 function FieldGroup({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
@@ -49,6 +78,14 @@ function FieldGroup({ className, ...props }: React.ComponentProps<"div">) {
   )
 }
 
+/**
+ * Orientação do `Field` por `cva`:
+ * - `vertical` (padrão): rótulo em cima e controle embaixo.
+ * - `horizontal`: controle e rótulo na mesma linha, como a caixa do
+ *   `ConsentFieldSet` e o interruptor da conta.
+ * - `responsive`: vertical até o `FieldGroup` chegar à largura `@md`, e
+ *   horizontal daí em diante. Sem uso nas telas.
+ */
 const fieldVariants = cva(
   "group/field flex w-full gap-2 data-[invalid=true]:text-destructive",
   {
@@ -67,6 +104,10 @@ const fieldVariants = cva(
   },
 )
 
+/**
+ * Um campo: `role="group"` junta rótulo, controle, dica e erro. Passe
+ * `data-invalid` com o erro e `data-disabled` com o controle desabilitado.
+ */
 function Field({
   className,
   orientation = "vertical",
@@ -83,6 +124,7 @@ function Field({
   )
 }
 
+/** Coluna de rótulo, descrição e erro ao lado da caixa ou do interruptor. */
 function FieldContent({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
@@ -96,6 +138,11 @@ function FieldContent({ className, ...props }: React.ComponentProps<"div">) {
   )
 }
 
+/**
+ * Rótulo do campo, sobre o `Label`. O `htmlFor` liga o rótulo ao controle.
+ * Com uma caixa marcada dentro dele, ganha borda e fundo de `--primary`
+ * (`has-data-checked`), um uso do shadcn que o projeto não faz.
+ */
 function FieldLabel({ className, ...props }: React.ComponentProps<typeof Label>) {
   return (
     <Label
@@ -111,6 +158,7 @@ function FieldLabel({ className, ...props }: React.ComponentProps<typeof Label>)
   )
 }
 
+/** Título sem `<label>`, com a aparência do rótulo. Sem uso nas telas. */
 function FieldTitle({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
@@ -124,6 +172,10 @@ function FieldTitle({ className, ...props }: React.ComponentProps<"div">) {
   )
 }
 
+/**
+ * Dica do campo, em `--muted-foreground`. O chamador põe o `id` dela no
+ * `aria-describedby` do controle, para o leitor de tela lê-la junto.
+ */
 function FieldDescription({ className, ...props }: React.ComponentProps<"p">) {
   return (
     <p
@@ -139,6 +191,7 @@ function FieldDescription({ className, ...props }: React.ComponentProps<"p">) {
   )
 }
 
+/** Divisor entre campos, com um texto opcional no meio. Sem uso nas telas. */
 function FieldSeparator({
   children,
   className,
@@ -169,6 +222,14 @@ function FieldSeparator({
   )
 }
 
+/**
+ * Mensagem de erro do campo, com `role="alert"`: o leitor de tela a
+ * anuncia quando ela aparece. O texto é `--danger`, e o controle marca
+ * `aria-invalid`, então o erro não depende só da cor (seção 15.8).
+ *
+ * Recebe o texto em `children` ou a lista `errors`, no formato do React
+ * Hook Form; as telas só usam `children`. Sem conteúdo, não renderiza.
+ */
 function FieldError({
   className,
   children,
@@ -184,6 +245,8 @@ function FieldError({
     if (!errors?.length) {
       return null
     }
+    // O `Map` pela mensagem tira as repetidas e mantém a ordem. Uma vira
+    // texto; várias viram lista.
     const uniqueErrors = [
       ...new Map(errors.map((error) => [error?.message, error])).values(),
     ]

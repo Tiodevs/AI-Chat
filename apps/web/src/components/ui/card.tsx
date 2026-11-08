@@ -1,6 +1,31 @@
+/**
+ * Superfície de card do shadcn/ui (`radix-nova`): `div`s com classes, sem
+ * primitivo do Radix.
+ *
+ * É a base dos cartões do admin em `/admin` (`StatCard`, `TrendChartCard`,
+ * `SegmentedStatusCard`, `GroupedBarCard` e o card de orçamento), do envio
+ * de documento em `/admin/documents`, do `SidebarNoticeCard` e da página
+ * `/sign-in`.
+ *
+ * Fundo `bg-card` (`--card`) e borda por `ring-1`, sem sombra: na
+ * referência, as superfícies se separam por luminosidade (seções 14.1 e
+ * 14.4). A variável `--card-spacing` (16 px, ou 12 px com `size="sm"`)
+ * dá o espaço de todas as partes.
+ *
+ * Diferença da seção 14.4: o raio padrão é `rounded-xl` (cerca de 11 px)
+ * e a borda é `--foreground` a 10%. O raio de 16 px e a borda `--border`
+ * só entram onde o chamador passa `rounded-card` e `ring-border`, como no
+ * `SidebarNoticeCard`. Seção 14.6.
+ */
 import * as React from "react"
 import { cn } from "cn"
 
+/**
+ * Contêiner do card. `size="sm"` reduz o espaçamento. Os seletores
+ * `has-data-[slot=...]` acertam o padding quando há rodapé ou imagem no
+ * topo. Recebe `ref` como prop (React 19), que o `StatCard` e o
+ * `TrendChartCard` usam como escopo do GSAP.
+ */
 function Card({
   className,
   size = "default",
@@ -19,6 +44,11 @@ function Card({
   )
 }
 
+/**
+ * Cabeçalho em grade. Com um `CardAction` dentro, ganha uma segunda
+ * coluna à direita para a ação. É um contêiner `@container`, para o
+ * conteúdo reagir à largura do card, e não à da tela.
+ */
 function CardHeader({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
@@ -32,6 +62,10 @@ function CardHeader({ className, ...props }: React.ComponentProps<"div">) {
   )
 }
 
+/**
+ * Título do card. É um `div`, não um heading: os padrões do admin põem um
+ * `h2` dentro, para o título entrar no mapa de títulos da página.
+ */
 function CardTitle({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
@@ -45,6 +79,7 @@ function CardTitle({ className, ...props }: React.ComponentProps<"div">) {
   )
 }
 
+/** Texto de apoio abaixo do título, em `--muted-foreground`. */
 function CardDescription({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
@@ -55,6 +90,10 @@ function CardDescription({ className, ...props }: React.ComponentProps<"div">) {
   )
 }
 
+/**
+ * Ação no canto do cabeçalho, na segunda coluna da grade. Sem uso nas
+ * telas: o `CardActionsMenu` da seção 14.6 ainda não existe.
+ */
 function CardAction({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
@@ -68,6 +107,7 @@ function CardAction({ className, ...props }: React.ComponentProps<"div">) {
   )
 }
 
+/** Corpo do card, com o padding lateral de `--card-spacing`. */
 function CardContent({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
@@ -78,6 +118,7 @@ function CardContent({ className, ...props }: React.ComponentProps<"div">) {
   )
 }
 
+/** Rodapé com borda em cima e fundo `--muted` a 50%. Sem uso nas telas. */
 function CardFooter({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div

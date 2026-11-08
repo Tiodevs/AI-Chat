@@ -1,14 +1,35 @@
+/**
+ * Lista de opções sobre o `Select` do Radix, do shadcn/ui (`radix-nova`).
+ *
+ * Usada no filtro de desfecho de `/admin/quality`. O Radix dá o papel
+ * `combobox` ao gatilho, abre a lista em portal e cuida das setas, da
+ * busca por letra e do Esc.
+ *
+ * A única mudança do projeto é `max-md:min-h-11` no gatilho, o alvo de
+ * 44 px do celular (seção 15.8). O resto é o gerado pelo shadcn e destoa
+ * do design system: o anel de foco próprio (3 px de `--ring` a 50%), no
+ * lugar do contorno da seção 14.7; `shadow-md` e borda de `--foreground`
+ * a 10%, no lugar de `shadow-overlay` e `--border` (seção 14.4); e o
+ * cursor `not-allowed` quando desabilitado.
+ *
+ * As classes de animação de CSS (`animate-in`) ficam fora do GSAP, mas a
+ * posição padrão, `item-aligned`, as desliga com `animate-none`, que tem
+ * seletor mais específico. A tela de qualidade usa a posição padrão, e a
+ * lista abre direto.
+ */
 import * as React from "react"
 import { cn } from "cn"
 import { Select as SelectPrimitive } from "radix-ui"
 import { ChevronDownIcon, CheckIcon, ChevronUpIcon } from "lucide-react"
 
+/** Raiz da lista, com `value` (ou `defaultValue`) e `onValueChange`. */
 function Select({
   ...props
 }: React.ComponentProps<typeof SelectPrimitive.Root>) {
   return <SelectPrimitive.Root data-slot="select" {...props} />
 }
 
+/** Grupo de opções. Sem uso nas telas. */
 function SelectGroup({
   className,
   ...props
@@ -22,12 +43,17 @@ function SelectGroup({
   )
 }
 
+/** Mostra no gatilho o texto da opção escolhida, ou o `placeholder`. */
 function SelectValue({
   ...props
 }: React.ComponentProps<typeof SelectPrimitive.Value>) {
   return <SelectPrimitive.Value data-slot="select-value" {...props} />
 }
 
+/**
+ * Gatilho com a seta. `size` vai para `data-size`, que escolhe a altura:
+ * 32 px (`default`) ou 28 px (`sm`). Dê a ele o `id` do `<label>`.
+ */
 function SelectTrigger({
   className,
   size = "default",
@@ -54,6 +80,12 @@ function SelectTrigger({
   )
 }
 
+/**
+ * Lista em portal. Com `position="item-aligned"` (padrão), a lista abre
+ * com a opção escolhida sobre o gatilho e sem animação
+ * (`data-align-trigger`); com `"popper"`, abre abaixo do gatilho, na
+ * largura dele, e usa as animações de CSS do shadcn.
+ */
 function SelectContent({
   className,
   children,
@@ -87,6 +119,7 @@ function SelectContent({
   )
 }
 
+/** Rótulo de um grupo de opções. Sem uso nas telas. */
 function SelectLabel({
   className,
   ...props
@@ -100,6 +133,11 @@ function SelectLabel({
   )
 }
 
+/**
+ * Uma opção (`role="option"`). O `ItemText` é o texto que o gatilho
+ * repete, e o `ItemIndicator` mostra o visto na opção escolhida. Os itens
+ * têm cerca de 28 px, abaixo dos 44 px do celular (seção 15.8).
+ */
 function SelectItem({
   className,
   children,
@@ -124,6 +162,7 @@ function SelectItem({
   )
 }
 
+/** Linha entre grupos de opções. Sem uso nas telas. */
 function SelectSeparator({
   className,
   ...props
@@ -137,6 +176,7 @@ function SelectSeparator({
   )
 }
 
+/** Seta que rola a lista para cima quando ela passa da altura disponível. */
 function SelectScrollUpButton({
   className,
   ...props
@@ -156,6 +196,7 @@ function SelectScrollUpButton({
   )
 }
 
+/** Seta que rola a lista para baixo. */
 function SelectScrollDownButton({
   className,
   ...props

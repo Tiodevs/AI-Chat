@@ -1,3 +1,25 @@
+/**
+ * Menu suspenso sobre o `DropdownMenu` do Radix, do shadcn/ui
+ * (`radix-nova`).
+ *
+ * Usado pelo `ProfileButton`, no rodapé da barra lateral: Conta, Sair e a
+ * preferência de movimento (seção 14.6). O Radix dá os papéis `menu` e
+ * `menuitem`, a navegação por setas e por letra, o fechamento com Esc e a
+ * volta do foco ao gatilho.
+ *
+ * O que o projeto mudou no gerado pelo shadcn:
+ * - Superfície `--popover` com `shadow-overlay` e borda `--border`
+ *   (seção 14.4), no menu e no submenu.
+ * - Sem as animações de CSS (`animate-in`, `slide-in`): o menu abre e
+ *   fecha direto. A M14 da seção 16.3 prevê `useGsapPresence` em menus, e
+ *   este ainda não o usa.
+ * - Itens sem `outline-hidden`: o foco de teclado mostra o contorno global
+ *   além do fundo `--accent`, que é o `--muted`.
+ *
+ * Os itens têm cerca de 28 px; o `ProfileButton` passa `min-h-11` para o
+ * alvo de 44 px no celular (seção 15.8). O `"use client"` veio do modelo
+ * do shadcn e não tem efeito numa SPA do Vite.
+ */
 "use client"
 
 import * as React from "react"
@@ -5,12 +27,14 @@ import { cn } from "cn"
 import { DropdownMenu as DropdownMenuPrimitive } from "radix-ui"
 import { CheckIcon, ChevronRightIcon } from "lucide-react"
 
+/** Raiz do menu. `defaultOpen` abre já montado, como nas histórias. */
 function DropdownMenu({
   ...props
 }: React.ComponentProps<typeof DropdownMenuPrimitive.Root>) {
   return <DropdownMenuPrimitive.Root data-slot="dropdown-menu" {...props} />
 }
 
+/** Portal do menu. O `DropdownMenuContent` já usa um por dentro. */
 function DropdownMenuPortal({
   ...props
 }: React.ComponentProps<typeof DropdownMenuPrimitive.Portal>) {
@@ -19,6 +43,10 @@ function DropdownMenuPortal({
   )
 }
 
+/**
+ * Botão que abre o menu. O Radix põe `aria-haspopup="menu"` e
+ * `aria-expanded`; com `asChild`, o próprio `Button` vira o gatilho.
+ */
 function DropdownMenuTrigger({
   ...props
 }: React.ComponentProps<typeof DropdownMenuPrimitive.Trigger>) {
@@ -30,6 +58,12 @@ function DropdownMenuTrigger({
   )
 }
 
+/**
+ * Caixa do menu, em portal. O Radix calcula a posição e publica variáveis
+ * CSS (`--radix-dropdown-menu-*`): a altura disponível limita a rolagem,
+ * a largura segue a do gatilho, com mínimo de 128 px (`min-w-32`), e a
+ * origem da transformação acompanha o lado em que o menu abriu.
+ */
 function DropdownMenuContent({
   className,
   align = "start",
@@ -49,6 +83,7 @@ function DropdownMenuContent({
   )
 }
 
+/** Grupo de itens com o papel `group`. */
 function DropdownMenuGroup({
   ...props
 }: React.ComponentProps<typeof DropdownMenuPrimitive.Group>) {
@@ -57,6 +92,12 @@ function DropdownMenuGroup({
   )
 }
 
+/**
+ * Item de ação. `onSelect` roda no clique, no Enter e no espaço, e o menu
+ * fecha em seguida. `variant="destructive"` pinta o item de `--danger`;
+ * `inset` alinha o texto com itens que têm ícone. Desabilitado, o Radix
+ * põe `data-disabled` e pula o item nas setas.
+ */
 function DropdownMenuItem({
   className,
   inset,
@@ -80,6 +121,7 @@ function DropdownMenuItem({
   )
 }
 
+/** Item que liga e desliga (`menuitemcheckbox`). Sem uso nas telas. */
 function DropdownMenuCheckboxItem({
   className,
   children,
@@ -114,6 +156,10 @@ function DropdownMenuCheckboxItem({
   )
 }
 
+/**
+ * Grupo de opções exclusivas, com `value` e `onValueChange`. É a
+ * preferência de movimento do `ProfileButton` (seção 16.4).
+ */
 function DropdownMenuRadioGroup({
   ...props
 }: React.ComponentProps<typeof DropdownMenuPrimitive.RadioGroup>) {
@@ -125,6 +171,10 @@ function DropdownMenuRadioGroup({
   )
 }
 
+/**
+ * Opção de um `DropdownMenuRadioGroup` (`menuitemradio`, com
+ * `aria-checked`). O `ItemIndicator` só mostra o visto na opção escolhida.
+ */
 function DropdownMenuRadioItem({
   className,
   children,
@@ -157,6 +207,7 @@ function DropdownMenuRadioItem({
   )
 }
 
+/** Rótulo de seção do menu, como "Movimento". Não é focável. */
 function DropdownMenuLabel({
   className,
   inset,
@@ -177,6 +228,7 @@ function DropdownMenuLabel({
   )
 }
 
+/** Linha entre grupos de itens, em `--border`. */
 function DropdownMenuSeparator({
   className,
   ...props
@@ -190,6 +242,7 @@ function DropdownMenuSeparator({
   )
 }
 
+/** Atalho de teclado à direita do item. Só texto; sem uso nas telas. */
 function DropdownMenuShortcut({
   className,
   ...props
@@ -206,12 +259,14 @@ function DropdownMenuShortcut({
   )
 }
 
+/** Raiz de um submenu. Sem uso nas telas. */
 function DropdownMenuSub({
   ...props
 }: React.ComponentProps<typeof DropdownMenuPrimitive.Sub>) {
   return <DropdownMenuPrimitive.Sub data-slot="dropdown-menu-sub" {...props} />
 }
 
+/** Item que abre o submenu, com a seta à direita. */
 function DropdownMenuSubTrigger({
   className,
   inset,
@@ -236,6 +291,7 @@ function DropdownMenuSubTrigger({
   )
 }
 
+/** Caixa do submenu, com a mesma superfície do menu. */
 function DropdownMenuSubContent({
   className,
   ...props

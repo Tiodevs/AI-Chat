@@ -1,7 +1,21 @@
+/**
+ * Lista recolhível das fontes de uma resposta, com título e seção de cada
+ * documento (seções 14.6 e 15.5).
+ *
+ * Aparece no fim do `AssistantMessage` concluído. O estado aberto fica no
+ * pai, porque o `CitationChip` também abre a lista. Sem citações, não
+ * renderiza nada.
+ *
+ * Acessibilidade: o botão Mostrar fontes é um disclosure com
+ * `aria-expanded`. Cada fonte tem `id="source-<chunkId>"` e
+ * `tabIndex={-1}`: o chip pode pôr o foco nela por código, sem que ela
+ * entre na ordem de tabulação. Alvo de 44 px no celular (seção 15.8).
+ */
 import type { CitationView } from "@/features/ask/types.ts"
 import { Button } from "@/components/ui/button.tsx"
 import { pt } from "@/i18n/pt.ts"
 
+/** Botão de mostrar e ocultar e a lista numerada das fontes. */
 export function SourceList({
   citations,
   open,

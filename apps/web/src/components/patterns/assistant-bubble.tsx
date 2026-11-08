@@ -1,3 +1,20 @@
+/**
+ * Fala do assistente no cadastro por conversa (`/register`): avatar e
+ * balão (seção 15.5). Na conversa de perguntas, a resposta usa o
+ * `AssistantMessage`, sem balão; aqui o diálogo é guiado, com balões dos
+ * dois lados.
+ *
+ * Com `typing`, o balão mostra "O assistente está escrevendo" e o caret,
+ * com `aria-busy`, enquanto a resposta do cadastro não chega.
+ *
+ * Acessibilidade: o avatar "A" é `aria-hidden`; o nome "Assistente do
+ * Atrium" fica em `sr-only`, antes do texto, para o leitor de tela saber
+ * quem fala.
+ *
+ * Movimento: reusa o preset da M6 (`enterAssistant`), com `autoAlpha` ao
+ * montar. O catálogo da seção 16.3 não tem uma linha própria para este
+ * balão.
+ */
 import { useRef } from "react"
 
 import { StreamingCaret } from "@/components/patterns/streaming-caret.tsx"
@@ -12,11 +29,13 @@ export function AssistantBubble({
   typing = false,
 }: {
   text?: string
+  /** Mostra o estado de escrita no lugar do texto. */
   typing?: boolean
 }) {
   const ref = useRef<HTMLDivElement>(null)
   const { reduced } = useMotion()
 
+  // Entra uma vez, ao montar, como o `AssistantMessage`.
   useGSAP(
     () => {
       presets.enterAssistant(ref.current, reduced)
