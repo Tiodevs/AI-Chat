@@ -1,4 +1,23 @@
-"""Login, logout e sessão. A transação do limite fecha antes do argon2. Seção 6.4."""
+"""Login, logout e sessão. A transação do limite fecha antes do argon2. Seção 6.4.
+
+Camada de serviço, com dois serviços:
+
+- `AuthService`: login, logout e a leitura da sessão. Os controladores o montam por pedido:
+  `controllers/auth.py` (login, logout e `GET /v1/me`), `controllers/account.py` e
+  `controllers/privacy.py` (`authenticate`), e `controllers/admin_guard.py` e
+  `controllers/admin_probe.py` (`require_admin`), que protegem as rotas de admin antes de
+  chamar o serviço delas.
+- `BootstrapAdminService`: cria o primeiro admin ou remove um. Só o script
+  `scripts/bootstrap_admin.py` o usa, no pré-deploy (seção 10.5).
+
+Usa `AuthSessionRepository`, `UserRepository`, `ConsentRepository`, `RateLimitRepository`
+e `BootstrapRepository`, as regras de `domain/auth.py` e a porta `PasswordHasher` (argon2id,
+`adapters/password_hasher.py`). Sessão e cookie seguem as seções 8.1 e 10.3; os baldes de
+login, a seção 10.4.
+
+O argon2 roda no loop de eventos, fora de transação. A Etapa 13.1 o leva para
+`asyncio.to_thread`.
+"""
 
 from dataclasses import dataclass
 from datetime import UTC, timedelta
@@ -58,12 +77,21 @@ from app.repositories.users import UserRepository
 
 @dataclass(frozen=True, slots=True)
 class LoginResult:
+    """O perfil de `GET /v1/me` e o cookie `atrium_session` que o controlador define."""
+
     profile: Profile
     cookie: SessionCookie
 
 
 @dataclass(frozen=True, slots=True)
 class _UserRecord:
+    """Cópia da linha do usuário feita dentro da transação.
+
+    `password_hash` só serve à conferência do login e nunca sai do serviço: `Profile` não
+    tem hash. `terms_version` é a versão vigente quando há aceite dela, e `None` quando o
+    membro precisa aceitar os documentos de novo.
+    """
+
     id: UUID
     email: str
     full_name: str
@@ -76,6 +104,12 @@ class _UserRecord:
 
 
 class AuthService:
+    """Sessões de autenticação: criar no login, ler, exigir admin e revogar.
+
+    `hmac_key` é a `RATE_LIMIT_HMAC_KEY` dos baldes de login. `app_env` decide o atributo
+    `Secure` do cookie, ligado fora de `local`.
+    """
+
     def __init__(
         self,
         *,
@@ -99,8 +133,25 @@ class AuthService:
         user_agent: str,
         client_ip: str,
     ) -> LoginResult:
+        """Confere e-mail e senha e abre uma sessão de 14 dias.
+
+        1. Calcula os dois baldes da seção 10.4: 10 tentativas por e-mail a cada 15 minutos
+           e 30 por IP por hora. A chave é o HMAC com o sal do dia, então nem o e-mail nem o
+           IP ficam gravados.
+        2. Transação 1: conta a tentativa nos dois baldes e, se não passou do limite, lê o
+           usuário e o aceite dos Termos. Ela fecha antes do argon2.
+        3. Limite estourado responde 429 com a mesma mensagem da senha errada.
+        4. Confere a senha. Sem usuário, o argon2 roda contra um hash falso, para o tempo de
+           resposta não dizer se o e-mail existe.
+        5. Transação 2: grava a sessão (só o SHA-256 do segredo de 256 bits) e atualiza o
+           `last_seen_at`, que a retenção de contas inativas usa (seção 11.6).
+
+        Toda tentativa conta, inclusive a que acerta. Erros: `RateLimited` (429) e
+        `Unauthenticated` (401), sempre com `INVALID_CREDENTIALS`.
+        """
         if not self._hmac_key:
             raise RuntimeError("RATE_LIMIT_HMAC_KEY vazio.")
+        # 1. Os baldes usam o dia UTC como sal e janelas fixas de tamanhos diferentes.
         now = self._clock.now()
         normalized = normalize_email(email)
         day = now.astimezone(UTC).date()
@@ -114,6 +165,7 @@ class AuthService:
         email_window = fixed_window_start(now, LOGIN_EMAIL_WINDOW)
         ip_window = fixed_window_start(now, LOGIN_IP_WINDOW)
 
+        # 2. Contadores e leitura do usuário confirmam juntos.
         async with open_session(self._database_url) as session, UnitOfWork(session):
             rates = RateLimitRepository(session)
             email_count = await rates.increment(email_key, email_window)
@@ -131,16 +183,20 @@ class AuthService:
                 if user is not None:
                     record = _record(user, await _terms_version(session, user.id))
 
+        # 3. O 429 não revela se o e-mail existe.
         if decision.limited:
             raise RateLimited(
                 INVALID_CREDENTIALS,
                 retry_after_seconds=decision.retry_after_seconds,
             )
+        # 4. A senha é conferida antes de olhar se o usuário existe: os dois casos gastam
+        # um argon2.
         if not self._password_matches(password, None if record is None else record.password_hash):
             raise Unauthenticated(INVALID_CREDENTIALS)
         if record is None:
             raise Unauthenticated(INVALID_CREDENTIALS)
 
+        # 5. O cookie leva o segredo; o banco, só o hash dele.
         secret = new_session_secret()
         expires_at = now + timedelta(seconds=SESSION_MAX_AGE_SECONDS)
         async with open_session(self._database_url) as session, UnitOfWork(session):
@@ -157,18 +213,29 @@ class AuthService:
         )
 
     async def authenticate(self, secret: str | None) -> Profile:
+        """Perfil de quem está na sessão, com `needs_legal_acceptance`.
+
+        Sem cookie, ou com sessão revogada, vencida ou de usuário apagado, responde 401
+        (`Unauthenticated`). Uma transação curta de leitura. Não atualiza `last_seen_at`.
+        """
         record = await self._active_user(secret)
         if record is None:
             raise Unauthenticated(UNAUTHENTICATED)
         return _profile(record)
 
     async def require_admin(self, secret: str | None) -> Profile:
+        """Perfil de um admin: 401 sem sessão válida, 403 (`Forbidden`) para um membro."""
         profile = await self.authenticate(secret)
         if profile.role != "admin":
             raise Forbidden(FORBIDDEN)
         return profile
 
     async def logout(self, secret: str | None) -> None:
+        """Revoga a sessão do cookie (seção 10.3). O controlador apaga o cookie.
+
+        Grava `revoked_at` numa transação. Sem cookie, ou se nenhuma sessão ativa foi
+        revogada, responde 401.
+        """
         if not secret:
             raise Unauthenticated(UNAUTHENTICATED)
         now = self._clock.now()
@@ -178,6 +245,11 @@ class AuthService:
             raise Unauthenticated(UNAUTHENTICATED)
 
     def _password_matches(self, password: str, stored_hash: str | None) -> bool:
+        """Confere a senha com o argon2id, gastando o mesmo trabalho sem usuário.
+
+        Uma senha fora de 1 a 72 caracteres nem vai ao argon2. Sem hash gravado, verifica
+        contra `dummy_hash` e devolve `False`.
+        """
         if not password_is_checkable(password):
             return False
         if stored_hash is None:
@@ -186,6 +258,11 @@ class AuthService:
         return self._hasher.verify_password(password, stored_hash)
 
     async def _active_user(self, secret: str | None) -> _UserRecord | None:
+        """Lê sessão ativa, usuário e aceite dos Termos numa transação curta.
+
+        A sessão é procurada pelo SHA-256 do segredo e precisa estar sem `revoked_at` e
+        antes de `expires_at`. Devolve `None` quando falta qualquer peça.
+        """
         if not secret:
             return None
         now = self._clock.now()
@@ -201,13 +278,26 @@ class AuthService:
 
 
 class BootstrapAdminService:
+    """Primeiro admin e remoção de admin, pela linha de comando (seção 10.5).
+
+    Os dois métodos pegam `pg_advisory_xact_lock`, um lock do PostgreSQL que dura até o fim
+    da transação. Assim duas execuções simultâneas do pré-deploy não criam dois admins nem
+    removem os dois últimos ao mesmo tempo.
+    """
+
     def __init__(self, *, database_url: str, clock: Clock, hasher: PasswordHasher) -> None:
         self._database_url = database_url
         self._clock = clock
         self._hasher = hasher
 
     async def ensure(self, *, email: str, password: str) -> bool:
-        """Cria o admin só quando nenhum existe. Devolve True se criou."""
+        """Cria o admin só quando nenhum existe. Devolve True se criou.
+
+        Com um admin no banco, `ADMIN_EMAIL` e `ADMIN_PASSWORD` são ignoradas e nem
+        precisam existir. Sem admin, valida as duas (`ValidationFailed`) e grava o usuário
+        com `role = admin`. Tudo numa transação, com o hash argon2id calculado dentro dela,
+        sob o lock.
+        """
         async with open_session(self._database_url) as session, UnitOfWork(session):
             await BootstrapRepository(session).lock()
             users = UserRepository(session)
@@ -224,6 +314,12 @@ class BootstrapAdminService:
         return True
 
     async def remove(self, email: str) -> None:
+        """Remove o admin do e-mail, mas nunca o último.
+
+        Numa transação sob o lock: `NotFound` se o e-mail não é de um admin, `Conflict` se
+        ele é o único. As sessões saem antes do usuário porque a chave estrangeira de
+        `auth_sessions` não tem cascata.
+        """
         normalized = normalize_email(email)
         async with open_session(self._database_url) as session, UnitOfWork(session):
             await BootstrapRepository(session).lock()
@@ -238,6 +334,7 @@ class BootstrapAdminService:
 
 
 def _require_admin_credentials(email: str, password: str) -> None:
+    """Exige `ADMIN_EMAIL` válido e `ADMIN_PASSWORD` de 12 a 72 caracteres."""
     if not email.strip() or not password:
         raise ValidationFailed(ADMIN_CREDENTIALS_MISSING)
     if not email_is_valid(normalize_email(email)):
@@ -247,6 +344,7 @@ def _require_admin_credentials(email: str, password: str) -> None:
 
 
 async def _terms_version(session: AsyncSession, user_id: UUID) -> str | None:
+    """A versão vigente se há aceite dela não revogado. `None` pede um novo aceite."""
     current = await ConsentRepository(session).has_current_terms(user_id, LEGAL_DOCUMENT_VERSION)
     if current:
         return LEGAL_DOCUMENT_VERSION
@@ -254,6 +352,7 @@ async def _terms_version(session: AsyncSession, user_id: UUID) -> str | None:
 
 
 def _record(user: User, terms_version: str | None) -> _UserRecord:
+    """Copia a entidade do ORM, para o serviço não usá-la depois que a sessão fecha."""
     return _UserRecord(
         id=user.id,
         email=user.email,
@@ -268,6 +367,7 @@ def _record(user: User, terms_version: str | None) -> _UserRecord:
 
 
 def _profile(record: _UserRecord) -> Profile:
+    """O perfil público, sem o hash da senha (seção 12)."""
     return Profile(
         id=record.id,
         email=record.email,
@@ -278,4 +378,3 @@ def _profile(record: _UserRecord) -> Profile:
         role=record.role,
         needs_legal_acceptance=needs_legal_acceptance(record.terms_version),
     )
-
