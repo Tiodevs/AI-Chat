@@ -129,10 +129,11 @@ O andamento etapa por etapa está no [plano de ação](docs/plano-de-acao.md#4-s
 
 # Por dentro
 
-A partir daqui, a parte técnica. Três documentos se completam, sem repetir um ao outro:
+A partir daqui, a parte técnica. Cada documento responde uma pergunta, em profundidades diferentes:
 
 | Documento | Responde |
 |---|---|
+| [Engenharia do Atrium](docs/engenharia/README.md) | Como o projeto é construído, em uma página para apresentar, com uma versão em HTML para projetar |
 | [Especificação (SDD)](docs/sdd.md) e [ADRs](docs/adr/) | O que o sistema faz e por quê |
 | [Guia do código](docs/guia/README.md) | Como o código faz, arquivo por arquivo, numa trilha de estudo em 14 partes |
 | [Mapa da documentação](docs/README.md) | Onde está cada documento e por onde começar |

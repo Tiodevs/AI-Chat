@@ -5,6 +5,7 @@ Tudo o que está escrito sobre o Atrium, organizado pela pergunta que cada docum
 ```mermaid
 flowchart TD
   readme["README.md<br/>o produto em uma página"]
+  engenharia["Engenharia do Atrium<br/>o panorama para apresentar"]
   sdd["Especificação (SDD)<br/>o que o sistema faz e por quê"]
   adr["ADRs<br/>por que cada decisão estrutural"]
   guia["Guia do código<br/>como as peças trabalham juntas"]
@@ -12,6 +13,7 @@ flowchart TD
   codigo["Comentários no código<br/>por que cada linha é assim"]
   plano["Plano de ação<br/>em que ordem foi construído e o que falta"]
 
+  readme --> engenharia --> guia
   readme --> guia
   readme --> sdd
   guia --> pastas --> codigo
@@ -27,6 +29,7 @@ flowchart TD
 | Você quer | Leia |
 |---|---|
 | Saber o que é o Atrium e ver as telas | [README da raiz](../README.md) |
+| Ter o panorama da engenharia ou apresentar o projeto | [Engenharia do Atrium](engenharia/README.md) |
 | Rodar o projeto na sua máquina | [Guia, parte 2](guia/02-rodar-e-explorar.md) |
 | Entender o código do começo ao fim | [Trilha de estudo do guia](guia/README.md) |
 | Saber a regra exata de um comportamento | [Especificação](sdd.md), pela seção |
@@ -35,6 +38,12 @@ flowchart TD
 | Saber o que falta fazer | [Plano de ação, status](plano-de-acao.md#4-status-das-etapas) e [débitos técnicos](plano-de-acao.md#6-débitos-técnicos) |
 | Propor uma mudança | [Guia de contribuição](../CONTRIBUTING.md) |
 | Operar ou desfazer uma publicação | [Rollback](rollback.md) e [entrega e operação](guia/14-entrega-e-operacao.md) |
+
+## Engenharia: o panorama
+
+[engenharia/README.md](engenharia/README.md) resume o Atrium em uma página, para apresentar o projeto. Mostra onde cada peça roda, os ambientes, a API, uma pergunta passo a passo, a segurança, a CI, a entrega, a observabilidade e o plano. Cada seção aponta para a seção do SDD com o detalhe. A [versão visual](engenharia/apresentacao.html) tem os mesmos diagramas para projetar; abra o arquivo no navegador.
+
+O guia volta a cada um desses assuntos com os arquivos, os testes e o que ainda diverge do SDD.
 
 ## Especificação: o que e por quê
 

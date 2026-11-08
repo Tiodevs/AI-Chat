@@ -30,7 +30,7 @@ flowchart LR
   base --> ia --> protecao --> dados --> web --> entrega
 ```
 
-Cada parte é uma sessão de estudo de 30 a 60 minutos e termina com **Para praticar**: comandos e experimentos curtos que mostram o código funcionando. A ordem acima é a sugerida. Quem já conhece FastAPI pode pular da parte 2 para a 4; quem quer começar pelo que se vê na tela pode ler a 11 logo depois da 2.
+Cada parte é uma sessão de estudo de 30 a 60 minutos e termina com **Para praticar**: comandos e experimentos curtos que mostram o código funcionando. A ordem acima é a sugerida. Quem já conhece FastAPI pode pular da parte 2 para a 4; quem quer começar pelo que se vê na tela pode ler a 11 logo depois da 2. Para ter o panorama antes da parte 1, a [visão de engenharia](../engenharia/README.md) resume o projeto em uma página.
 
 | Parte | O que você vai entender | Leia antes |
 |---|---|---|
