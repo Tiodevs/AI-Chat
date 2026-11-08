@@ -128,6 +128,8 @@ flowchart TD
 
 O roteiro testado, com os comandos e a conferência de cada passo, é o [`docs/rollback.md`](../rollback.md). O banco nunca volta, porque as migrações seguem expand and contract: uma migração nunca quebra a versão anterior do código (parte 9).
 
+Um deploy também pode falhar antes de publicar, e aí não há o que voltar: a versão anterior continua no ar. Isso aconteceu em 2026-11-08, na instalação das CLIs. O postinstall do `@railway/cli` baixa o binário do GitHub Releases, e o download respondeu 504. Desde então, o [`install-clis.sh`](../../.github/scripts/install-clis.sh) tenta três vezes antes de desistir. Se um passo falhar mesmo assim, rode de novo só o job que falhou, com `gh run rerun <id> --failed` ou com a opção "Re-run failed jobs" da execução. O `production` volta a esperar a aprovação.
+
 > [!WARNING]
 > Gravar uma variável num serviço da Railway, pelo painel ou pela API, publica o serviço de novo a partir do topo da `main` do repositório conectado, sem passar pela aprovação do `deploy.yml`. Antes de mudar uma variável de production, confira o que está no topo da `main`.
 

@@ -211,6 +211,7 @@ flowchart LR
 
 | Etapa | Comando |
 |---|---|
+| CLIs | `bash .github/scripts/install-clis.sh` instala a CLI da Railway e a da Vercel nas versões fixas do `env` do `deploy.yml`. São até três tentativas, com 15 e 30 segundos de espera depois de cada falha, porque o postinstall do `@railway/cli` baixa o binário do GitHub Releases, e esse download às vezes responde 504 |
 | Deploy da API | Antes, o commit testado vai para `apps/api/app/BUILD_SHA`. Depois, `railway up --service api --environment <env>`, com o `RAILWAY_TOKEN` do ambiente só nesse passo. O `retention-job` recebe o mesmo comando. A Railway mantém a versão anterior no ar quando um deploy falha, e o `railway up` pode sair antes de o `/ready` da versão nova passar; por isso a fumaça espera o `/health` devolver o commit. |
 | Prometheus e Grafana | Só em produção: `railway up --service prometheus` e `railway up --service grafana`, da raiz do repositório. O diretório raiz de cada serviço na Railway (`/ops/prometheus` e `/ops/grafana`) escolhe a pasta, como num deploy pelo repositório; com `--path-as-root`, a pasta viraria a raiz e o build não a acharia |
 | Build da Vercel | `vercel pull --environment=<preview ou production>`, `vercel build`, com `API_URL` do ambiente |

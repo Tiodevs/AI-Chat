@@ -15,6 +15,7 @@ Os scripts que os workflows e quem opera rodam ficam em [`../scripts`](../script
 
 | Script | O que faz | Quem usa |
 |---|---|---|
+| [`install-clis.sh`](../scripts/install-clis.sh) | Instala as CLIs da Railway e da Vercel nas versões fixas do `deploy.yml`, com até três tentativas. O postinstall do `@railway/cli` baixa o binário do GitHub Releases, que às vezes responde 504 depois de minutos de espera | Os dois jobs do `deploy.yml` |
 | [`smoke.mjs`](../scripts/smoke.mjs) | Fumaça de um ambiente publicado, pela origem da Vercel: espera até 10 minutos o `/backend/health` devolver o commit, confere `/backend/ready`, `no-store` e ausência de cache em `/backend/v1/legal/versions`, os cabeçalhos de segurança, uma rota da SPA, o 404 em `/assets`, o fluxo SSE sem acúmulo e, com a origem da Railway, o 403 de `/v1` direto e o 200 de `/health`. Sai com 1 e a lista do que falhou | Os dois jobs do `deploy.yml` e quem opera no fim de um rollback ([`docs/rollback.md`](../../docs/rollback.md)) |
 | [`ttft.mjs`](../scripts/ttft.mjs) | Mede no cliente o primeiro token e a resposta completa de até 29 perguntas, depois de uma de aquecimento, e compara os p95 com as metas da seção 5.3 | Quem opera, à mão. Nenhum workflow o roda |
 
