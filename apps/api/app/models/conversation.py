@@ -1,4 +1,9 @@
-"""Tabela conversations. Pelo menos um dono é obrigatório. Seção 8.1 do SDD."""
+"""Tabela `conversations`: uma conversa de perguntas e respostas. Seção 8.1 do SDD.
+
+Camada de entidade de persistência (seção 6.2 do SDD). `ConversationRepository` cria, lista e
+anexa conversas, `InsightsRepository` as lê para o admin, e `RetentionRepository` apaga as
+vencidas. Criada na migração `0004_conversations`.
+"""
 
 import uuid
 from datetime import datetime
@@ -10,12 +15,27 @@ from app.models.base import Base
 
 
 class Conversation(Base):
+    """Uma conversa de um membro ou de um convidado.
+
+    O dono é `user_id`, `guest_key_id` ou os dois. A conversa de convidado ganha o `user_id`
+    quando a pessoa conclui o cadastro (seção 7.2), e o `guest_key_id` continua lá; a Etapa
+    15.1 impede que a chave de convidado siga abrindo essa conversa. A tabela não guarda a
+    última atividade: ela é a mensagem mais nova, ou `created_at` sem mensagens.
+
+    Retenção (seção 11.6): conversa de membro, 12 meses depois da última atividade; de
+    convidado, 30 dias. Em cascata, a de membro some com a conta, e a de convidado, com a
+    chave de convidado.
+    """
+
     __tablename__ = "conversations"
     __table_args__ = (
+        # Pelo menos um dono (seção 8.1).
         CheckConstraint(
             "user_id IS NOT NULL OR guest_key_id IS NOT NULL",
             name="conversations_owner",
         ),
+        # B-tree da seção 8.2, para a lista de conversas do membro. Não há índice em
+        # `guest_key_id`; a Etapa 13.5 cria um.
         Index("conversations_user_id_idx", "user_id"),
     )
 
@@ -29,9 +49,13 @@ class Conversation(Base):
         ForeignKey("users.id", ondelete="CASCADE"),
         nullable=True,
     )
+    # `ondelete="CASCADE"`: apagar a chave de convidado apaga as conversas dela. Antes disso,
+    # a retenção solta a chave das conversas que já viraram de membro.
     guest_key_id: Mapped[uuid.UUID | None] = mapped_column(
         Uuid(as_uuid=True),
         ForeignKey("guest_keys.id", ondelete="CASCADE"),
         nullable=True,
     )
+    # Sem padrão no banco. O serviço grava `allocate_conversation_created_at`: o horário atual
+    # ou, se ele não passa da conversa mais nova, um microssegundo depois dela.
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)

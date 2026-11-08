@@ -1,4 +1,11 @@
-"""Entidades SQLAlchemy. Sem tratador de pedido. Seção 6.2 do SDD."""
+"""Pacote das entidades SQLAlchemy: uma tabela por arquivo, sem tratador de pedido.
+
+Camada de entidade de persistência (seção 6.2 do SDD). Importar o pacote registra todas as
+tabelas em `Base.metadata`. É por ele que o `alembic/env.py` e o teste de esquema
+(`tests/integration/test_database.py`) enxergam o banco inteiro. Quem lê e grava estas
+entidades são os repositórios de `app.repositories`. As tabelas seguem a seção 8.1 do SDD, e o
+banco real nasce das migrações em `alembic/versions`.
+"""
 
 from app.models.audit_event import AuditEvent
 from app.models.auth_session import AuthSession
