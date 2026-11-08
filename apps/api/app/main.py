@@ -1,3 +1,16 @@
+"""Ponto de entrada da API: monta o app FastAPI e o expõe em `app`. Seção 6 do SDD.
+
+É a raiz da camada de controle (seção 6.2). Junta os middlewares de `app.core.middleware`, o
+CORS do Starlette, os tratadores de erro de `app.core.errors` e os 13 roteadores de
+`app.controllers`. O Uvicorn importa `app.main:app`, no `CMD` do `Dockerfile` e no
+`uv run uvicorn` local. Os testes chamam `create_app()` para ter um app novo com a
+configuração do momento.
+
+Importar este módulo não carrega o SQLAlchemy, o asyncpg nem o LangChain: o `lifespan`, a raiz
+de composição e os controladores importam serviços e adaptadores dentro das funções. Assim o
+`/health` responde mesmo sem banco, e `tests/unit/test_health.py` confere isso.
+"""
+
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
@@ -28,7 +41,22 @@ from app.core.middleware import ApiGuardMiddleware, RequestIdMiddleware
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    """Provedores, workflows e o pool do banco nascem aqui e vivem o processo. Seção 6.4."""
+    """Provedores, workflows e o pool do banco nascem aqui e vivem o processo. Seção 6.4.
+
+    O FastAPI roda o trecho antes do `yield` uma vez, quando o servidor sobe o app, e o
+    `finally` uma vez, quando ele desliga. Um `TestClient` usado fora de `with` não roda o
+    `lifespan`: o runtime de IA nasce no primeiro uso, e cada sessão abre a própria conexão.
+
+    1. Monta o `AiRuntime` (provedor de chat com o circuit breaker, `QaWorkflow` e grafo do
+       cadastro) e o guarda em `app.state` (seção 6.2). Um runtime que o teste já pôs lá fica.
+    2. Com `DATABASE_URL`, abre o pool do processo. O pool não conecta ao abrir.
+    3. Marca como `failed` as versões de documento presas em `processing` há mais de 15
+       minutos (seção 7.3). Uma falha aqui só gera o log `ingestion.stale_check_failed`: a API
+       sobe com o banco fora, e o `/ready` mostra o problema.
+    4. No desligamento, fecha o pool e espera os rastros pendentes do LangSmith, para não
+       perder rastros num deploy (seção 18.4).
+    """
+    # 1. Mesmo objeto que `get_ai_runtime` entrega às rotas, então um circuito só por processo.
     settings = get_settings()
     ensure_ai_runtime(app.state, settings)
     if settings.database_url:
@@ -36,7 +64,9 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         from app.db.session import start_pool
         from app.services.ingestion import fail_stale_processing_versions
 
+        # 2. O pool é deste loop de eventos: as rotas que rodam nele passam a reaproveitá-lo.
         await start_pool(settings.database_url)
+        # 3. Relógio real, não o `get_clock`: o `lifespan` não passa pelas dependências.
         try:
             await fail_stale_processing_versions(settings.database_url, SystemClock())
         except Exception:
@@ -44,6 +74,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     try:
         yield
     finally:
+        # 4. O Uvicorn chega aqui no desligamento, depois de encerrar os pedidos em curso.
         if settings.database_url:
             from app.db.session import close_pool
 
@@ -54,15 +85,38 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 
 def create_app() -> FastAPI:
+    """Monta o app com a configuração atual e o devolve sem subir nada.
+
+    1. Lê a configuração e liga o log JSON (seção 18.1).
+    2. Em `development` e `production`, levanta `MissingSafeguards` sem o teto de tokens, as
+       chaves de HMAC ou o segredo da borda (seções 7.1 e 10.3). Como `app = create_app()`
+       roda no import, o Uvicorn nem sobe, o deploy falha e a Railway mantém a versão anterior
+       (seção 22.1).
+    3. Registra os três middlewares.
+    4. Registra o tratador único do envelope de erro (seção 12).
+    5. Inclui os roteadores. Nenhum par de método e caminho se repete, então a ordem não
+       muda nada; `/v1/me`, por exemplo, tem o `GET` em `auth.py` e o resto em `account.py`.
+
+    O FastAPI também publica `/docs`, `/redoc` e `/openapi.json` em todo ambiente. A Etapa
+    15.2 desliga a documentação fora de `local` e `development`.
+    """
+    # 1. Configuração e log.
     settings = get_settings()
     configure_logging(settings.log_level)
+    # 2. Proteções dos ambientes da Railway.
     require_safeguards(settings)
     app = FastAPI(title="Atrium", version=__version__, lifespan=lifespan)
+    # 3. Cada `add_middleware` embrulha os anteriores, então o último registrado roda primeiro.
+    # No pedido, a ordem fica RequestId → CORS → ApiGuard → tratadores de erro → rota.
+    # O guarda fica por dentro: quando ele recusa, o `request_id` já existe.
     app.add_middleware(
         ApiGuardMiddleware,
         web_origin=settings.web_origin,
         edge_secret=edge_guard_secret(settings),
     )
+    # CORS só para `WEB_ORIGIN`, com cookies (`allow_credentials`). O tráfego normal é de mesma
+    # origem pelo rewrite e não precisa dele (seção 10.3). A preflight `OPTIONS` é respondida
+    # aqui, antes do guarda.
     app.add_middleware(
         CORSMiddleware,
         allow_origins=[settings.web_origin],
@@ -70,8 +124,14 @@ def create_app() -> FastAPI:
         allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
         allow_headers=["Accept", "Content-Type"],
     )
+    # Registrado por último, fica por fora de todos: mede, registra o log e põe `x-request-id`
+    # em toda resposta, inclusive no 403 do guarda e na preflight do CORS.
     app.add_middleware(RequestIdMiddleware)
+    # 4. Os tratadores rodam por dentro dos middlewares: a resposta de erro também ganha o
+    # `no-store` de /v1 e o `x-request-id`. Uma exceção que não é de domínio passa direto e
+    # vira o 500 em texto puro do Starlette, por fora deles.
     register_exception_handlers(app)
+    # 5. Um roteador por arquivo de `app.controllers`.
     app.include_router(health_router)
     app.include_router(readiness_router)
     app.include_router(metrics_router)
@@ -88,4 +148,6 @@ def create_app() -> FastAPI:
     return app
 
 
+# O objeto que o Uvicorn serve. Criado no import: uma proteção ausente derruba a subida, não o
+# primeiro pedido (seção 7.1).
 app = create_app()

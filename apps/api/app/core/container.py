@@ -1,3 +1,25 @@
+"""Raiz de composição: monta as peças de cada rota com o `Depends` do FastAPI. Seção 6.2.
+
+Camada de núcleo, o padrão Composition Root da seção 6.2. Uma rota declara
+`Annotated[X, Depends(get_x)]`, e o FastAPI chama `get_x` a cada pedido, resolvendo antes as
+dependências dela; dentro de um mesmo pedido, cada função roda uma vez só. Os testes trocam
+qualquer peça com `app.dependency_overrides[get_x]`.
+
+Duas vidas:
+
+- o `AiRuntime` (provedor de chat com o circuit breaker, `QaWorkflow` e grafo do cadastro)
+  nasce uma vez por app, no `lifespan`, e fica em `app.state`;
+- os serviços, o relógio e o orçamento nascem a cada pedido e não guardam estado.
+
+Os serviços e adaptadores são importados dentro das funções: importar a API para o
+`/health` não carrega o LangChain nem o SQLAlchemy. Por isso os `get_*` de serviço devolvem
+`Any`, e o mypy não confere as chamadas dos controladores a esses serviços.
+
+Nem toda rota passa por aqui. `auth.py`, `account.py`, `privacy.py`, `admin_guard.py`,
+`admin_probe.py` e `readiness.py` criam o serviço dentro da própria função, só com
+`get_settings` e `get_clock`.
+"""
+
 import threading
 from dataclasses import dataclass
 from functools import lru_cache
@@ -16,11 +38,18 @@ if TYPE_CHECKING:
     from app.workflows.qa import QaWorkflow
     from app.workflows.registration import RegistrationWorkflow
 
+# `threading.Lock`, não `asyncio.Lock`: o FastAPI roda uma dependência `def` numa thread do
+# threadpool, então dois pedidos podem chegar a `ensure_ai_runtime` ao mesmo tempo.
 _RUNTIME_LOCK = threading.Lock()
 
 
 @dataclass(frozen=True, slots=True)
 class Container:
+    """O que as rotas de infraestrutura recebem: hoje, só a configuração.
+
+    `/health`, `/ready` e `/metrics` o pedem com `get_container`.
+    """
+
     settings: Settings
 
 
@@ -40,14 +69,20 @@ class AiRuntime:
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
+    """A configuração do processo, lida uma vez (`lru_cache`).
+
+    Os testes mudam o ambiente e chamam `get_settings.cache_clear()` para reler.
+    """
     return Settings()
 
 
 def get_container(settings: Annotated[Settings, Depends(get_settings)]) -> Container:
+    """Embrulha a configuração para as rotas de infraestrutura."""
     return Container(settings=settings)
 
 
 def get_clock() -> Clock:
+    """O relógio do sistema. Os testes o trocam por um relógio parado (`dependency_overrides`)."""
     return SystemClock()
 
 
@@ -57,7 +92,17 @@ def build_ai_runtime(
     chat: "ChatProvider | None" = None,
     embeddings: "EmbeddingProvider | None" = None,
 ) -> AiRuntime:
-    """Monta o runtime. Os testes passam provedores falsos no lugar dos da configuração."""
+    """Monta o runtime. Os testes passam provedores falsos no lugar dos da configuração.
+
+    1. Escolhe os provedores de chat e de embedding por `APP_AI_ADAPTER`, salvo os que o
+       teste passou. Com `gemini` e sem chave, vêm os provedores indisponíveis, que só falham
+       na chamada (seção 17).
+    2. Pega o tracer do LangSmith ou, sem tracing, o `NullTracer`.
+    3. Monta o `QaWorkflow`, com a busca híbrida do `RetrievalService`, e o
+       `RegistrationWorkflow`, os dois sobre o mesmo provedor de chat.
+
+    Não chama o modelo nem o banco: só cria os objetos.
+    """
     # Import tardio: subir a API para /health não carrega o LangChain nem o SQLAlchemy.
     from app.adapters.chat_factory import build_chat_provider
     from app.adapters.embedding_factory import build_embedding_provider
@@ -67,9 +112,12 @@ def build_ai_runtime(
     from app.workflows.qa import QaWorkflow
     from app.workflows.registration import RegistrationWorkflow
 
+    # 1. Provedores.
     shared_chat = chat or build_chat_provider(settings)
     query_embeddings = embeddings or build_embedding_provider(settings)
+    # 2. Tracer.
     tracer = tracer_for(settings) or NullTracer()
+    # 3. Workflows. A busca e o workflow recebem o mesmo piso de similaridade.
     return AiRuntime(
         chat=shared_chat,
         qa_workflow=QaWorkflow(
@@ -88,7 +136,12 @@ def build_ai_runtime(
 
 
 def ensure_ai_runtime(state: State, settings: Settings) -> AiRuntime:
-    """O runtime do app. O `lifespan` monta na subida; sem ele, monta no primeiro uso."""
+    """O runtime do app. O `lifespan` monta na subida; sem ele, monta no primeiro uso.
+
+    Confere duas vezes, fora e dentro da trava: com o runtime pronto, o caminho comum não
+    espera a trava, e só uma thread monta o primeiro. Um runtime que o teste já pôs em `state`
+    fica como está.
+    """
     runtime = getattr(state, "ai_runtime", None)
     if isinstance(runtime, AiRuntime):
         return runtime
@@ -104,6 +157,7 @@ def get_ai_runtime(
     request: Request,
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> AiRuntime:
+    """O runtime guardado no `app.state` do app que recebeu o pedido."""
     return ensure_ai_runtime(request.app.state, settings)
 
 
@@ -112,6 +166,10 @@ def get_registration_service(
     clock: Annotated[Clock, Depends(get_clock)],
     runtime: Annotated[AiRuntime, Depends(get_ai_runtime)],
 ) -> Any:
+    """`RegistrationService` novo a cada pedido, sobre o grafo do cadastro do `AiRuntime`.
+
+    O orçamento diário é o mesmo das perguntas (seção 7.2).
+    """
     from app.adapters.password_hasher import get_password_hasher
     from app.services.budget import PostgresTokenBudget
     from app.services.registration import RegistrationService
@@ -132,12 +190,18 @@ def get_registration_service(
 
 
 def get_feedback_sink(settings: Annotated[Settings, Depends(get_settings)]) -> Any:
+    """Destino do feedback do visitante: o LangSmith com tracing ligado, senão o `Noop`.
+
+    O cliente do LangSmith é guardado em `app.adapters.langsmith_tracing` e só muda quando a
+    configuração do LangSmith muda.
+    """
     from app.adapters.langsmith_tracing import feedback_sink_for
 
     return feedback_sink_for(settings)
 
 
 def get_qa_workflow(runtime: Annotated[AiRuntime, Depends(get_ai_runtime)]) -> Any:
+    """O `QaWorkflow` do runtime, numa dependência própria para o teste trocar só ele."""
     return runtime.qa_workflow
 
 
@@ -147,6 +211,11 @@ def get_conversation_service(
     workflow: Annotated[Any, Depends(get_qa_workflow)],
     feedback_sink: Annotated[Any, Depends(get_feedback_sink)],
 ) -> Any:
+    """`ConversationService` novo a cada pedido, com o workflow do runtime.
+
+    Recebe também o destino do feedback, a chave de HMAC dos limites, a chave do pseudônimo
+    dos rastros e o orçamento diário de tokens (seção 7.1).
+    """
     from app.services.budget import PostgresTokenBudget
     from app.services.conversations import ConversationService
 
@@ -170,6 +239,11 @@ def get_document_admin_service(
     settings: Annotated[Settings, Depends(get_settings)],
     clock: Annotated[Clock, Depends(get_clock)],
 ) -> Any:
+    """`DocumentAdminService` com a ingestão da seção 7.3.
+
+    O provedor de embedding e o extrator de texto nascem a cada pedido, fora do `AiRuntime`.
+    A ingestão roda depois, numa tarefa de fundo, com esses mesmos objetos.
+    """
     from app.adapters.embedding_factory import build_embedding_provider
     from app.adapters.langsmith_tracing import tracer_for
     from app.adapters.text_extractor import FileTextExtractor
@@ -194,6 +268,10 @@ def get_insights_service(
     settings: Annotated[Settings, Depends(get_settings)],
     clock: Annotated[Clock, Depends(get_clock)],
 ) -> Any:
+    """`InsightsService` da visão geral, da qualidade e do inspetor do admin.
+
+    Recebe a chave do pseudônimo, o teto diário de tokens e o modelo do link do LangSmith.
+    """
     from app.services.insights import InsightsService
 
     return InsightsService(
@@ -209,6 +287,7 @@ def get_privacy_queue_service(
     settings: Annotated[Settings, Depends(get_settings)],
     clock: Annotated[Clock, Depends(get_clock)],
 ) -> Any:
+    """`PrivacyQueueService` da fila de pedidos de titular do admin."""
     from app.services.privacy import PrivacyQueueService
 
     return PrivacyQueueService(database_url=settings.database_url, clock=clock)

@@ -1,4 +1,12 @@
-"""Fila de pedidos de titular do admin. Seções 11.5, 12 e 15.5 do SDD (FR-16)."""
+"""Fila de pedidos de titular do admin. Seções 11.5, 12 e 15.5 do SDD (FR-16).
+
+Camada de controle. As duas rotas chamam `require_admin` na primeira linha e então o
+`PrivacyQueueService` de `get_privacy_queue_service`. A abertura do pedido pelo titular fica
+em `privacy.py`.
+
+A docstring de cada rota é a `description` da operação no OpenAPI (seção 6.6); a explicação
+a mais fica em comentários, para não mudar o contrato.
+"""
 
 from typing import TYPE_CHECKING, Annotated, Any
 from uuid import UUID
@@ -21,6 +29,7 @@ if TYPE_CHECKING:
 
 router = APIRouter()
 
+# Status de erro documentados no OpenAPI, todos com o envelope `ErrorResponse`.
 _ERRORS: dict[int | str, dict[str, Any]] = {
     401: {"model": ErrorResponse},
     403: {"model": ErrorResponse},
@@ -31,6 +40,7 @@ _ERRORS: dict[int | str, dict[str, Any]] = {
 
 
 def _item(item: "QueueItem") -> PrivacyQueueItemResponse:
+    """Converte o item da fila no schema, lendo os atributos do objeto (`from_attributes`)."""
     return PrivacyQueueItemResponse.model_validate(item, from_attributes=True)
 
 
@@ -46,6 +56,7 @@ async def list_privacy_requests(
     service: Annotated[Any, Depends(get_privacy_queue_service)],
 ) -> PrivacyQueueResponse:
     """Pedidos abertos com os atrasados primeiro, e depois os 50 fechados mais recentes."""
+    # Cada item diz se está atrasado (`overdue`) em relação a `generated_at` (seção 12).
     await require_admin(request, settings, clock)
     queue = await service.queue()
     return PrivacyQueueResponse(
@@ -68,6 +79,10 @@ async def update_privacy_request(
     service: Annotated[Any, Depends(get_privacy_queue_service)],
 ) -> PrivacyQueueItemResponse:
     """Muda o status e a nota de resolução. Grava `dsr.update`."""
+    # `request_id` é o id do pedido de titular, não o `request_id` do log. Pedido inexistente
+    # responde 404, e pedido fechado, 409. Status desconhecido, nota longa ou fechamento sem
+    # nota voltam em `field_errors` com 422; um corpo fora dos limites do schema, 422 sem
+    # `field_errors` (seção 12). Repetir o mesmo status e a mesma nota não grava evento.
     admin = await require_admin(request, settings, clock)
     item = await service.update(
         admin_id=admin.id,

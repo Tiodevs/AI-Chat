@@ -6,6 +6,10 @@ Create Date: 2026-10-27
 
 Seção 8.1 do SDD.
 
+Cria `token_usage_days`: uma linha por dia UTC, com a soma dos tokens de entrada e de saída
+de todas as chamadas ao modelo. É o contador do teto `LLM_DAILY_TOKEN_BUDGET` (seção 7.1),
+que `app/services/budget.py` lê antes de cada pergunta e soma depois, por upsert. A chave
+primária é o próprio dia. O downgrade apaga a tabela e o histórico de uso.
 """
 
 from collections.abc import Sequence
@@ -20,6 +24,7 @@ depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
+    """Cria `token_usage_days`, o contador diário do orçamento de tokens."""
     op.create_table(
         "token_usage_days",
         sa.Column("day", sa.Date(), nullable=False),
@@ -30,4 +35,5 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    """Apaga `token_usage_days`."""
     op.drop_table("token_usage_days")
