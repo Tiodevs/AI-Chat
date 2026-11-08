@@ -1,17 +1,24 @@
 // Testes de fumaça de um ambiente publicado. Seções 13.4 e 22.3 do SDD, Etapa 10.1.
 //
-// Uso: node .github/scripts/smoke.mjs https://atrium-dev.vercel.app [commit]
+// Uso: node .github/scripts/smoke.mjs https://atrium-dev.vercel.app [commit] [https://api-na-railway]
 //
 // Tudo passa pela origem da Vercel, como no navegador: o rewrite leva /backend/* à API.
 // Com o commit, a fumaça espera o /health da API responder com ele antes de testar. A Railway
 // mantém a versão anterior no ar quando um deploy falha, e sem essa espera a fumaça poderia
 // aprovar a versão antiga.
+// Com a origem da API na Railway, a fumaça também confere que /v1 recusa o pedido direto, sem o
+// segredo da borda, e que /health continua aberto para a Railway (seção 10.3, Etapa 12.5).
 // Sai com código 1 se alguma verificação falhar, com a lista do que falhou.
 
 const base = (process.argv[2] ?? "").replace(/\/+$/, "")
 const expectedBuild = (process.argv[3] ?? "").trim()
+const directApi = (process.argv[4] ?? "").trim().replace(/\/+$/, "")
 if (!/^https?:\/\/[^/]+$/.test(base)) {
   console.error("Informe a origem do frontend, por exemplo https://atrium-dev.vercel.app")
+  process.exit(2)
+}
+if (directApi && !/^https:\/\/[^/]+$/.test(directApi)) {
+  console.error("A origem da API na Railway precisa ser https e sem caminho.")
   process.exit(2)
 }
 
@@ -152,6 +159,24 @@ check(
   firstTickAt !== null && endedAt - firstTickAt >= 1000,
   `o primeiro tick chegou ${firstTickAt === null ? "nunca" : `${firstTickAt - started} ms`} depois do início e ${firstTickAt === null ? "-" : `${endedAt - firstTickAt} ms`} antes do fim`,
 )
+
+// 5. Direto na Railway: /v1 recusa o pedido sem o segredo da borda, e /health continua aberto.
+if (directApi) {
+  const direct = await fetch(`${directApi}/v1/conversations`, {
+    redirect: "manual",
+    signal: AbortSignal.timeout(requestTimeoutMs),
+  })
+  const directBody = await json(direct)
+  check(
+    direct.status === 403 && directBody?.error?.code === "forbidden",
+    `GET /v1/conversations direto na Railway, sem o segredo da borda, responde 403 (respondeu ${direct.status})`,
+  )
+  const directHealth = await fetch(`${directApi}/health`, {
+    redirect: "manual",
+    signal: AbortSignal.timeout(requestTimeoutMs),
+  })
+  check(directHealth.status === 200, "GET /health direto na Railway responde 200")
+}
 
 if (failures.length > 0) {
   console.error(`\n${failures.length} verificação(ões) falharam em ${base}.`)

@@ -77,10 +77,11 @@ class MissingSafeguards(RuntimeError):
 
 
 def missing_safeguards(settings: Settings) -> list[str]:
-    """Variáveis sem valor seguro para a API num ambiente da Railway. Seções 7.1 e 10.4 do SDD.
+    """Variáveis sem valor seguro para a API num ambiente da Railway. Seções 7.1, 10.3 e 10.4.
 
-    O teto de tokens é a proteção de custo que os limites por IP não dão. A regra vale para a
-    API, não para todo `Settings`: o `retention-job` lê a mesma configuração sem essas variáveis.
+    O teto de tokens é a proteção de custo que os limites por IP não dão, e o segredo da borda
+    impede que quem chama a Railway direto forje o IP desses limites. A regra vale para a API,
+    não para todo `Settings`: o `retention-job` lê a mesma configuração sem essas variáveis.
     """
     if settings.app_env not in CLOUD_ENVIRONMENTS:
         return []
@@ -91,6 +92,8 @@ def missing_safeguards(settings: Settings) -> list[str]:
         missing.append("RATE_LIMIT_HMAC_KEY")
     if not settings.pseudonym_key.strip():
         missing.append("PSEUDONYM_KEY")
+    if not settings.edge_secret.strip():
+        missing.append("EDGE_SECRET")
     return missing
 
 
@@ -104,7 +107,7 @@ def edge_guard_secret(settings: Settings) -> str:
     """O segredo que a API exige em /v1. Seção 10.3 do SDD.
 
     Só vale em `development` e `production`: em `local` e `test`, o Vite faz o proxy sem o
-    cabeçalho da Vercel. Vazio deixa o portão aberto.
+    cabeçalho da Vercel. Nos ambientes da Railway, a API não sobe sem ele (`require_safeguards`).
     """
     if settings.app_env not in CLOUD_ENVIRONMENTS:
         return ""

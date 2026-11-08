@@ -192,13 +192,16 @@ def test_production_cookie_is_secure(
     monkeypatch.setenv("APP_ENV", "production")
     monkeypatch.setenv("LLM_DAILY_TOKEN_BUDGET", "1000")
     monkeypatch.setenv("PSEUDONYM_KEY", "pseudonym-key")
+    monkeypatch.setenv("EDGE_SECRET", "edge-secret")
     get_settings.cache_clear()
     application = create_app()
     application.dependency_overrides[get_clock] = FrozenClock
     email = _email("secure")
     try:
         _run(_insert_user(migrated_database, email=email, role="member"))
-        response = _login(TestClient(application), email, PASSWORD)
+        # Em production, /v1 só responde com o cabeçalho que a Vercel põe (seção 10.3).
+        client = TestClient(application, headers={"x-atrium-edge": "edge-secret"})
+        response = _login(client, email, PASSWORD)
     finally:
         _run(_delete_email(migrated_database, email))
         get_settings.cache_clear()

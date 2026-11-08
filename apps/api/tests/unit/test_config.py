@@ -57,9 +57,15 @@ def test_cloud_api_refuses_an_empty_pseudonym_key(pseudonym_key: str) -> None:
     assert missing_safeguards(_settings(pseudonym_key=pseudonym_key)) == ["PSEUDONYM_KEY"]
 
 
+@pytest.mark.parametrize("edge_secret", ["", "   "])
+def test_cloud_api_refuses_an_empty_edge_secret(edge_secret: str) -> None:
+    """Etapa 12.5b: sem o segredo da borda, quem chama a Railway direto forja o IP (seção 10.3)."""
+    assert missing_safeguards(_settings(edge_secret=edge_secret)) == ["EDGE_SECRET"]
+
+
 @pytest.mark.parametrize("app_env", ["local", "test"])
 def test_local_and_test_accept_zero_budget_and_empty_keys(app_env: AppEnv) -> None:
-    settings = _settings(app_env, budget=0, hmac_key="", pseudonym_key="")
+    settings = _settings(app_env, budget=0, hmac_key="", pseudonym_key="", edge_secret="")
     assert missing_safeguards(settings) == []
     require_safeguards(settings)
 
@@ -73,12 +79,13 @@ def test_cloud_api_with_budget_and_keys_passes(app_env: AppEnv) -> None:
 
 def test_the_error_names_every_missing_variable() -> None:
     with pytest.raises(MissingSafeguards) as raised:
-        require_safeguards(_settings(budget=0, hmac_key="", pseudonym_key=""))
+        require_safeguards(_settings(budget=0, hmac_key="", pseudonym_key="", edge_secret=""))
     message = str(raised.value)
     assert raised.value.variables == (
         "LLM_DAILY_TOKEN_BUDGET",
         "RATE_LIMIT_HMAC_KEY",
         "PSEUDONYM_KEY",
+        "EDGE_SECRET",
     )
     assert message.startswith("APP_ENV=production exige LLM_DAILY_TOKEN_BUDGET, ")
     assert "RATE_LIMIT_HMAC_KEY" in message
@@ -93,8 +100,23 @@ def test_api_does_not_start_in_production_with_the_budget_off(
     monkeypatch.setenv("LLM_DAILY_TOKEN_BUDGET", "0")
     monkeypatch.setenv("RATE_LIMIT_HMAC_KEY", "hmac-key")
     monkeypatch.setenv("PSEUDONYM_KEY", "pseudonym-key")
+    monkeypatch.setenv("EDGE_SECRET", "edge-secret")
     get_settings.cache_clear()
     with pytest.raises(MissingSafeguards, match="exige LLM_DAILY_TOKEN_BUDGET\\."):
+        create_app()
+
+
+def test_api_does_not_start_in_production_without_the_edge_secret(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """CA-1 da Etapa 12.5b: sem EDGE_SECRET, o deploy falha e a versão anterior fica no ar."""
+    monkeypatch.setenv("APP_ENV", "production")
+    monkeypatch.setenv("LLM_DAILY_TOKEN_BUDGET", "1000")
+    monkeypatch.setenv("RATE_LIMIT_HMAC_KEY", "hmac-key")
+    monkeypatch.setenv("PSEUDONYM_KEY", "pseudonym-key")
+    monkeypatch.setenv("EDGE_SECRET", "")
+    get_settings.cache_clear()
+    with pytest.raises(MissingSafeguards, match="exige EDGE_SECRET\\."):
         create_app()
 
 
@@ -104,6 +126,7 @@ def _settings(
     budget: int = 2_000_000,
     hmac_key: str = "hmac-key",
     pseudonym_key: str = "pseudonym-key",
+    edge_secret: str = "edge-secret",
 ) -> Settings:
     return Settings(
         _env_file=None,
@@ -111,4 +134,5 @@ def _settings(
         llm_daily_token_budget=budget,
         rate_limit_hmac_key=hmac_key,
         pseudonym_key=pseudonym_key,
+        edge_secret=edge_secret,
     )
