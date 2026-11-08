@@ -1,4 +1,17 @@
 <!doctype html>
+<!--
+  A página única do app (seções 13.1 e 13.4). O Vite a serve em
+  desenvolvimento e, no build, troca o script de /src/main.tsx pelo arquivo
+  com hash em /assets e acrescenta no head os modulepreload das rotas de /
+  (route-preload.ts). Na Vercel, toda rota da SPA cai neste arquivo
+  (vercel.ts), e o React Router escolhe a tela no navegador.
+
+  O lang diz ao leitor de tela a língua do texto. A classe dark liga as
+  variantes dark do Tailwind e os tokens escuros, o único tema da versão 1
+  (seção 14.8). O título muda a cada página (PageHeading). O div root
+  recebe o React (main.tsx). Não há script em linha: a CSP só aceita
+  script da própria origem (security-headers.ts).
+-->
 <html lang="pt-BR" class="dark">
   <head>
     <meta charset="UTF-8" />

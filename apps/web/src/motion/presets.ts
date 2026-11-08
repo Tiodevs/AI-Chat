@@ -1,11 +1,37 @@
+/**
+ * Os presets de movimento: uma função por animação do catálogo da seção
+ * 16.3 (M1 a M16), num lugar só.
+ *
+ * Cada preset recebe o alvo e o `reduced` de `useMotion` e decide sozinho:
+ * com movimento reduzido, usa `gsap.set` e põe o estado final direto; sem
+ * redução, anima com os tokens de `tokens.ts`. Nenhum componente decide o
+ * movimento reduzido por conta própria (seção 16.4), e `presets.test.ts`
+ * confere o `gsap.set` de cada preset.
+ *
+ * As regras da seção 16.5 moram aqui: só `transform` e `opacity`;
+ * `autoAlpha` nas entradas e saídas, que no zero também põe
+ * `visibility: hidden`, e o elemento invisível não recebe clique;
+ * `clearProps` no fim das entradas, para o CSS voltar a mandar;
+ * `will-change` só durante a animação; e timelines em vez de `delay`.
+ *
+ * Quem usa: a casca (`app/shell.tsx`, M1), `useGsapPresence.ts` (M14) e
+ * os componentes de `components/patterns` que animam.
+ */
 // Só o tipo: o plugin chega pelo argumento de moveSidebar, e este arquivo não o carrega.
 import type { Flip } from "gsap/Flip"
 
 import { gsap } from "./gsap.ts"
 import { motionTokens } from "./tokens.ts"
 
+/** O estado que `Flip.getState` registra, passado a `moveSidebar`. */
 export type FlipState = ReturnType<typeof Flip.getState>
 
+/**
+ * Diz se há alvo para animar: texto, lista e `NodeList` vazios, `null` e
+ * `undefined` não contam. Os presets checam antes de chamar o GSAP, que
+ * avisa no console quando o alvo não existe, e chamam o `onComplete` mesmo
+ * sem alvo.
+ */
 function canAnimate(target: gsap.TweenTarget) {
   if (typeof target === "string") {
     return target.length > 0
@@ -19,6 +45,15 @@ function canAnimate(target: gsap.TweenTarget) {
   return target != null
 }
 
+/**
+ * A entrada comum de M1 e M14: de `from` para `to` em `duration.base`, com
+ * `ease.enter` e `stagger.list` quando há vários alvos. Com movimento
+ * reduzido, põe `to` direto e chama `onComplete` na hora.
+ *
+ * O caminho reduzido não limpa as propriedades: o `gsap.set` deixa em
+ * linha o estado final, como `opacity: 1` e, com `y: 0`, um `transform`
+ * neutro.
+ */
 function enter(
   target: gsap.TweenTarget,
   reduced: boolean,
@@ -46,6 +81,11 @@ function enter(
   })
 }
 
+/**
+ * M1, a troca de rota: `autoAlpha` de 0 a 1 e `y` de `distance.enter`
+ * (8 px) a 0. A casca passa os cards da página, que entram um a um, ou o
+ * invólucro inteiro.
+ */
 export function enterRoute(
   target: gsap.TweenTarget,
   reduced: boolean,
@@ -64,6 +104,9 @@ export function enterRoute(
  * Rótulos da barra lateral em M13. Recolhida, a barra esconde os rótulos com `sr-only`, e
  * eles continuam dando nome ao logotipo, à busca e aos grupos para o leitor de tela. Por isso
  * eles nunca ficam com `visibility: hidden`: só entram com `autoAlpha` quando a barra expande.
+ *
+ * @param visible Falso quando a barra recolhe: os rótulos só perdem as
+ *   propriedades em linha e ficam com o `sr-only` do CSS.
  */
 export function showSidebarLabels(
   target: gsap.TweenTarget,
@@ -93,7 +136,14 @@ export function showSidebarLabels(
 /**
  * Ícones da barra lateral em M13. A largura troca direto, e o Flip leva cada ícone do estado
  * registrado no clique à posição nova. Com `scale`, o Flip usa só `transform`: sem ele, o
- * plugin anima `width` e `height` (seção 16.1).
+ * plugin anima `width` e `height` (seção 16.1). `simple: true` pula as
+ * contas de rotação e inclinação, que os ícones não têm.
+ *
+ * @param state O estado que a barra registrou com `Flip.getState` antes de
+ *   a classe mudar. Sem ele, ou sem o plugin, o preset só limpa o
+ *   `transform`.
+ * @param flip O plugin, passado pela barra lateral: este arquivo não o
+ *   importa, para o Flip ficar fora do JavaScript inicial de `/`.
  */
 export function moveSidebar(
   target: gsap.DOMTarget,
@@ -117,6 +167,7 @@ export function moveSidebar(
   })
 }
 
+/** M14, a entrada de diálogo e menu: `autoAlpha` e `scale` de 0,98 a 1. */
 export function enterPresence(target: gsap.TweenTarget, reduced: boolean) {
   enter(
     target,
@@ -126,6 +177,10 @@ export function enterPresence(target: gsap.TweenTarget, reduced: boolean) {
   )
 }
 
+/**
+ * A entrada pela esquerda, com `autoAlpha` e `x` de `-distance` a 0. Serve
+ * ao menu do celular, uma variação de M14 que a seção 16.3 não descreve.
+ */
 export function enterFromSide(
   target: gsap.TweenTarget,
   reduced: boolean,
@@ -139,6 +194,11 @@ export function enterFromSide(
   )
 }
 
+/**
+ * M14, a saída: `autoAlpha` a 0 em `duration.fast` com `ease.exit` e, no
+ * fim, `onComplete`, que desmonta o painel. Com movimento reduzido, some
+ * direto.
+ */
 export function exitPresence(
   target: gsap.TweenTarget,
   reduced: boolean,
@@ -161,6 +221,7 @@ export function exitPresence(
   })
 }
 
+/** A saída do menu do celular, para a esquerda, par de `enterFromSide`. */
 export function exitToSide(
   target: gsap.TweenTarget,
   reduced: boolean,
@@ -185,10 +246,17 @@ export function exitToSide(
   })
 }
 
+// Números do catálogo da seção 16.3 que não são tokens: o pulso do caret
+// (M7), o intervalo entre as citações (M8) e o deslocamento da mensagem
+// enviada (M5).
 const caretPulseSeconds = 0.6
 const citationStagger = 0.04
 const userEnterDistance = 6
 
+/**
+ * A entrada genérica de M5, M6, M8 e M9: igual a `enter`, com duração e
+ * intervalo opcionais e sem `stagger` quando não pedido.
+ */
 function fadeIn(
   target: gsap.TweenTarget,
   reduced: boolean,
@@ -216,6 +284,7 @@ function fadeIn(
   })
 }
 
+/** M5: a mensagem enviada entra com `autoAlpha` e `y` de 6 a 0. */
 export function enterUserMessage(
   target: gsap.TweenTarget,
   reduced: boolean,
@@ -230,6 +299,15 @@ export function enterUserMessage(
   )
 }
 
+/**
+ * M6: o contêiner da resposta aparece só com `autoAlpha`, quando o
+ * `AssistantMessage` monta. Os tokens não animam um a um. O
+ * `AssistantBubble` do cadastro usa o mesmo preset.
+ *
+ * A seção 16.3 põe o gatilho no evento `meta`. A mensagem do assistente
+ * monta antes, no envio da pergunta, já no estado de espera, e é aí que a
+ * entrada roda.
+ */
 export function enterAssistant(
   target: gsap.TweenTarget,
   reduced: boolean,
@@ -238,6 +316,12 @@ export function enterAssistant(
   fadeIn(target, reduced, { autoAlpha: 0 }, { autoAlpha: 1 }, { onComplete })
 }
 
+/**
+ * M7: o caret pulsa entre 1 e 0,3 de opacidade, em laço, enquanto a
+ * resposta é gerada: o único laço do app (seção 16.1). Usa `opacity`, e
+ * não `autoAlpha`, porque não é entrada nem saída. O laço acaba quando o
+ * `StreamingCaret` sai da tela no `done`, e o `useGSAP` desfaz o tween.
+ */
 export function pulseCaret(target: gsap.TweenTarget, reduced: boolean) {
   if (!canAnimate(target)) {
     return
@@ -254,6 +338,7 @@ export function pulseCaret(target: gsap.TweenTarget, reduced: boolean) {
   })
 }
 
+/** M8: as citações entram uma a uma, a cada 0,04 s, com `scale` de 0,9 a 1. */
 export function enterCitations(
   target: gsap.TweenTarget,
   reduced: boolean,
@@ -268,6 +353,15 @@ export function enterCitations(
   )
 }
 
+/**
+ * M9, o evento `replace`: o rascunho sai e a resposta segura entra.
+ *
+ * Procura no alvo os filhos `data-outgoing`, o rascunho, e `data-incoming`,
+ * a resposta nova. Com os dois, uma timeline tira o rascunho em
+ * `duration.fast` e, só depois, traz a resposta em `duration.base`. Sem os
+ * dois, faz uma entrada simples do alvo. Com movimento reduzido, troca
+ * direto.
+ */
 export function replaceAnswer(
   target: gsap.TweenTarget,
   reduced: boolean,
@@ -308,12 +402,22 @@ export function replaceAnswer(
       ease: motionTokens.ease.enter,
       clearProps: "opacity,visibility",
     },
+    // `">"` põe a entrada no fim do passo anterior da timeline: as duas não
+    // se sobrepõem.
     ">"
   )
 }
 
+// M12: o deslocamento de entrada do `PasswordCard`.
 const passwordEnterDistance = 12
 
+/**
+ * M10, campo entendido no `ProfileSummaryCard`: a camada `data-highlight`
+ * acende e apaga, e ao mesmo tempo, na posição 0 da timeline, o ícone
+ * `data-confirm` cresce de 0,6 a 1 com `ease.confirm`, a curva que só este
+ * ícone usa (seção 16.2). Com movimento reduzido, só o ícone aparece, sem
+ * destaque.
+ */
 export function confirmField(target: gsap.TweenTarget, reduced: boolean) {
   if (!canAnimate(target)) {
     return
@@ -366,6 +470,11 @@ export function confirmField(target: gsap.TweenTarget, reduced: boolean) {
   }
 }
 
+/**
+ * M11, a barra de progresso do `RegistrationStepper`, que hoje fica fora
+ * da tela de cadastro e só aparece no Storybook (seção 14.6): muda o
+ * `scaleX` a partir da esquerda, com `ease.move`.
+ */
 export function moveStepper(
   target: gsap.TweenTarget,
   reduced: boolean,
@@ -386,6 +495,12 @@ export function moveStepper(
   })
 }
 
+/**
+ * M12: o `PasswordCard` entra com `autoAlpha` e `y` de 12 a 0 em
+ * `duration.slow`. O cartão põe o foco no campo no `onComplete`, que com
+ * movimento reduzido roda na hora: o foco chega nos dois casos (seção
+ * 16.6).
+ */
 export function enterPassword(
   target: gsap.TweenTarget,
   reduced: boolean,
@@ -415,6 +530,11 @@ export function enterPassword(
   )
 }
 
+/**
+ * M16, o toque num botão: `scale` de 0,98 a 1 em `duration.instant`.
+ * Nenhum componente chama este preset hoje: o `Button` de `components/ui`
+ * não tem esse efeito.
+ */
 export function press(target: gsap.TweenTarget, reduced: boolean) {
   if (!canAnimate(target)) {
     return
@@ -435,9 +555,19 @@ export function press(target: gsap.TweenTarget, reduced: boolean) {
   )
 }
 
+// M4: o tempo com que cursor e tooltip alcançam o ponteiro.
 const pointerSeconds = 0.2
 
-/** M2: o número visível sobe de 0 ao valor, com snap. O aria-label fica com o componente. */
+/**
+ * M2: o número visível sobe de 0 ao valor, com snap. O aria-label fica com
+ * o componente.
+ *
+ * O GSAP anima um objeto comum, `counter`, e o `onUpdate` escreve o número
+ * formatado no texto. O `snap` arredonda cada passo a `decimals` casas:
+ * zero dá inteiros, como pede a seção 16.3; as taxas da visão geral passam
+ * 3, porque vão de 0 a 1. A duração é `duration.chart` (0,8 s), embora a
+ * seção 16.1 reserve os 800 ms à revelação de gráfico.
+ */
 export function countUp(
   target: gsap.TweenTarget,
   reduced: boolean,
@@ -471,7 +601,10 @@ export function countUp(
   })
 }
 
-/** M3: área e linha se revelam da esquerda com scaleX. */
+/**
+ * M3: área e linha se revelam da esquerda com scaleX, em `duration.chart`
+ * e `ease.move`.
+ */
 export function revealChart(target: gsap.TweenTarget, reduced: boolean) {
   if (!canAnimate(target)) {
     return
@@ -492,7 +625,15 @@ export function revealChart(target: gsap.TweenTarget, reduced: boolean) {
   )
 }
 
-/** M4: cursor e tooltip seguem o ponteiro com quickTo. Devolve a função que move. */
+/**
+ * M4: cursor e tooltip seguem o ponteiro com quickTo. Devolve a função que
+ * move.
+ *
+ * `gsap.quickTo` cria uma vez a função que reaproveita a mesma animação a
+ * cada chamada, sem criar um tween novo a cada movimento do mouse. Com
+ * movimento reduzido, a função devolvida pula para a posição com
+ * `gsap.set`.
+ */
 export function followPointer(target: gsap.TweenTarget, reduced: boolean) {
   if (reduced || !canAnimate(target)) {
     gsap.set(target, { x: 0, y: 0 })
@@ -514,7 +655,10 @@ export function followPointer(target: gsap.TweenTarget, reduced: boolean) {
   }
 }
 
-/** M15: cada segmento vai ao `data-scale` dele com scaleX. */
+/**
+ * M15: cada segmento vai ao `data-scale` dele com scaleX. O valor é uma
+ * função, que o GSAP chama para cada elemento do alvo.
+ */
 export function moveSegments(target: gsap.TweenTarget, reduced: boolean) {
   if (!canAnimate(target)) {
     return
@@ -533,6 +677,11 @@ export function moveSegments(target: gsap.TweenTarget, reduced: boolean) {
   })
 }
 
+/**
+ * Todos os presets num objeto: os componentes importam `presets` e chamam
+ * `presets.enterRoute(...)`, e o teste percorre a lista inteira com
+ * movimento reduzido.
+ */
 export const presets = {
   enterRoute,
   showSidebarLabels,

@@ -1,27 +1,49 @@
 /*
  * Tokens semânticos da seção 14.2. O código de produto usa estes nomes,
  * nunca a cor crua. O par de texto e fundo é conferido em contrast.test.ts.
+ *
+ * É o único arquivo de src com cor crua: o teste raw-color.test.ts o deixa
+ * de fora. O globals.css importa este arquivo e liga cada token a uma
+ * classe do Tailwind no bloco @theme, como bg-card e text-muted-foreground.
+ * Uma mudança de token atualiza a seção 14.2 na mesma mudança (seção 14.9).
+ *
+ * O :root e a classe dark recebem os mesmos valores: o index.html põe a
+ * classe no html, e a versão 1 só tem o tema escuro (seção 14.8).
+ *
+ * Cuidado ao comentar aqui: o contrast.test.ts lê o arquivo inteiro com uma
+ * regex que acha cada nome de token seguido de dois-pontos. Um comentário
+ * nesse formato vira um token falso.
  */
 :root,
 .dark {
+  /* Superfícies, separadas por luminosidade e não por sombra (seção 14.1).
+     O muted é o hover de uma superfície (seção 14.7). */
   --shell: #0a0a0a;
   --background: #101010;
   --card: #171717;
   --popover: #262626;
   --muted: #1c1c1c;
+  /* Bordas de card e divisores, e a mais forte dos campos. */
   --border: #222222;
   --border-strong: #333333;
+  /* Texto. Nenhum texto fica abaixo do subtle-foreground, que subiu para
+     passar em AA sobre card e popover (seção 14.2, ajuste de contraste). */
   --foreground: #ededed;
   --foreground-strong: #ffffff;
   --muted-foreground: #a3a3a3;
   --subtle-foreground: #8f8f8f;
+  /* Seleção forte e botão primário, o texto sobre eles e o anel de foco. */
   --primary: #fafafa;
   --primary-foreground: #0a0a0a;
   --ring: #a3a3a3;
+  /* Status: a cor só aparece com significado (seção 14.1). */
   --success: #10b981;
   --danger: #f87171;
   --warning: #fbbf24;
   --info: #60a5fa;
+  /* Séries dos gráficos em cinza. O chart-5 não está na seção 14.2 e repete
+     o chart-4. O chart-area não tem uso: o TrendChartCard monta o próprio
+     gradiente em SVG. */
   --chart-1: #e5e5e5;
   --chart-2: #a3a3a3;
   --chart-3: #525252;
@@ -32,10 +54,15 @@
     rgb(255 255 255 / 0),
     rgb(255 255 255 / 0.16)
   );
+  /* Fora da tabela da seção 14.2: o fundo atrás de diálogos e sheets, a
+     sombra dos elementos que flutuam (seção 14.4) e o raio base de 8 px,
+     de que o globals.css tira os outros raios. */
   --overlay: rgb(0 0 0 / 0.5);
   --shadow-overlay: 0 8px 24px rgb(0 0 0 / 0.5);
   --radius: 8px;
 
+  /* Os nomes que os componentes do shadcn/ui esperam, apontados para os
+     tokens do Atrium. */
   --card-foreground: var(--foreground);
   --popover-foreground: var(--foreground);
   --secondary: var(--muted);
