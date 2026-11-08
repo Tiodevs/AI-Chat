@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | Produto | Atrium, assistente público para visitantes do Harborlight General Hospital |
-| Repositório | IA-Chat |
+| Repositório | AI-Chat |
 | Status | Aprovado 1.0 |
 | Data | 2026-10-25 |
 | Público | Uma pessoa desenvolvedora aprendendo sistemas de IA para produção |
@@ -56,7 +56,7 @@ Estas escolhas não estavam no formulário de perguntas. Elas mantêm a primeira
 
 | Escolha | Por que é o padrão |
 |---|---|
-| Nome do produto **Atrium**. Hospital **Harborlight General Hospital**, na cidade fictícia de **Port Meridian**. | O repositório pode continuar `IA-Chat`. O produto precisa de um nome estável para prompts, documentos e interface. |
+| Nome do produto **Atrium**. Hospital **Harborlight General Hospital**, na cidade fictícia de **Port Meridian**. | O repositório pode continuar `AI-Chat`. O produto precisa de um nome estável para prompts, documentos e interface. |
 | Interface, documentos do hospital, prompts visíveis e respostas em português do Brasil. | É a língua de quem usa o produto. Código, rotas, enums e os prefixos de embedding exigidos pelo Gemini continuam em inglês. |
 | Contas, conversas e pedidos usam só dados fictícios. | Não há titular real na versão 1. A seção 11 trata esses dados como um sistema real trataria, e esse desenho basta. |
 | Sem domínio próprio. | A origem de produção é a URL da Vercel. `WEB_ORIGIN` aponta para ela. |
@@ -139,7 +139,7 @@ A seção 9 é o único catálogo de horários e telefones. Prompts, arquivos de
 
 ### 4.2 Fora do escopo
 
-Prontuário eletrônico, HL7, FHIR, elegibilidade de convênio, marcação de consulta, pagamentos, SMS, entrega de e-mail, recuperação de senha, interface em vários idiomas, tema claro, aplicativos móveis nativos, busca de políticas só para a equipe, banco vetorial separado, Kubernetes, pilha local de Docker Compose, renderização no servidor e plantão com pager.
+Prontuário eletrônico, HL7, FHIR, elegibilidade de convênio, marcação de consulta, pagamentos, SMS, entrega de e-mail, recuperação de senha, interface em vários idiomas, tema claro, aplicativos móveis nativos, busca de políticas só para a equipe, banco vetorial separado, Kubernetes, Docker como requisito do desenvolvimento local, renderização no servidor e plantão com pager. O `docker-compose.yml` da raiz é uma alternativa opcional para subir tudo localmente: o caminho documentado continua sem Docker (NFR-4).
 
 Uma fila, armazenamento de objetos, várias réplicas da API e um ambiente separado de staging são o caminho de escala planejado. Eles não são necessários para a versão 1 funcionar.
 
@@ -283,3 +283,4 @@ Não há decisões em aberto. Nenhuma decisão bloqueia as Etapas 1 a 4.
 | 1.18 | 2026-11-07 | Vida de processo: o `AiRuntime`, com o provedor de chat, o circuit breaker e os workflows, nasce no `lifespan`, e a API abre um engine com pool para as sessões dos pedidos (seções 6.2, 6.4 e 7.1). |
 | 1.19 | 2026-11-07 | Segredo da borda: a rota de `/backend` da Vercel manda `x-atrium-edge` com o `EDGE_SECRET` do ambiente, e a API recusa `/v1` sem ele em development e production. O `vercel.ts` passa a declarar só `routes` (seções 10.3, 10.4, 10.6, 17, 19, 21.1, 22.1 e 22.2, ADR-001). |
 | 1.20 | 2026-11-07 | Segredo da borda obrigatório: em development e production, a API não sobe sem `EDGE_SECRET`, e a fumaça confere o 403 de `/v1` e o 200 de `/health` direto na Railway (seções 7.1, 10.3, 19, 21.1 e 22.3). |
+| 1.21 | 2026-11-08 | Documentação, sem mudança de comportamento: disposição do repositório com as pastas atuais e os READMEs de pasta (seção 6.3), Docker Compose como alternativa opcional e não requisito (seção 4.2), API construída pelo Dockerfile (seção 6.1), API em `0.0.0.0` (seção 18.3), testes do frontend sem MSW e Playwright simulado no job `web` (seções 21.1 e 22.3), tabelas, paleta e avisos sem TanStack Table, `cmdk` e Sonner (seção 13.1), `vercel.ts` descrito pelas rotas (seção 13.4), `PSEUDONYM_KEY` entre os segredos (seção 10.6), nome do repositório, mapa da documentação em `docs/README.md` e guia do código em `docs/guia/`. |

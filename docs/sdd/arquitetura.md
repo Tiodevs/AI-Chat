@@ -33,14 +33,14 @@ O frontend React é a visão. A Vercel serve os arquivos estáticos e faz o rewr
 | | Local | Produção |
 |---|---|---|
 | Frontend | `vite` em `apps/web`, proxy `/backend` para `http://127.0.0.1:8000` | Vercel, diretório raiz `apps/web`, saída `dist`, rewrite `/backend/*` |
-| API | `uvicorn` em `apps/api` | Serviço Railway, diretório raiz `apps/api`, construído com Railpack |
+| API | `uvicorn` em `apps/api` | Serviço Railway, construído pelo `apps/api/Dockerfile` com o repositório inteiro como contexto (ADR-013) |
 | Banco | PostgreSQL da Railway no ambiente `development`, URL TCP pública em `DATABASE_URL` | PostgreSQL da Railway no ambiente `production`, URL privada |
 | Modelo | Gemini, salvo quando um teste ou o adaptador falso está selecionado | Gemini, em projeto Google com faturamento ativo |
 | Rastros | Exportador de console, opcional | Receptor OpenTelemetry da Railway |
 | LangSmith | Projeto `atrium-dev`, opcional | Projeto `atrium-prod` |
 | Métricas | `GET /metrics` local | Prometheus e Grafana na Railway |
 
-Um PostgreSQL opcional, instalado pelo Homebrew com pgvector, é aceitável para trabalho offline. Ele não é o caminho feliz documentado. O Docker Desktop não faz parte da configuração local.
+Um PostgreSQL opcional, instalado pelo Homebrew com pgvector, é aceitável para trabalho offline. Ele não é o caminho feliz documentado. O Docker Desktop não é exigido: o `docker-compose.yml` da raiz é uma alternativa opcional, que sobe banco, API, frontend, Prometheus e Grafana com valores só de desenvolvimento.
 
 ### 6.2 MVC, com as camadas de que um sistema de IA precisa
 
@@ -109,26 +109,29 @@ No frontend, uma regra `no-restricted-imports` do ESLint impede que componentes 
 
 ### 6.3 Disposição do repositório
 
+A árvore abaixo fixa as pastas e o papel de cada uma. O `README.md` de cada pasta de código lista os arquivos dela, e o [mapa da documentação](../README.md#readmes-de-pasta) reúne todos. O teste `tests/unit/test_layout.py` confere que as pastas existem.
+
 ```text
 apps/
   api/
     pyproject.toml
     Dockerfile        a mesma imagem no docker-compose e na Railway (ADR-013)
     app/
-      main.py
-      core/            config, logging, telemetry, security, errors, container
-      controllers/
-      schemas/
-      domain/          registration, fields, grounding, ranking, outcomes, errors
-      services/
-      workflows/
-      prompts/         prompts versionados
-      ports/
-      adapters/        gemini, langsmith, clock, password_hasher
-      models/
-      repositories/
-      db/              session, unit_of_work
-      scripts/         seed, search, ask, bootstrap_admin, retention, sync_eval_dataset, export_openapi
+      main.py          create_app e lifespan
+      core/            configuração, logging, telemetria, métricas, middlewares, erros, SSE, raiz de composição
+      controllers/     rotas HTTP, uma por arquivo de assunto
+      schemas/         modelos Pydantic de pedido e resposta
+      domain/          regras puras: cadastro, campos, fundamentação, ranking, desfechos, limites, privacidade, retenção, erros
+      services/        casos de uso, donos das transações
+      workflows/       pipeline de perguntas (LangChain) e grafo do cadastro (LangGraph)
+      prompts/         prompts versionados e textos visíveis da API
+      ports/           protocolos de chat, embedding, busca, rastro, feedback, orçamento, relógio, hash e extração
+      adapters/        Gemini, falsos, demo, LangSmith, circuit breaker, relógio, hash e extração de texto
+      models/          entidades SQLAlchemy
+      repositories/    consultas, inclusive a busca vetorial e por texto completo
+      db/              sessão, pool e unidade de trabalho
+      evals/           casos, avaliadores e sincronização do conjunto do LangSmith
+      scripts/         seed, search, ask, bootstrap_admin, retention, sync_eval_dataset, run_evals, export_openapi
     tests/
       unit/
       integration/
@@ -139,37 +142,43 @@ apps/
     package.json
     vite.config.ts
     vercel.ts
+    security-headers.ts
+    route-preload.ts
     index.html
     src/
-      app/             router, providers, layouts, error boundaries
+      app/             roteador, provedores, casca, guardas e rotas
       features/        ask, registration, auth, account, privacy, admin
       components/
         ui/            componentes shadcn/ui (Radix)
         patterns/      componentes de produto compostos
       motion/          registro do GSAP, tokens, presets e hooks
       lib/
-        api/           cliente tipado, tipos gerados do OpenAPI, query keys
+        api/           cliente tipado e tipos gerados do OpenAPI
         sse.ts         leitor de eventos enviados pelo servidor
       i18n/            textos do produto em pt.ts
       styles/          tokens.css, globals.css
-    e2e/               Playwright
+      test/            preparação do Vitest
+    e2e/               Playwright, com respostas simuladas e, em live/, com a API real
     .storybook/
 content/
   corpus/              Markdown de semente, fatos tirados da seção 9
 evals/
   public_qa.jsonl      fonte dos casos de avaliação, sincronizada com o LangSmith
 docs/
-  sdd.md
-  privacy/             ropa.md, ripd.md, lia.md, incident-playbook.md
+  README.md            mapa da documentação
+  sdd.md e sdd/        esta especificação
+  guia/                guia do código, em partes
   adr/                 um arquivo por ADR, espelhando a seção 24
+  privacy/             ropa.md, ripd.md, lia.md, incident-playbook.md
+  plano-de-acao.md     etapas de implementação e status
 ops/
   grafana/             painéis e alertas em JSON
   prometheus/          configuração de coleta
 .claude/rules/         convenções de camadas, design system e GSAP para agentes
-.github/workflows/
-  ci.yml
-  deploy.yml
-  evals.yml
+.github/
+  workflows/           ci.yml, deploy.yml e evals.yml
+  scripts/             fumaça e medida do primeiro token
+docker-compose.yml     ambiente local completo, opcional
 ```
 
 ### 6.4 Transações e concorrência

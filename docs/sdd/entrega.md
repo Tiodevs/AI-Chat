@@ -93,7 +93,7 @@ Os testes de integração rodam contra PostgreSQL com `CREATE EXTENSION vector`.
 
 Sem um `DATABASE_URL` local, a integração pula, para a suíte rodar numa máquina sem banco. Uma URL remota também pula, para nenhum teste tocar um banco da Railway. O job `api` define `REQUIRE_INTEGRATION_DB=1`, que troca o pulo por falha: se o banco de serviço sumir, a CI fica vermelha em vez de passar com a integração inteira pulada.
 
-**Frontend, unidade e componente,** com Vitest, Testing Library e MSW:
+**Frontend, unidade e componente,** com Vitest e Testing Library, e o `fetch` simulado por `vi.fn`:
 
 - o leitor SSE junta eventos que chegam partidos entre leituras
 - `replace` troca o rascunho
@@ -192,7 +192,7 @@ O `vercel.ts` declara só `routes`. O cabeçalho do segredo da borda (seção 10
 | Job | Passos |
 |---|---|
 | `api` | Instalar com `uv`, Ruff, mypy, Pytest com o contêiner pgvector |
-| `web` | Instalar com `pnpm`, ESLint, `tsc --noEmit`, Vitest, build, build do Storybook |
+| `web` | Instalar com `pnpm`, ESLint, `tsc --noEmit`, Vitest, Playwright com respostas simuladas, build, build do Storybook |
 | `contract` | Gerar OpenAPI e tipos e comparar com os commitados |
 | `e2e` | API com o adaptador `demo`, PostgreSQL de serviço, `vite preview` com os cabeçalhos de produção, Playwright com axe e checagem de CSP |
 
