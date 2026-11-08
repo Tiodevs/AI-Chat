@@ -1,3 +1,16 @@
+/**
+ * Tela da conta do membro, em `/account`, com as abas Perfil, Conversas e
+ * Privacidade.
+ *
+ * Camada: view (SDD 13.2). Recebe o `AccountModel` de `useAccount` pela
+ * rota `app/routes/account.tsx` e não chama a API: cada ação é um callback
+ * do modelo. Usa as regras de `model.ts`, o `useMotion` de
+ * `motion/MotionProvider.tsx`, o `RequestIdCopy` e os componentes de
+ * `components/ui`, com o formulário em React Hook Form e Zod.
+ *
+ * SDD 15.5 (Conta), 11.5 (direitos do titular), 8.5 (regras dos campos),
+ * 15.8 (acessibilidade) e 16.4 (preferência de movimento).
+ */
 import { useState } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm, useWatch } from "react-hook-form"
@@ -60,6 +73,8 @@ import {
 } from "./model.ts"
 import type { AccountModel } from "./useAccount.ts"
 
+// Os campos do perfil que podem receber um erro do servidor. Um
+// `field_errors` com outro nome vira o erro geral do formulário.
 const profileFields = [
   "full_name",
   "phone",
@@ -67,12 +82,23 @@ const profileFields = [
   "visit_reason",
 ] as const
 
+// As três escolhas de movimento (SDD 16.4): seguir o sistema (`system`),
+// reduzir sempre (`on`) ou animar sempre (`off`). O `MotionProvider` guarda
+// a escolha no `localStorage`, que não sai do navegador (SDD 11.9).
 const motionOptions: { value: MotionPreference; label: string }[] = [
   { value: "system", label: pt.profile.motionSystem },
   { value: "on", label: pt.profile.motionReduce },
   { value: "off", label: pt.profile.motionAllow },
 ]
 
+/**
+ * Página da conta: título e as três abas (SDD 15.5).
+ *
+ * As abas são do Radix e só a ativa fica montada. Trocar de aba desmonta a
+ * anterior, então uma edição do perfil que não foi salva se perde. Os dados
+ * do servidor ficam: moram no cache do TanStack Query, que o `useAccount`
+ * lê.
+ */
 export function AccountScreen(model: AccountModel) {
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
@@ -99,6 +125,12 @@ export function AccountScreen(model: AccountModel) {
   )
 }
 
+/**
+ * Aba Perfil. Corrige nome e telefone e, com a personalização ativa, o tipo
+ * de visitante e o motivo da visita. O e-mail é só leitura, porque é o
+ * acesso da conta (SDD 15.5). A preferência de movimento também fica aqui,
+ * mas não vai ao servidor.
+ */
 function ProfileTab({ me, consents, saveProfile }: AccountModel) {
   const personalization = isGranted(consents.data, personalizationPurpose)
   const motion = useMotion()
@@ -106,15 +138,22 @@ function ProfileTab({ me, consents, saveProfile }: AccountModel) {
   const [saved, setSaved] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
   const [requestId, setRequestId] = useState<string | null>(null)
+  // O `zodResolver` valida com o `profileSchema` no envio. A opção `values`
+  // segue o `me` do cache: quando o perfil muda, por exemplo depois de
+  // salvar ou de revogar a personalização, o formulário recomeça dos dados
+  // novos.
   const form = useForm<ProfileValues>({
     resolver: zodResolver(profileSchema),
     defaultValues: profileDefaults(me),
     values: profileDefaults(me),
   })
   const errors = form.formState.errors
+  // Os dois campos são `ToggleGroup`, sem `register`. O `useWatch` lê o
+  // valor do formulário para a tela marcar a opção escolhida.
   const visitorType = useWatch({ control: form.control, name: "visitor_type" })
   const visitReason = useWatch({ control: form.control, name: "visit_reason" })
 
+  /** Salva o perfil e mostra a confirmação ou os erros devolvidos. */
   async function submit(values: ProfileValues) {
     setPending(true)
     setSaved(false)
@@ -132,6 +171,11 @@ function ProfileTab({ me, consents, saveProfile }: AccountModel) {
     }
   }
 
+  /**
+   * Põe cada erro de campo do servidor no campo dele, com `setError`. Se
+   * nenhum erro cai num campo da tela, a mensagem geral aparece acima do
+   * botão. O `request_id` aparece nos dois casos.
+   */
   function showFailure(failure: SubmitFailure) {
     let known = false
     for (const [field, message] of Object.entries(failure.fieldErrors)) {
@@ -149,6 +193,9 @@ function ProfileTab({ me, consents, saveProfile }: AccountModel) {
 
   return (
     <div className="flex flex-col gap-8">
+      {/* O formulário leva o nome do título da página (`page-title`, do
+          `PageHeading`). `noValidate` desliga a validação do navegador:
+          quem valida é o Zod, com as mensagens em português. */}
       <form
         aria-labelledby="page-title"
         className="flex flex-col gap-6"
@@ -158,6 +205,8 @@ function ProfileTab({ me, consents, saveProfile }: AccountModel) {
         }}
       >
         <FieldGroup>
+          {/* O e-mail é o acesso da conta: só leitura, e `PATCH /v1/me` não
+              o muda (SDD 12). */}
           <Field>
             <FieldLabel htmlFor="account-email">
               {pt.account.profile.email}
@@ -174,6 +223,8 @@ function ProfileTab({ me, consents, saveProfile }: AccountModel) {
               {pt.account.profile.emailNote}
             </FieldDescription>
           </Field>
+          {/* `aria-invalid` marca o campo com erro, e `aria-describedby` liga
+              a mensagem ao campo para o leitor de tela (SDD 15.8). */}
           <Field data-invalid={errors.full_name ? true : undefined}>
             <FieldLabel htmlFor="account-full-name">
               {pt.account.profile.fullName}
@@ -216,6 +267,9 @@ function ProfileTab({ me, consents, saveProfile }: AccountModel) {
               </FieldError>
             ) : null}
           </Field>
+          {/* Tipo de visitante e motivo da visita podem indicar que a pessoa
+              é paciente, então só aparecem com a personalização ativa (SDD
+              11.4 e 15.5). Sem ela, a nota diz onde ativar. */}
           {personalization ? (
             <>
               <ChoiceField
@@ -265,6 +319,8 @@ function ProfileTab({ me, consents, saveProfile }: AccountModel) {
           {pending ? pt.account.profile.saving : pt.account.profile.save}
         </Button>
       </form>
+      {/* A preferência de movimento fica fora do `<form>`: vale na hora,
+          sem salvar, e só neste navegador (SDD 16.4). */}
       <FieldSet>
         <FieldLegend>{pt.account.profile.motionTitle}</FieldLegend>
         <FieldDescription>{pt.account.profile.motionHint}</FieldDescription>
@@ -273,6 +329,8 @@ function ProfileTab({ me, consents, saveProfile }: AccountModel) {
           value={motion.preference}
           aria-label={pt.account.profile.motionTitle}
           onValueChange={(value) => {
+            // Clicar na opção já marcada faz o Radix mandar `""`. Aqui a
+            // escolha não pode ficar vazia, então o clique é ignorado.
             if (value) {
               motion.setPreference(value as MotionPreference)
             }
@@ -289,6 +347,12 @@ function ProfileTab({ me, consents, saveProfile }: AccountModel) {
   )
 }
 
+/**
+ * Uma escolha numa lista fechada, como o tipo de visitante (SDD 8.5). O
+ * `ToggleGroup` de escolha única do Radix expõe cada opção como `radio`
+ * para o leitor de tela. Clicar de novo na opção marcada manda `""` e
+ * desmarca: ao salvar, o campo vazio vira `null` e o servidor o limpa.
+ */
 function ChoiceField<T extends string>({
   label,
   value,
@@ -324,7 +388,14 @@ function ChoiceField<T extends string>({
   )
 }
 
+/**
+ * Aba Conversas: a lista com a primeira pergunta e a data de cada conversa,
+ * cada item levando a `/ask/:id` (SDD 15.5). Tem os estados carregando,
+ * erro, vazio ("Nenhuma conversa ainda.") e lista.
+ */
 function ConversationsTab({ conversations }: AccountModel) {
+  // Enquanto carrega, o `role="status"` com nome diz ao leitor de tela o
+  // que os skeletons representam.
   if (conversations.isPending) {
     return (
       <div
@@ -363,6 +434,8 @@ function ConversationsTab({ conversations }: AccountModel) {
             to={`/ask/${conversation.id}`}
             className="flex min-h-11 flex-col gap-1 rounded-xl bg-card p-3 text-body text-foreground hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
           >
+            {/* `first_question` é nulo numa conversa sem pergunta gravada
+                (SDD 12). */}
             <span className="truncate">
               {conversation.first_question ?? pt.account.conversations.untitled}
             </span>
@@ -376,6 +449,12 @@ function ConversationsTab({ conversations }: AccountModel) {
   )
 }
 
+/**
+ * Aba Privacidade (SDD 15.5 e 11.5): os interruptores dos consentimentos
+ * opcionais com a data do aceite, a linha fixa dos Termos com a versão
+ * aceita, a exportação dos dados, a exclusão da conta e o link para o canal
+ * do titular.
+ */
 function PrivacyTab({
   consents,
   changingPurpose,
@@ -387,13 +466,16 @@ function PrivacyTab({
     null,
   )
   const [exporting, setExporting] = useState(false)
+  // `"done"` mostra a confirmação, e um `SubmitFailure` mostra o erro.
   const [exportMessage, setExportMessage] = useState<SubmitFailure | "done" | null>(null)
 
+  /** Muda um consentimento e guarda a falha, se houver, para o aviso. */
   async function toggle(purpose: OptionalPurpose, granted: boolean) {
     setConsentFailure(null)
     setConsentFailure(await setConsent(purpose, granted))
   }
 
+  /** Baixa a exportação e mostra a confirmação ou o erro. */
   async function runExport() {
     setExporting(true)
     setExportMessage(null)
@@ -424,6 +506,8 @@ function PrivacyTab({
     )
   }
 
+  // Os Termos não têm interruptor: são obrigatórios para ter conta, e um novo
+  // aceite só acontece pela tela `/legal/accept`. Aqui só aparece a versão.
   const terms = consentFor(consents.data, termsPurpose)
   return (
     <div className="flex flex-col gap-8">
@@ -518,6 +602,8 @@ function PrivacyTab({
 
       <DeleteSection deleteAccount={deleteAccount} />
 
+      {/* Leva à seção `pedidos` do Aviso, o canal do titular, para o que a
+          conta não resolve sozinha, como oposição (SDD 11.5). */}
       <Button asChild variant="link" className="h-11 w-fit px-0 md:h-8">
         <Link to="/privacy#pedidos">{pt.account.privacy.requestsLink}</Link>
       </Button>
@@ -525,6 +611,13 @@ function PrivacyTab({
   )
 }
 
+/**
+ * Interruptor de um consentimento opcional. O `checked` vem do cache dos
+ * consentimentos, então ele só muda quando o servidor confirma; durante o
+ * pedido, fica travado. A nota ao lado diz o que o consentimento cobre e a
+ * data do aceite, como pede a seção 11.5 ("informação sobre não
+ * consentir").
+ */
 function ConsentSwitch({
   id,
   label,
@@ -552,6 +645,8 @@ function ConsentSwitch({
         onCheckedChange={onChange}
       />
       <FieldContent>
+        {/* No celular, o rótulo também é um alvo de toque de 44 px (SDD
+            15.8): tocar nele liga ou desliga o interruptor. */}
         <FieldLabel htmlFor={id} className="max-md:min-h-11 max-md:items-center">
           {label}
         </FieldLabel>
@@ -563,6 +658,11 @@ function ConsentSwitch({
   )
 }
 
+/**
+ * Excluir a conta, a última etapa da Jornada J5 (SDD 15.3 e 15.5). O
+ * `AlertDialog` só libera o botão depois que a pessoa digita EXCLUIR, e
+ * fechar o diálogo limpa o texto e a falha.
+ */
 function DeleteSection({
   deleteAccount,
 }: {
@@ -573,6 +673,10 @@ function DeleteSection({
   const [pending, setPending] = useState(false)
   const [failure, setFailure] = useState<SubmitFailure | null>(null)
 
+  /**
+   * Pede a exclusão. No sucesso, `deleteAccount` já navegou para o início.
+   * Na falha, como o 403 de um admin (SDD 10.5), o erro fica no diálogo.
+   */
   async function confirm() {
     setPending(true)
     setFailure(null)
@@ -650,6 +754,9 @@ function DeleteSection({
             <AlertDialogAction
               disabled={pending || !deleteConfirmed(text)}
               onClick={(event) => {
+                // O `AlertDialogAction` do Radix fecha o diálogo no clique. O
+                // `preventDefault` o mantém aberto até a resposta, para uma
+                // falha aparecer dentro dele.
                 event.preventDefault()
                 void confirm()
               }}

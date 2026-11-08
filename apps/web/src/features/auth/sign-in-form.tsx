@@ -1,3 +1,11 @@
+/**
+ * Formulário da tela Entrar (`/sign-in`): e-mail, senha e o link para o
+ * cadastro. Seção 15.5 do SDD (Entrar).
+ *
+ * View: `app/routes/sign-in.tsx` passa o `submit`, o `pending` e o erro de
+ * `useSignIn`. Usa o react-hook-form com zod e os componentes `Field` do
+ * shadcn/ui (seção 14.8).
+ */
 import { CircleAlert } from "lucide-react"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
@@ -10,6 +18,10 @@ import { Input } from "@/components/ui/input.tsx"
 import { Spinner } from "@/components/ui/spinner.tsx"
 import { pt } from "@/i18n/pt.ts"
 
+/**
+ * Validação no navegador, só de presença e de formato, com as mensagens de
+ * `pt.signIn`. Quem confere a senha é a API.
+ */
 const signInSchema = z.object({
   email: z
     .string()
@@ -26,8 +38,18 @@ const signInSchema = z.object({
   password: z.string().min(1, pt.signIn.passwordRequired),
 })
 
+/** Valores do formulário, inferidos do esquema pelo `z.infer`. */
 type SignInValues = z.infer<typeof signInSchema>
 
+/**
+ * Campos de e-mail e senha, o botão Entrar e o link Criar uma conta.
+ *
+ * O `zodResolver` faz o `handleSubmit` validar com o esquema antes de
+ * chamar `onSubmit`. O `error` vem da API e não diz qual campo errou,
+ * porque o login nunca revela se o e-mail existe (seção 10.4). Por isso ele
+ * marca os dois campos como inválidos e os liga ao mesmo alerta, salvo
+ * quando o campo tem um erro próprio do zod.
+ */
 export function SignInForm({
   pending,
   error,
@@ -47,6 +69,7 @@ export function SignInForm({
   return (
     <form
       className="flex flex-col gap-5"
+      // Desliga a validação do navegador: valem as mensagens do zod.
       noValidate
       onSubmit={(event) => {
         void form.handleSubmit(onSubmit)(event)
@@ -58,6 +81,8 @@ export function SignInForm({
           <Input
             id="email"
             type="email"
+            // `username` e `current-password` deixam o gerenciador de
+            // senhas preencher a conta salva.
             autoComplete="username"
             className="h-11 md:h-8"
             aria-invalid={Boolean(emailError || error)}

@@ -1,3 +1,15 @@
+/**
+ * Tela `/register`: criar a conta conversando, sem perder o controle dos
+ * dados. Seção 15.5 do SDD (Cadastro por conversa) e padrões da seção 15.6.
+ *
+ * View: recebe o retorno de `useRegistrationChat`, por
+ * `app/routes/register.tsx`, e não chama a API. Mostra a transcrição, o
+ * aviso de falha, o cartão do que a IA entendeu e, no rodapé, o passo
+ * atual: resposta livre, senha, revisão ou aceite, conforme o `next_step`
+ * (seção 7.2). Usa `AssistantBubble`, `UserMessage`, `ChatErrorNotice`,
+ * `ProfileSummaryCard`, `PasswordCard` e `ConsentFieldSet`, de
+ * `components/patterns`.
+ */
 import { PanelRightClose, PanelRightOpen, SendHorizontal } from "lucide-react"
 import { useEffect, useId, useRef, useState, type MouseEvent } from "react"
 import { Link, useNavigate } from "react-router"
@@ -28,8 +40,18 @@ import {
 } from "@/features/registration/model.ts"
 import { useRegistrationChat } from "@/features/registration/useRegistrationChat.ts"
 
+/** Tudo o que `useRegistrationChat` devolve. A tela recebe o objeto todo. */
 type Chat = ReturnType<typeof useRegistrationChat>
 
+/**
+ * Página do cadastro por conversa.
+ *
+ * O botão Ver o que entendemos abre o `ProfileSummaryCard`, que começa
+ * oculto: à direita do chat no desktop, de 1024 px para cima, e acima dele
+ * nas telas menores. O link Usar o formulário leva a sessão para o
+ * formulário e espera a mensagem a caminho antes de sair (J4). O texto do
+ * campo só é limpo quando a API aceita o turno.
+ */
 export function RegistrationScreen({
   session,
   loading,
@@ -45,6 +67,8 @@ export function RegistrationScreen({
   review,
   accept,
 }: Chat) {
+  // O `MotionProvider` acompanha `(min-width: 1024px)` e decide onde o
+  // cartão de resumo fica.
   const { isDesktop } = useMotion()
   const navigate = useNavigate()
   const [draft, setDraft] = useState("")
@@ -59,12 +83,18 @@ export function RegistrationScreen({
     }
   }, [outgoing, navigate, session?.id])
 
+  /**
+   * Clique em Usar o formulário. Com uma mensagem a caminho, segura o link,
+   * e o efeito acima navega quando `outgoing` volta a `null`.
+   */
   function openForm(event: MouseEvent<HTMLAnchorElement>) {
     if (outgoing !== null) {
       event.preventDefault()
       leavingForForm.current = true
     }
   }
+  // Padrão de disclosure: o botão diz com `aria-expanded` se o cartão está
+  // aberto e aponta para ele com `aria-controls`.
   const summaryId = useId()
   const [summaryOpen, setSummaryOpen] = useState(false)
   const summary = session ? (
@@ -78,6 +108,10 @@ export function RegistrationScreen({
     <SummarySkeleton />
   )
 
+  /**
+   * Envia o rascunho e só limpa o campo se a API aceitou o turno. Numa
+   * falha, o texto fica no compositor (seção 15.5, Estados).
+   */
   async function sendDraft(text: string) {
     const sent = await send(text)
     if (sent) {
@@ -85,6 +119,7 @@ export function RegistrationScreen({
     }
   }
 
+  // Texto do turno que falhou, para o Tentar de novo do aviso.
   const retryText = notice?.retryText ?? null
 
   return (
@@ -121,13 +156,17 @@ export function RegistrationScreen({
         </Button>
       </div>
       <div className="flex flex-1 flex-col gap-4 lg:flex-row lg:items-start">
+        {/* Abaixo de 1024 px, o cartão fica acima do chat. */}
         {summaryOpen && !isDesktop ? <div id={summaryId}>{summary}</div> : null}
         <section
           aria-label={pt.registration.thread}
           className="flex min-w-0 flex-1 flex-col rounded-2xl border border-border bg-shell"
         >
           <div className="flex flex-1 flex-col gap-4 p-4 md:p-5">
+            {/* Enquanto a sessão abre, o assistente aparece escrevendo. */}
             {loading ? <AssistantBubble typing /> : null}
+            {/* Só o envio de um turno mostra o assistente escrevendo. A
+                edição do cartão, a senha e a revisão não têm `outgoing`. */}
             {session ? (
               <Transcript
                 session={session}
@@ -140,6 +179,7 @@ export function RegistrationScreen({
                 title={pt.registration.errorTitle}
                 message={notice.message}
                 requestId={notice.requestId}
+                // Sem sessão, o aviso é o único conteúdo e não fecha.
                 onDismiss={session ? dismissNotice : undefined}
                 onRetry={
                   retryText && !pending
@@ -149,6 +189,8 @@ export function RegistrationScreen({
                     : undefined
                 }
               >
+                {/* Com o modelo fora (503) ou sem sessão, o aviso oferece
+                    o formulário (seção 7.2), que leva os campos entendidos. */}
                 {notice.unavailable || !session ? (
                   <Button asChild variant="link" className="h-11 px-0 md:h-8">
                     <Link to={formPath(session?.id ?? null)}>
@@ -159,6 +201,7 @@ export function RegistrationScreen({
               </ChatErrorNotice>
             ) : null}
           </div>
+          {/* Rodapé fixo do painel, com o passo atual (seção 15.5). */}
           {session ? (
             <div className="sticky bottom-0 z-10 rounded-b-2xl border-t border-border bg-shell p-4 md:p-5">
               <StepPanel
@@ -176,6 +219,7 @@ export function RegistrationScreen({
             </div>
           ) : null}
         </section>
+        {/* No desktop, o cartão fica à direita e acompanha a rolagem. */}
         {summaryOpen && isDesktop ? (
           <div id={summaryId} className="sticky top-0 w-80 shrink-0">
             {summary}
@@ -186,6 +230,10 @@ export function RegistrationScreen({
   )
 }
 
+/**
+ * Campos vazios, para a contagem do botão antes de a sessão abrir. Igual a
+ * `emptyFields`, do `model.ts`.
+ */
 function emptySummaryFields() {
   return {
     full_name: null,
@@ -196,6 +244,15 @@ function emptySummaryFields() {
   }
 }
 
+/**
+ * Transcrição do chat, a mensagem a caminho e o assistente escrevendo.
+ *
+ * A região ao vivo, escondida, lê a última fala do assistente, ou avisa que
+ * ele está escrevendo. Cada mudança no número de falas ou em `typing` rola
+ * a lista até o fim. As falas não têm id, então a chave junta a data e a
+ * posição. Com o e-mail já cadastrado, o botão Entrar aparece logo abaixo
+ * da resposta (seção 15.5, Estados).
+ */
 function Transcript({
   session,
   outgoing,
@@ -211,6 +268,8 @@ function Transcript({
     .find((message) => message.role === "assistant")
   const count = session.messages.length
 
+  // O `?.` depois de `scrollIntoView` cobre o jsdom dos testes, que não tem
+  // o método. A rolagem é suave mesmo com movimento reduzido.
   useEffect(() => {
     endRef.current?.scrollIntoView?.({ block: "end", behavior: "smooth" })
   }, [count, typing])
@@ -235,6 +294,8 @@ function Transcript({
             )}
           </li>
         ))}
+        {/* `ps-10` alinha o botão ao balão, depois do avatar de 32 px e do
+            espaço de 8 px. */}
         {!typing && emailOffersSignIn(session.field_errors.email) ? (
           <li className="flex flex-wrap gap-2 ps-10">
             <Button asChild className="min-h-11 md:min-h-8">
@@ -258,6 +319,12 @@ function Transcript({
   )
 }
 
+/**
+ * Escolhe o rodapé pelo `next_step` da sessão. A senha, a revisão e o
+ * aceite têm controles próprios: a interface de senha aparece porque a
+ * resposta diz `next_step = password` (seção 7.2). Os passos de campo usam
+ * a resposta livre, com Pular nos opcionais.
+ */
 function StepPanel({
   session,
   pending,
@@ -316,6 +383,14 @@ function StepPanel({
   )
 }
 
+/**
+ * Compositor do chat do cadastro, com Enviar dentro do campo (seção 15.5).
+ *
+ * O campo cresce com o texto. Enter envia e Shift+Enter quebra a linha
+ * (seção 15.8). Nos passos opcionais, a dica e o botão Pular aparecem
+ * abaixo, e a dica descreve o campo. Enquanto o turno vai, o campo e os
+ * botões ficam desabilitados.
+ */
 function ReplyStep({
   pending,
   value,
@@ -335,6 +410,8 @@ function ReplyStep({
   const hintId = useId()
   const fieldRef = useRef<HTMLTextAreaElement>(null)
 
+  // Zera a altura e mede o conteúdo a cada mudança: o campo cresce com o
+  // texto até o `max-h-40` do CSS e depois rola.
   useEffect(() => {
     const field = fieldRef.current
     if (!field) {
@@ -371,6 +448,7 @@ function ReplyStep({
             id={fieldId}
             value={value}
             rows={1}
+            // O mesmo teto da API para uma mensagem (`MAX_MESSAGE_CHARS`).
             maxLength={1000}
             placeholder={pt.registration.messagePlaceholder}
             disabled={pending}
@@ -419,6 +497,12 @@ function ReplyStep({
   )
 }
 
+/**
+ * Passo da senha: o `PasswordCard` no lugar do compositor (seção 15.5). Com
+ * `moveFocus`, o foco vai para o campo quando a entrada M12 termina (seção
+ * 16.3), com ou sem movimento reduzido. A senha fica só no estado deste
+ * componente até o envio.
+ */
 function PasswordStep({
   pending,
   error,
@@ -443,6 +527,11 @@ function PasswordStep({
   )
 }
 
+/**
+ * Passo da revisão: Está certo e Quero corrigir. O resumo vem do próprio
+ * assistente, na conversa, e o cartão lateral não abre sozinho (seção
+ * 15.5, Passo de revisão).
+ */
 function ReviewStep({
   pending,
   onReview,
@@ -478,6 +567,14 @@ function ReviewStep({
   )
 }
 
+/**
+ * Passo do aceite: o `ConsentFieldSet` e o botão Criar conta (seção 15.5,
+ * Passo de aceite).
+ *
+ * Os aceites começam desmarcados. Os erros dos obrigatórios só aparecem
+ * depois da primeira tentativa de envio, e o erro do servidor vence o
+ * local. Só `accept_terms` e `age_18_plus` chegam ao `ConsentFieldSet`.
+ */
 function AcceptStep({
   pending,
   serverErrors,
@@ -534,6 +631,7 @@ function AcceptStep({
   )
 }
 
+/** Lugar do cartão de resumo enquanto a sessão não abriu. */
 function SummarySkeleton() {
   return <Skeleton className="h-40 w-full" />
 }

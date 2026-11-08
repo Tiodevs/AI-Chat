@@ -1,3 +1,18 @@
+/**
+ * Fila de pedidos de titular do admin, em `/admin/privacy`: as contagens do
+ * topo, a tabela com os atrasados primeiro e o `Sheet` de cada pedido, com
+ * o formulário de status e nota.
+ *
+ * Camada: view (SDD 13.2). Recebe o `PrivacyQueueModel` de
+ * `usePrivacyQueue` pela rota `app/routes/admin-privacy.tsx` e não chama a
+ * API. Usa as regras de `privacy-queue-model.ts`, o `fill` e o
+ * `formatDateTime` de `documents-model.ts`, o `DataTable`, o
+ * `DueDateBadge`, o `StatTile` e o `RequestIdCopy` de
+ * `components/patterns` e o `Sheet` de `components/ui`.
+ *
+ * SDD 15.5 (Pedidos de titular), 11.5 (prazo e nota de resolução), 12 e a
+ * Jornada J8 (FR-16).
+ */
 import { useEffect, useRef, useState, type FormEvent } from "react"
 
 import { PageHeading } from "@/app/page-heading.tsx"
@@ -46,18 +61,31 @@ import type { PrivacyQueueModel } from "./usePrivacyQueue.ts"
 const t = pt.privacyQueue
 const d = pt.privacyQueue.detail
 
+/** Badge do status. Um status desconhecido usa a superfície neutra. */
 function StatusTag({ status }: { status: string }) {
   const variant = (statusVariant as Record<string, (typeof statusVariant)[RequestStatus]>)[status]
   return <Badge variant={variant ?? "secondary"}>{statusLabel(status)}</Badge>
 }
 
-/** Fila de pedidos de titular: atrasados primeiro, com texto e não só cor. SDD 15.5 (FR-16). */
+/**
+ * Fila de pedidos de titular: atrasados primeiro, com texto e não só cor.
+ * SDD 15.5 (FR-16). A ordem vem pronta da API: os abertos e em andamento,
+ * do prazo mais antigo ao mais novo, e depois os fechados.
+ */
 export function PrivacyQueueScreen(model: PrivacyQueueModel) {
   const data = model.queue
+  // Os prazos contam a partir do `generated_at` da leitura, o instante que a
+  // API usou no `overdue`: o selo e a contagem de atrasados concordam mesmo
+  // com o relógio do navegador errado. Antes da primeira leitura, vale a
+  // hora do navegador.
   const now = data?.generated_at ?? new Date().toISOString()
+  // O pedido do `Sheet` sai da fila em cache, então cada releitura atualiza
+  // o detalhe aberto.
   const selected = data?.requests.find((item) => item.id === model.openId) ?? null
   const summary = counts(data?.requests)
 
+  // Colunas da seção 15.5: tipo (o cabeçalho da linha), contato, recebido
+  // em, prazo, status e a ação de abrir.
   const columns: DataTableColumn<PrivacyQueueItem>[] = [
     {
       key: "type",
@@ -89,6 +117,8 @@ export function PrivacyQueueScreen(model: PrivacyQueueModel) {
       key: "actions",
       header: t.table.actions,
       cell: (row) => (
+        // O nome acessível começa pelo texto visível e diz o tipo e o
+        // contato do pedido, para distinguir as linhas (SDD 15.8).
         <Button
           size="sm"
           variant="outline"
@@ -110,6 +140,9 @@ export function PrivacyQueueScreen(model: PrivacyQueueModel) {
         <p className="text-body text-muted-foreground">{t.lead}</p>
       </header>
 
+      {/* Atrasados (em `--danger` quando há algum), abertos e em andamento,
+          acima da tabela (SDD 15.5). Com erro de leitura, nem o skeleton
+          aparece: o alerta abaixo explica. */}
       {data ? (
         <section aria-label={t.summary.label} className="grid grid-cols-1 gap-2 sm:grid-cols-3">
           <StatTile
@@ -151,8 +184,15 @@ export function PrivacyQueueScreen(model: PrivacyQueueModel) {
   )
 }
 
+// O aviso do detalhe, na região `aria-live`.
 type Notice = { text: string; failed: boolean; requestId: string | null }
 
+/**
+ * O `Sheet` do pedido aberto. O `key` por id recria o detalhe ao trocar de
+ * pedido, o que zera o formulário e o aviso. Sem pedido, o `Sheet` está
+ * fechado; o cabeçalho genérico só garante que o conteúdo nunca fique sem
+ * título (SDD 14.8).
+ */
 function RequestSheet({
   request,
   now,
@@ -187,6 +227,12 @@ function RequestSheet({
   )
 }
 
+/**
+ * Detalhe de um pedido (SDD 15.5): o prazo, o status, o contato, as datas,
+ * se o pedido veio com sessão de membro, o texto do pedido e o formulário
+ * de status e nota. Um pedido fechado abre só para leitura, com a nota
+ * gravada.
+ */
 function RequestDetail({
   request,
   now,
@@ -198,11 +244,16 @@ function RequestDetail({
 }) {
   const [notice, setNotice] = useState<Notice | null>(null)
   const closed = isClosed(request.status)
+  // O contato só vira link `mailto:` quando o endereço é seguro.
   const mailto = mailtoHref(request.contact_email)
   const closedHeading = useRef<HTMLHeadingElement>(null)
+  // O estado da renderização anterior. O foco só muda na passagem de aberto
+  // para fechado, e não ao abrir um pedido que já estava fechado.
   const wasClosed = useRef(closed)
 
-  // Ao concluir ou recusar, o botão Salvar some: o foco vai para a nota gravada.
+  // Ao concluir ou recusar, o botão Salvar some: o foco vai para a nota
+  // gravada (SDD 15.5). Uma releitura que traz o fechamento feito por outro
+  // admin também move o foco.
   useEffect(() => {
     if (closed && !wasClosed.current) {
       closedHeading.current?.focus()
@@ -266,6 +317,9 @@ function RequestDetail({
           ) : null}
         </div>
 
+        {/* Fechado, o pedido não muda mais e não tem formulário (SDD 11.5).
+            `tabIndex={-1}` deixa o título receber o foco pelo código sem
+            entrar na ordem do Tab. */}
         {closed ? (
           <section aria-labelledby="dsr-resolution-title" className="flex flex-col gap-2">
             <h3
@@ -289,6 +343,14 @@ function RequestDetail({
   )
 }
 
+/**
+ * Formulário de status e nota de um pedido aberto (SDD 11.5 e 15.5).
+ *
+ * Segue as regras do servidor antes de chamar a API: concluir ou recusar
+ * exige uma nota, nova ou já gravada, e a nota em branco mantém a gravada.
+ * O estado vive enquanto o detalhe está aberto, então a releitura de 60
+ * segundos não apaga o que o admin está digitando.
+ */
 function UpdateForm({
   request,
   update,
@@ -298,6 +360,8 @@ function UpdateForm({
   update: PrivacyQueueModel["update"]
   onNotice: (notice: Notice | null) => void
 }) {
+  // Um status fora da lista, que a API não deveria mandar, começa como
+  // `open`.
   const initial = (requestStatuses as readonly string[]).includes(request.status)
     ? (request.status as RequestStatus)
     : "open"
@@ -308,10 +372,12 @@ function UpdateForm({
 
   const storedNote = request.resolution_note ?? ""
 
+  /** Confere a nota, envia a mudança e mostra o resultado. */
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     onNotice(null)
-    // Mesma regra do servidor: nota em branco mantém a gravada, e fechar exige alguma.
+    // Mesma regra do servidor: nota em branco mantém a gravada, e fechar
+    // exige alguma.
     if (needsNote(status) && note.trim() === "" && storedNote.trim() === "") {
       setErrors({ resolution_note: d.noteRequired })
       return
@@ -328,6 +394,9 @@ function UpdateForm({
       })
       return
     }
+    // Um erro de `status` ou de `resolution_note` vai para o campo. Os
+    // outros, como o 409 de um pedido que outro admin fechou, vão para o
+    // aviso com o `request_id`.
     setErrors(result.fieldErrors)
     if (Object.keys(result.fieldErrors).length === 0) {
       onNotice({ text: result.message, failed: true, requestId: result.requestId })
@@ -351,6 +420,9 @@ function UpdateForm({
             aria-describedby={statusError ? "dsr-status-error" : undefined}
             aria-invalid={statusError ? true : undefined}
             disabled={pending}
+            // Clicar no status já marcado faz o Radix mandar `""`: só um
+            // status da lista muda o estado. Trocar o status limpa os erros
+            // e o aviso.
             onValueChange={(value) => {
               if ((requestStatuses as readonly string[]).includes(value)) {
                 setStatus(value as RequestStatus)
@@ -376,6 +448,7 @@ function UpdateForm({
             disabled={pending}
             aria-invalid={noteError ? true : undefined}
             aria-describedby={noteError ? "dsr-note-hint dsr-note-error" : "dsr-note-hint"}
+            // Digitar limpa o erro da nota e o aviso anterior.
             onChange={(event) => {
               setNote(event.target.value)
               if (noteError) {
