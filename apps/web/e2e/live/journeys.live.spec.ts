@@ -1,3 +1,14 @@
+/**
+ * J1, J2, J3, J4, J5 e J8 da seção 15.3 contra a API de verdade. FR-1 a
+ * FR-3, FR-5, FR-6, FR-9, FR-16, FR-17 e NFR-14, seção 21.1 do SDD e
+ * ADR-014.
+ *
+ * Suíte ao vivo, projeto `live` (Pixel 5 com movimento reduzido). A API roda
+ * com o adaptador `demo` e o corpus semeado, sobre o PostgreSQL da e2e: as
+ * respostas saem das regras do `demo` e do texto de `content/corpus`. Cada
+ * teste ganha as fixtures automáticas de `fixtures.ts` (IP próprio e checagem
+ * de CSP) e cria as contas com e-mail único.
+ */
 import { pt } from "../../src/i18n/pt.ts"
 import { visitingQuestion } from "../api.ts"
 
@@ -10,8 +21,6 @@ import {
   uniqueEmail,
 } from "./fixtures.ts"
 
-// Jornadas da seção 15.3 contra a API de verdade, com o adaptador `demo` e o corpus semeado.
-
 test("J1 o convidado pergunta o horário de visita e recebe a resposta com fonte", async ({
   page,
 }) => {
@@ -21,6 +30,8 @@ test("J1 o convidado pergunta o horário de visita e recebe a resposta com fonte
 
   await page.getByRole("radio", { name: visitingQuestion().label }).click()
   await expect(page).toHaveURL(/\/ask\//)
+  // O `demo` responde com a primeira frase do bloco mais bem colocado, e o
+  // horário vem de `content/corpus/02-visiting.md`.
   const thread = page.locator("ol")
   await expect(thread.getByText(/11:00–20:00/)).toBeVisible()
   await page.getByRole("button", { name: pt.ask.showSources }).click()
@@ -45,6 +56,8 @@ test("J2 o convidado descreve um sintoma e a mensagem não fica guardada", async
     }),
   ).toBeVisible()
   await expect(thread.getByText(pt.ask.privacyNote)).toBeVisible()
+  // Recarregar mostra o que o banco guardou: o marcador no lugar da pergunta,
+  // que a tela exibe como o aviso de privacidade (FR-17).
   await page.reload()
   await expect(page.locator("ol").getByText(pt.ask.privacyNote)).toBeVisible()
   await expect(page.locator("ol").getByText(question)).toHaveCount(0)

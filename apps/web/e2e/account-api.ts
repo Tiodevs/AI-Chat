@@ -1,8 +1,18 @@
+/**
+ * Conta simulada de um membro, para a J5. FR-9 e seções 11.5, 12 e 15.3 do
+ * SDD.
+ *
+ * `installAccountApi` responde por `page.route` às rotas do perfil, dos
+ * consentimentos, da exportação, da exclusão e das conversas, com o estado do
+ * membro em memória. `account.spec.ts` lê esse estado para conferir o que a
+ * tela mandou. Nada aqui fala com a API nem com banco.
+ */
 import type { Page, Route } from "@playwright/test"
 
 const version = "2026-10-25.1"
 const stamp = "2026-11-03T12:00:00.000Z"
 
+/** O perfil de `GET /v1/me` (seção 12). */
 type Member = {
   id: string
   email: string
@@ -14,12 +24,28 @@ type Member = {
   needs_legal_acceptance: boolean
 }
 
+/**
+ * O que o teste lê do falso: se a conta foi excluída, se os dados foram
+ * exportados e o perfil como está agora.
+ */
 export type AccountApi = {
   deleted: () => boolean
   exported: () => boolean
   member: () => Member
 }
 
+/**
+ * Simula a API da conta com um membro que já tem sessão.
+ *
+ * - `PATCH /v1/me` aplica o corpo no perfil.
+ * - Revogar a personalização apaga `visitor_type` e `visit_reason`, como na
+ *   seção 12.
+ * - A exportação responde com `Content-Disposition: attachment` e o arquivo
+ *   `atrium-meus-dados.json`.
+ * - `DELETE /v1/me` responde 204 e encerra a sessão: depois dele,
+ *   `GET /v1/me` responde 401.
+ * - Rotas fora da lista respondem 404.
+ */
 export async function installAccountApi(page: Page): Promise<AccountApi> {
   let signedIn = true
   let deleted = false
@@ -112,6 +138,11 @@ export async function installAccountApi(page: Page): Promise<AccountApi> {
   }
 }
 
+/**
+ * O corpo de `GET /v1/me/consents`: Termos e maioridade concedidos, a
+ * personalização conforme o estado e a melhoria desligada. `history` vem
+ * vazio.
+ */
 function consents(personalization: boolean) {
   const state = (purpose: string, on: boolean) => ({
     purpose,
@@ -130,10 +161,12 @@ function consents(personalization: boolean) {
   }
 }
 
+/** O envelope de erro da seção 12. */
 function error(code: string, message: string) {
   return { error: { code, message, request_id: "01E2E" } }
 }
 
+/** Responde à rota com o status pedido e o corpo em JSON. */
 function fulfill(route: Route, status: number, body: unknown) {
   return route.fulfill({
     status,

@@ -1,3 +1,12 @@
+/**
+ * J8 do lado do admin, com a API simulada: o pedido atrasado vem primeiro, e
+ * fechar exige nota. FR-16 e NFR-14, seções 11.5, 12 e 15.3 do SDD.
+ *
+ * Suíte simulada, projeto `mobile` (Pixel 5 com movimento reduzido). O
+ * próprio teste instala o `page.route`: um admin em `GET /v1/me`, a fila de
+ * `queue` e um `PATCH` que imita as regras de fechamento da seção 12. Sem API
+ * e sem banco.
+ */
 import { expect, test, type Route } from "@playwright/test"
 
 import { pt } from "../src/i18n/pt.ts"
@@ -6,8 +15,11 @@ import { expectNoSeriousViolations } from "./api.ts"
 
 const t = pt.privacyQueue
 const d = pt.privacyQueue.detail
+// A tela conta os prazos a partir do `generated_at` da fila, não do relógio
+// da máquina. Por isso o atraso de 5 dias sai igual em qualquer data.
 const now = "2031-01-15T12:00:00.000Z"
 
+/** Um item de `GET /v1/admin/privacy/requests` (seção 12). */
 type Item = {
   id: string
   request_type: string
@@ -22,6 +34,7 @@ type Item = {
   linked_account: boolean
 }
 
+/** O perfil de `GET /v1/me` de um admin. */
 const admin = {
   id: "00000000-0000-4000-8000-0000000000ad",
   email: "admin@example.com",
@@ -33,6 +46,10 @@ const admin = {
   needs_legal_acceptance: false,
 }
 
+/**
+ * A fila na ordem em que a API a devolve: o pedido de eliminação atrasado
+ * primeiro, depois um pedido de acesso dentro do prazo.
+ */
 function queue(): Item[] {
   return [
     {
@@ -64,6 +81,7 @@ function queue(): Item[] {
   ]
 }
 
+/** Responde à rota com o status pedido e o corpo em JSON. */
 async function fulfill(route: Route, status: number, body: unknown) {
   await route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) })
 }
@@ -92,6 +110,8 @@ test("J8 o admin vê o pedido atrasado primeiro e o conclui com nota", async ({ 
         await fulfill(route, 404, { error: { code: "not_found", message: "x", request_id: "r" } })
         return
       }
+      // Como na seção 12: fechar grava `closed_at` e tira o atraso, e uma
+      // nota nula mantém a que já existe.
       const closed = body.status === "done" || body.status === "rejected"
       const updated = {
         ...current,

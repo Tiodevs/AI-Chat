@@ -1,3 +1,12 @@
+/**
+ * J1 a J5 só com teclado: Tab, Enter, Espaço e setas. Etapa 9.1, CA-2,
+ * NFR-14 e seção 15.8 do SDD.
+ *
+ * Suíte ao vivo, só no projeto `live-desktop` (Desktop Chrome sem redução de
+ * movimento), contra a API de verdade. Nenhum clique de mouse depois de a
+ * página abrir, salvo a criação da conta de apoio da J5 pelo
+ * `registerByForm`. O foco anda com o `tabTo` de `a11y.ts`.
+ */
 import type { Locator, Page } from "@playwright/test"
 
 import { pt } from "../../src/i18n/pt.ts"
@@ -6,15 +15,13 @@ import { visitingQuestion } from "../api.ts"
 import { tabTo } from "./a11y.ts"
 import { expect, registerByForm, test, uniqueEmail } from "./fixtures.ts"
 
-/**
- * J1 a J5 só com teclado: Tab, Shift+Tab, Enter, Espaço e setas. Etapa 9.1, CA-2 (SDD 15.8).
- * Nenhum clique de mouse depois de a página abrir, salvo a criação da conta de apoio da J5.
- */
+/** Leva o foco ao alvo com Tab e aperta a tecla, Enter por padrão. */
 async function press(page: Page, target: Locator, key = "Enter") {
   await tabTo(page, target)
   await page.keyboard.press(key)
 }
 
+/** Leva o foco ao campo com Tab e digita o texto. */
 async function typeInto(page: Page, target: Locator, text: string) {
   await tabTo(page, target)
   await page.keyboard.type(text)
@@ -44,6 +51,8 @@ test("J3 pelo teclado: cadastro por conversa até a conta", async ({ page }) => 
   await page.keyboard.press("Enter")
   await expect(page.getByText("Elisa Prado").first()).toBeVisible()
   await expect(message).toBeEnabled()
+  // O campo fica `disabled` durante o turno, e o navegador tira o foco dele.
+  // O `focus()` devolve o foco sem clique, mas não é uma tecla.
   await message.focus()
   await page.keyboard.type(email)
   await page.keyboard.press("Enter")

@@ -1,3 +1,17 @@
+/**
+ * A gestão de documentos do admin, em `/admin/documents`. FR-10, FR-11,
+ * FR-12, NFR-10, NFR-14, seções 7.3, 12, 14.5, 15.3 (J6) e 15.5 do SDD.
+ *
+ * As regras derivam o status da versão mais nova e do arquivamento e
+ * adiantam no navegador o limite de 10 MB e os tipos aceitos. Na tela, a
+ * tabela mostra as ações de cada estado, a barra lateral do admin aparece, o
+ * tipo errado não chama a API, o envio vai em multipart e o erro de campo do
+ * servidor marca o campo. Substituir abre um `Sheet` que promete a versão
+ * ativa até a nova ficar pronta, tentar de novo chama a rota `retry` e
+ * arquivar só chama a API depois da confirmação. `installApi` troca o
+ * `fetch` por uma API falsa com um admin. Projeto `dom` do Vitest, com as
+ * rotas reais. Não usa a API nem banco.
+ */
 import { render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import axe from "axe-core"
@@ -19,6 +33,7 @@ import {
 
 const t = pt.documents
 
+/** Perfil de `GET /v1/me` do admin que abre a tela. */
 const admin = {
   id: "00000000-0000-4000-8000-0000000000ad",
   email: "admin@example.com",
@@ -30,6 +45,10 @@ const admin = {
   needs_legal_acceptance: false,
 }
 
+/**
+ * Uma versão do arquivo `04-parking.md` com o número e o status de ingestão
+ * dados, e o erro quando houver.
+ */
 function version(
   number: number,
   status: "processing" | "ready" | "failed",
@@ -47,6 +66,10 @@ function version(
   }
 }
 
+/**
+ * Um documento ativo com a versão 1 pronta como ativa e como a mais nova. O
+ * `slug` sai do título, e `overrides` troca o que o teste precisar.
+ */
 function doc(
   id: string,
   title: string,
@@ -65,6 +88,8 @@ function doc(
   }
 }
 
+// Um documento por estado: a versão 2 em processamento, a versão 2 com falha,
+// pronto e arquivado.
 const parking = doc("00000000-0000-4000-8000-000000000101", "Estacionamento", {
   latest_version: version(2, "processing"),
 })
@@ -76,8 +101,10 @@ const archived = doc("00000000-0000-4000-8000-000000000104", "Antigo", {
   status: "archived",
 })
 
+/** Um pedido que o `fetch` falso recebeu, com o corpo em texto. */
 type Call = { method: string; path: string; body: string }
 
+/** Resposta JSON com o `status` dado, como a API devolve. */
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
@@ -85,6 +112,11 @@ function json(body: unknown, status = 200) {
   })
 }
 
+/**
+ * Troca o `fetch` por uma API falsa com um admin. `GET /v1/admin/documents`
+ * devolve `documents`; `handlers`, com chaves `MÉTODO caminho`, responde às
+ * ações. O resto responde 404. Devolve a lista de chamadas.
+ */
 function installApi(
   documents: AdminDocument[],
   handlers: Record<string, (call: Call) => Response> = {},
@@ -123,11 +155,13 @@ function spyFormData() {
   return vi.spyOn(FormData.prototype, "append")
 }
 
+/** O nome do arquivo passado ao `append("file", ...)`, o terceiro argumento. */
 function appendedFile(spy: ReturnType<typeof spyFormData>) {
   const call = spy.mock.calls.find(([key]) => key === "file")
   return call?.[2]
 }
 
+/** Abre o app inteiro em `path`, com as rotas reais e os provedores. */
 function renderAt(path: string) {
   const router = createMemoryRouter(routes, { initialEntries: [path] })
   return render(
@@ -137,6 +171,10 @@ function renderAt(path: string) {
   )
 }
 
+/**
+ * Espera a tabela de documentos e, com `title`, a linha desse documento.
+ * Devolve a tabela.
+ */
 async function table(title = "") {
   const found = await screen.findByRole("table", { name: t.table.caption })
   if (title) {
@@ -162,6 +200,7 @@ describe("regras dos documentos", () => {
   it("adianta no navegador o limite de 10 MB e os tipos aceitos (FR-10)", () => {
     expect(fileProblem(null)).toBe(t.dropzone.required)
     expect(fileProblem(new File(["x"], "contrato.docx"))).toBe(t.dropzone.wrongType)
+    // O tamanho é forjado, para o teste não alocar 10 MB.
     const big = new File(["x"], "grande.pdf")
     Object.defineProperty(big, "size", { value: maxUploadBytes + 1 })
     expect(fileProblem(big)).toBe(t.dropzone.tooLarge)
@@ -212,6 +251,8 @@ describe("tela de documentos", () => {
 
   it("recusa no navegador um tipo não aceito sem chamar a API", async () => {
     const calls = installApi([])
+    // Com `applyAccept: false`, o `userEvent` não filtra pelo `accept` do
+    // campo, e o `.docx` chega à validação da tela, como um arquivo arrastado.
     const user = userEvent.setup({ applyAccept: false })
     renderAt("/admin/documents")
     await screen.findByText(t.table.empty)

@@ -1,3 +1,15 @@
+/**
+ * Regras puras do cadastro em `features/registration/model.ts`. FR-6, FR-7,
+ * FR-8, seções 7.2, 8.5, 12 e 16.3 (M11) do SDD.
+ *
+ * Prova que o passo da máquina de estados vira a etapa visível e a escala da
+ * barra de progresso, que a força da senha tem nível em texto, que os campos
+ * vindos do chat chegam ao formulário com a senha vazia e os opcionais
+ * desmarcados, que os aceites obrigatórios são exigidos, que a mensagem de
+ * e-mail já usado oferece entrar e que a senha vai no corpo do formulário,
+ * sem um objeto `fields`. Roda no projeto `dom` do Vitest, sem tela. Não usa
+ * `fetch`, a API nem banco.
+ */
 import { describe, expect, it } from "vitest"
 
 import { pt } from "@/i18n/pt.ts"

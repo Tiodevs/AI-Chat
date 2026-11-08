@@ -1,3 +1,14 @@
+/**
+ * J1 e J3 com o movimento ligado: as animações não quebram a página. NFR-15,
+ * seções 16.3 e 16.6 do SDD.
+ *
+ * Suíte simulada, projeto `animation` (Desktop Chrome sem redução de
+ * movimento), o único que roda este arquivo. Cada teste junta os `pageerror`,
+ * erros sem tratamento na página, e falha se houver algum. Usa as respostas
+ * de `api.ts` e de `registration-api.ts`. Na J3, o `registerByChat` também
+ * confere o foco no campo de senha depois da M12 sem redução. Sem API e sem
+ * banco.
+ */
 import { expect, test } from "@playwright/test"
 
 import { pt } from "../src/i18n/pt.ts"

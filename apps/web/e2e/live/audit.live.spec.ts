@@ -1,3 +1,12 @@
+/**
+ * Auditoria de acessibilidade de todas as telas e diálogos. Etapa 9.1, CA-1
+ * e CA-2, NFR-14 e seção 15.8 do SDD.
+ *
+ * Suíte ao vivo, nos projetos `live` (Pixel 5 com movimento reduzido) e
+ * `live-desktop` (Desktop Chrome sem redução). São três testes, para as telas
+ * públicas, as do membro e as do admin, e cada um cria na API de verdade os
+ * dados de que precisa.
+ */
 import AxeBuilder from "@axe-core/playwright"
 import type { Page } from "@playwright/test"
 
@@ -8,10 +17,10 @@ import { smallTargets } from "./a11y.ts"
 import { expect, registerByForm, signInAsAdmin, test, uniqueEmail } from "./fixtures.ts"
 
 /**
- * Auditoria de acessibilidade de todas as telas. Etapa 9.1, CA-1 e CA-2 (SDD 15.8).
- *
- * Em cada tela e em cada diálogo aberto: axe sem violação séria ou crítica e alvos de toque de
- * 44 px no celular e 24 px no desktop. As falhas são acumuladas, para um teste mostrar todas.
+ * Audita a tela ou o diálogo aberto: espera a rede parar, roda o axe sem
+ * aceitar violação séria ou crítica e mede os alvos de toque, de 44 px no
+ * celular e 24 px no desktop. Usa `expect.soft`: as falhas se acumulam, e um
+ * teste mostra todas.
  */
 async function audit(page: Page, where: string) {
   await page.waitForLoadState("networkidle")
@@ -25,12 +34,18 @@ async function audit(page: Page, where: string) {
   expect.soft(await smallTargets(page, minimum), `alvos de ${String(minimum)} px em ${where}`).toEqual([])
 }
 
+/** Fecha o diálogo aberto com Esc e confere que nenhum diálogo ficou. */
 async function closeDialog(page: Page) {
   await page.keyboard.press("Escape")
   await expect(page.getByRole("dialog")).toHaveCount(0)
   await expect(page.getByRole("alertdialog")).toHaveCount(0)
 }
 
+/**
+ * Abaixo de 768 px, abre o menu que estiver à vista, o da barra lateral ou o
+ * do visitante, e devolve `true`. No desktop, a barra já está na tela, e a
+ * função devolve `false`.
+ */
 async function openNavigation(page: Page) {
   const width = page.viewportSize()?.width ?? 1280
   if (width >= 768) {
@@ -64,6 +79,9 @@ test("telas públicas e a conversa", async ({ page }) => {
     await audit(page, path)
   }
 
+  // O roteador não tem rota `*` nem `ErrorBoundary` na raiz, então este
+  // endereço mostra a tela de erro padrão do React Router, não uma página em
+  // português (seção 13.3). A Etapa 14.1 cria a página não encontrada.
   await page.goto("/nao-existe")
   await audit(page, "página não encontrada")
 
@@ -99,6 +117,7 @@ test("telas do membro", async ({ page }) => {
     await audit(page, "menu do membro")
     await closeDialog(page)
   }
+  // Um membro numa rota de admin vê a página 403 (seção 13.3).
   await page.goto("/admin")
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible()
   await audit(page, "admin para membro (403)")

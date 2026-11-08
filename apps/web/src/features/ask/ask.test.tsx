@@ -1,3 +1,15 @@
+/**
+ * O hook `useAskConversation` com o fluxo SSE simulado, e a região ao vivo do
+ * `ChatThread`. FR-18, seções 7.1, 13.2, 15.5, 15.8 e 21.1 do SDD.
+ *
+ * Prova que `replace` troca o rascunho e o anúncio espera o `done`, que Stop
+ * aborta o pedido pelo `AbortSignal` e mostra a interrupção, que a visão
+ * consulta a conversa a cada segundo quando o primeiro evento não chega, e
+ * que a região ao vivo recebe a resposta inteira só no `done`. O componente
+ * `Harness` expõe o hook em botões e parágrafos; o `fetch` falso devolve o
+ * fluxo do `POST` como um `ReadableStream` e a conversa no `GET`. Projeto
+ * `dom` do Vitest. Não usa a API nem banco.
+ */
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { createMemoryRouter, RouterProvider } from "react-router"
@@ -12,6 +24,11 @@ import { useAskConversation } from "./useAskConversation.ts"
 
 const conversationId = "00000000-0000-4000-8000-0000000000a1"
 
+/**
+ * Tela mínima para o hook: Enviar faz a pergunta de horário de visita e
+ * Parar chama `stop`. O `role="status"` mostra o anúncio (`live`), e cada
+ * turno do assistente aparece como `fase:texto`.
+ */
 function Harness() {
   const ask = useAskConversation(conversationId)
   return (
@@ -37,6 +54,7 @@ function Harness() {
   )
 }
 
+/** Renderiza o `Harness` num roteador de memória, porque o hook navega. */
 function renderHarness() {
   const router = createMemoryRouter([{ path: "/", element: <Harness /> }], {
     initialEntries: ["/"],
@@ -48,6 +66,7 @@ function renderHarness() {
   )
 }
 
+/** Resposta JSON com o `status` dado, como a API devolve. */
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
@@ -55,6 +74,7 @@ function json(body: unknown, status = 200) {
   })
 }
 
+/** `GET /v1/conversations/{id}` de uma conversa sem mensagens. */
 function emptyConversation() {
   return json({
     id: conversationId,
@@ -144,6 +164,10 @@ describe("pedido da conversa", () => {
   })
 
   it("consulta a conversa a cada segundo se o primeiro evento não chega", async () => {
+    // Relógio falso: o teste avança o intervalo da consulta de reserva. O
+    // `POST` abre um fluxo que nunca manda evento, e o `GET` só traz a
+    // resposta depois de conhecer o `client_message_id` enviado. O clique usa
+    // `fireEvent`, porque as esperas do `userEvent` dependem de `setTimeout`.
     vi.useFakeTimers()
     try {
       let clientMessageId = ""
@@ -192,6 +216,7 @@ describe("pedido da conversa", () => {
         })
       )
       renderHarness()
+      // Deixa terminar a leitura inicial da conversa, que o hook faz ao montar.
       await act(async () => {
         await vi.advanceTimersByTimeAsync(0)
       })

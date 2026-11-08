@@ -1,3 +1,18 @@
+/**
+ * As telas do cadastro por conversa (`/register`) e por formulário
+ * (`/register/form`). FR-5, FR-6, FR-8, NFR-14, seções 7.2, 8.5, 12, 15.3
+ * (J4), 15.5, 16.3 (M12), 16.6 e 21.1 do SDD.
+ *
+ * Prova que o cartão de resumo mostra os campos de cada turno, que o e-mail
+ * já usado oferece entrar, que uma dúvida fica no chat, que o modelo
+ * indisponível avisa sem sair da tela, que o foco chega à senha depois de
+ * M12 com e sem redução de movimento, que o `ConsentFieldSet` exige os
+ * obrigatórios e destaca a personalização, que o formulário mostra o erro de
+ * campo do servidor e chega do chat com a senha vazia, e que Usar o
+ * formulário espera o turno a caminho (J4). Cada teste troca o `fetch` por
+ * uma API falsa que monta as respostas de sessão com `session`. Projeto
+ * `dom` do Vitest, com as rotas reais. Não usa a API nem banco.
+ */
 import { render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import axe from "axe-core"
@@ -13,9 +28,12 @@ import { gsap } from "@/motion/gsap.ts"
 import { consentIssues, emptyConsents } from "./model.ts"
 
 const sessionId = "00000000-0000-4000-8000-0000000000f1"
+/** Versão vigente dos Termos e do Aviso, a de `GET /v1/legal/versions`. */
 const version = "2026-10-25.1"
+/** A frase que a API manda quando o e-mail já tem conta (seção 8.5). */
 const taken = "Este e-mail já tem uma conta. Entre para continuar."
 
+/** Os campos entendidos de uma sessão, como em `fields` da seção 12. */
 type Fields = {
   full_name: string | null
   email: string | null
@@ -24,6 +42,7 @@ type Fields = {
   visit_reason: string | null
 }
 
+/** Nenhum campo entendido ainda. */
 const emptyFields: Fields = {
   full_name: null,
   email: null,
@@ -32,6 +51,7 @@ const emptyFields: Fields = {
   visit_reason: null,
 }
 
+/** Resposta JSON com o `status` dado, como a API devolve. */
 function json(body: unknown, status: number) {
   return new Response(JSON.stringify(body), {
     status,
@@ -39,6 +59,11 @@ function json(body: unknown, status: number) {
   })
 }
 
+/**
+ * Corpo de uma sessão de cadastro por chat, no formato da seção 12: os
+ * campos entendidos, os erros de campo, o `next_step` e a transcrição. O
+ * `prompt` é a última fala, e o `status` padrão é `collecting_required`.
+ */
 function session(input: {
   fields?: Partial<Fields>
   fieldErrors?: Record<string, string>
@@ -62,6 +87,10 @@ function session(input: {
   }
 }
 
+/**
+ * Envelope de erro da seção 12 com `field_errors`: `conflict` no 409 e
+ * `validation_error` nos outros status.
+ */
 function errorBody(
   message: string,
   fieldErrors?: Record<string, string>,
@@ -80,6 +109,10 @@ function errorBody(
   )
 }
 
+/**
+ * Abre o app inteiro em `path`, com as rotas reais e os provedores. Devolve o
+ * roteador e o resultado do `render`.
+ */
 function renderAt(path: string) {
   const router = createMemoryRouter(routes, { initialEntries: [path] })
   const view = render(
@@ -416,6 +449,9 @@ describe("telas do cadastro", () => {
   })
 
   it("o foco chega à senha quando M12 termina com movimento ligado", async () => {
+    // A preferência "off" desliga o movimento reduzido, mesmo com o sistema
+    // pedindo redução. O `gsap.fromTo` falso chama o `onComplete` na hora,
+    // que é onde M12 entrega o foco.
     localStorage.setItem("atrium.motion-preference", "off")
     const fromTo = vi
       .spyOn(gsap, "fromTo")
@@ -604,6 +640,8 @@ describe("telas do cadastro", () => {
   it("Usar o formulário com a mensagem a caminho espera o turno e leva o nome (J4)", async () => {
     const user = userEvent.setup()
     const greeting = "Olá. Eu sou o Atrium. Qual é o seu nome completo?"
+    // O `POST` da mensagem espera `turn`, que o teste solta depois de clicar
+    // em Usar o formulário: assim a mensagem fica a caminho durante o clique.
     let processed = false
     let release: () => void = () => undefined
     const turn = new Promise<void>((resolve) => {
@@ -706,6 +744,10 @@ describe("telas do cadastro", () => {
   })
 })
 
+/**
+ * Troca o `fetch` por uma API falsa cuja sessão nova já começa no passo da
+ * senha (`next_step` `password`), com nome e e-mail entendidos.
+ */
 function installPasswordStep() {
   vi.stubGlobal(
     "fetch",
@@ -743,6 +785,7 @@ function installPasswordStep() {
   )
 }
 
+/** Os ids das violações sérias e críticas de um resultado do axe. */
 function serious(results: axe.AxeResults) {
   return results.violations
     .filter(

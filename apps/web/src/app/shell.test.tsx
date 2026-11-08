@@ -1,3 +1,14 @@
+/**
+ * A casca do app: foco e título na troca de rota, guardas, navegação com e
+ * sem sessão, saída da conta e preferência de movimento. NFR-14, NFR-15,
+ * seções 13.3, 14.5, 14.6, 15.8, 16.3 (M13) e 16.4 do SDD.
+ *
+ * Abre as rotas reais do `router.tsx` num `createMemoryRouter`. Sem sessão
+ * vale o `fetch` do `src/test/setup.ts`, que responde 401; `signIn` troca o
+ * `fetch` por uma API falsa com um membro. Dois testes trocam o
+ * `window.__media` para simular o celular. O último roda o axe na página
+ * inicial. Projeto `dom` do Vitest. Não usa a API nem banco.
+ */
 import { act, render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import axe from "axe-core"
@@ -9,6 +20,7 @@ import { AppProviders } from "@/app/providers.tsx"
 import { pt } from "@/i18n/pt.ts"
 import { gsap } from "@/motion/gsap.ts"
 
+/** Rotas públicas e o título `h1` de cada uma. */
 const publicPages = [
   ["/", pt.home.title],
   ["/ask", pt.pages.ask],
@@ -20,6 +32,7 @@ const publicPages = [
   ["/terms", pt.pages.terms],
 ] as const
 
+/** Rotas que exigem sessão e o título de cada uma. */
 const protectedPages = [
   ["/account", pt.pages.account],
   ["/legal/accept", pt.pages.legalAccept],
@@ -29,6 +42,7 @@ const protectedPages = [
   ["/admin/privacy", pt.pages.privacyRequests],
 ] as const
 
+/** Perfil de `GET /v1/me` de um membro, sem documento legal novo. */
 const member = {
   id: "00000000-0000-4000-8000-0000000000a1",
   email: "ana@example.com",
@@ -40,6 +54,12 @@ const member = {
   needs_legal_acceptance: false,
 }
 
+/**
+ * Troca o `fetch` por uma API falsa com o membro já dentro. `GET /v1/me`
+ * devolve o perfil até um logout com 204; com outro `logoutStatus`, a sessão
+ * continua. As demais rotas respondem 404. Devolve a lista de chamadas, como
+ * `MÉTODO caminho`.
+ */
 function signIn(logoutStatus = 204) {
   let signedIn = true
   const calls: string[] = []
@@ -70,6 +90,10 @@ function signIn(logoutStatus = 204) {
   return calls
 }
 
+/**
+ * Abre o app inteiro em `path`, com as rotas reais e os provedores. Devolve o
+ * roteador e o resultado do `render`.
+ */
 function renderAt(path: string) {
   const router = createMemoryRouter(routes, { initialEntries: [path] })
   const view = render(
@@ -82,6 +106,7 @@ function renderAt(path: string) {
 
 describe("casca", () => {
   it.each(publicPages)("foca o título ao abrir %s", async (path, title) => {
+    // O foco só muda numa troca de rota: o teste abre outra página antes.
     const start = path === "/" ? "/sign-in" : "/"
     const { router } = renderAt(start)
     await screen.findByRole("heading", { level: 1 })

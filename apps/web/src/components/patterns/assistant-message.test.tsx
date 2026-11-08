@@ -1,3 +1,12 @@
+/**
+ * O `AssistantMessage` mostra um chip por fonte quando o modelo agrupa a
+ * citação, como `[2, 3]`. FR-2, seções 7.1 (passo Fundamentar) e 14.6 do SDD.
+ *
+ * Renderiza a mensagem já concluída, com as citações 2 e 3, dentro do
+ * `AppProviders`. Um grupo que cita uma fonte desconhecida fica como texto.
+ * Projeto `dom` do Vitest: jsdom e `src/test/setup.ts`. Não chama `fetch`, a
+ * API nem banco.
+ */
 import { render, screen } from "@testing-library/react"
 import { describe, expect, it } from "vitest"
 
@@ -5,6 +14,7 @@ import { AssistantMessage } from "@/components/patterns/assistant-message.tsx"
 import { AppProviders } from "@/app/providers.tsx"
 import { pt } from "@/i18n/pt.ts"
 
+/** Uma citação do documento "Acesso" com o `index` dado e um `chunkId`. */
 function citation(index: number) {
   return {
     index,
@@ -14,6 +24,10 @@ function citation(index: number) {
   }
 }
 
+/**
+ * Renderiza uma resposta `answered`, na fase `done`, com o `text` dado e as
+ * citações 2 e 3.
+ */
 function renderAnswer(text: string) {
   render(
     <AppProviders>

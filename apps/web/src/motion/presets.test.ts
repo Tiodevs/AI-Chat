@@ -1,8 +1,23 @@
+/**
+ * Cada preset de movimento usa `gsap.set` com movimento reduzido e anima com
+ * os tokens quando o movimento está ligado. NFR-15, seções 16.2, 16.3, 16.4,
+ * 16.6 e 21.1 do SDD.
+ *
+ * Troca o GSAP por espiões (`set`, `to`, `fromTo` e `timeline`) e chama os
+ * presets de `presets.ts` direto, com a condição de movimento reduzido como
+ * argumento (seção 16.4); por isso o arquivo não precisa do `matchMedia`. O
+ * `it.each` passa por todos os presets exportados. Os demais testes seguem o
+ * catálogo da seção 16.3 (M1 a M13 e M15) e conferem os tokens, o foco no fim
+ * de M12 e o Flip só com `transform` em M13; M14 e M16 só entram no
+ * `it.each`. Projeto `dom` do Vitest. Não usa a API nem banco.
+ */
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 import type { FlipState } from "./presets.ts"
 import { motionTokens } from "./tokens.ts"
 
+// Espiões no lugar do GSAP. `timeline` devolve uma timeline falsa cujos
+// métodos encadeiam, como os da biblioteca.
 const set = vi.fn()
 const to = vi.fn()
 const fromTo = vi.fn()
@@ -30,12 +45,15 @@ vi.mock("gsap/Flip", () => {
   throw new Error("Os presets não carregam o Flip: ele chega pelo argumento de moveSidebar.")
 })
 
+// O `contextSafe` falso devolve a própria função, sem contexto do GSAP.
 vi.mock("@gsap/react", () => ({
   useGSAP: () => ({
     contextSafe: (callback: unknown) => callback,
   }),
 }))
 
+// A importação vem depois dos espiões: a fábrica do `vi.mock` usa `set`, `to`,
+// `fromTo` e `timeline`, que precisam existir quando os presets carregam.
 const { presets } = await import("./presets.ts")
 
 describe("presets com movimento reduzido", () => {
