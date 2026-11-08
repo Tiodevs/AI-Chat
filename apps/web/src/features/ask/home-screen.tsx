@@ -1,3 +1,12 @@
+/**
+ * Tela inicial `/`: responder à primeira pergunta sem atrito. Seção 15.5 do
+ * SDD (Início) e princípio 1 da seção 15.1.
+ *
+ * View: recebe o estado e o `onAsk` de `useAskConversation`, por
+ * `app/routes/home.tsx`, e não chama a API. Usa `Composer` e
+ * `SafetyNotice`, de `components/patterns`, e as `SuggestionChips` desta
+ * pasta.
+ */
 import { useState } from "react"
 import { Link } from "react-router"
 
@@ -9,6 +18,14 @@ import { pt } from "@/i18n/pt.ts"
 
 import { SuggestionChips } from "./suggestion-chips.tsx"
 
+/**
+ * Título, compositor, sugestões, aviso de segurança e os links para
+ * Cadastrar e Entrar.
+ *
+ * Com `budgetExceeded`, o compositor e as sugestões ficam desabilitados, e
+ * o compositor mostra o texto de indisponibilidade com o telefone da mesa.
+ * O `error` da criação da conversa aparece no próprio campo.
+ */
 export function HomeScreen({
   pending,
   error,
@@ -20,6 +37,7 @@ export function HomeScreen({
   budgetExceeded: boolean
   onAsk: (text: string) => void
 }) {
+  // O texto digitado é estado da view. O hook só recebe o envio.
   const [value, setValue] = useState("")
 
   return (
@@ -34,8 +52,12 @@ export function HomeScreen({
             return
           }
           onAsk(text)
+          // O campo é limpo antes de saber se o envio deu certo. A Etapa
+          // 14.2 só limpa depois do envio aceito.
           setValue("")
         }}
+        // A tela inicial nunca tem resposta em andamento, então não há o
+        // que parar.
         onStop={() => undefined}
         streaming={false}
         pending={pending}
@@ -45,6 +67,8 @@ export function HomeScreen({
       />
       <SuggestionChips disabled={budgetExceeded || pending} onSelect={onAsk} />
       <SafetyNotice />
+      {/* Alvos de 44 px no celular e 32 px no desktop (seção 15.8). O
+          texto de Entrar é curto, e `min-w-11` garante a largura. */}
       <div className="flex flex-wrap gap-4">
         <Button asChild variant="link" className="h-11 px-0 md:h-8">
           <Link to="/register">{pt.nav.register}</Link>

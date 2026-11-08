@@ -4,6 +4,13 @@ Revision ID: 0007_data_subject_requests
 Revises: 0006_audit_survives_account
 Create Date: 2026-11-03
 
+Cria `data_subject_requests`, os pedidos do canal de privacidade (seção 11.5), com tipo e
+status restritos às listas de `app.domain.privacy`. Excluir a conta deixa `user_id` nulo
+(`ondelete="SET NULL"`), porque o pedido é guardado 2 anos depois de fechado (seção 11.6).
+
+O índice é em `due_at`, a ordem da fila do admin, do prazo mais antigo ao mais novo. A seção
+8.2 pede um B-tree em `data_subject_requests.status`, que nenhuma revisão cria. O downgrade
+apaga a tabela e os pedidos.
 """
 
 from collections.abc import Sequence
@@ -20,6 +27,7 @@ depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
+    """Cria `data_subject_requests` e o índice em `due_at`."""
     op.create_table(
         "data_subject_requests",
         sa.Column("id", sa.Uuid(), server_default=sa.text("gen_random_uuid()"), nullable=False),
@@ -46,5 +54,6 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    """Apaga o índice e a tabela de pedidos de titular."""
     op.drop_index("data_subject_requests_due_at_idx", table_name="data_subject_requests")
     op.drop_table("data_subject_requests")

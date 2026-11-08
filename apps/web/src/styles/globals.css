@@ -1,3 +1,24 @@
+/*
+ * Os estilos globais: o Tailwind, as fontes, os tokens e o tema que liga os
+ * tokens às classes (seções 14.2 a 14.4 e 14.8).
+ *
+ * No Tailwind 4, a configuração fica no próprio CSS. O plugin do Vite
+ * (vite.config.ts) lê este arquivo, procura as classes usadas no código e
+ * gera só essas. Quem importa: main.tsx e o Storybook
+ * (.storybook/preview.tsx). Também apontam para cá a CLI do shadcn/ui
+ * (components.json) e o plugin do Prettier que ordena as classes
+ * (.prettierrc).
+ *
+ * Fica de fora a cor crua: os valores moram em tokens.css, e o teste
+ * raw-color.test.ts confere este arquivo também, comentários inclusive.
+ */
+
+/* A ordem conta: o Tailwind, as animações e variantes que os componentes
+   do shadcn/ui usam, as fontes e, por último, os tokens. tw-animate-css
+   traz classes como animate-in e fade-in-0. shadcn/tailwind.css traz
+   variantes como data-open e data-closed. As fontes Geist vêm do pacote
+   fontsource: o Vite copia os arquivos para /assets, e o navegador as baixa
+   da própria origem, como a CSP de default-src self exige (seção 13.1). */
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
@@ -5,9 +26,18 @@
 @import "@fontsource-variable/geist-mono";
 @import "./tokens.css";
 
+/* A variante dark vale dentro de um elemento com a classe dark, que o
+   index.html põe no html. Os componentes do shadcn/ui trazem classes com
+   essa variante; como o app só tem o tema escuro, elas valem sempre. */
 @custom-variant dark (&:is(.dark *));
 
+/* Cada variável do tema gera classes: a cor card dá bg-card, text-card,
+   border-card e as outras de cor; o raio card dá rounded-card; a sombra
+   overlay dá shadow-overlay. Com inline, a classe recebe o valor da
+   variável, como var(--card), em vez de apontar para a variável do tema,
+   e o token resolve no elemento onde a classe está. */
 @theme inline {
+  /* Os títulos dos componentes do shadcn/ui usam a fonte da interface. */
   --font-heading: var(--font-sans);
   --font-sans: "Geist Variable", sans-serif;
   --font-mono: "Geist Mono Variable", ui-monospace, monospace;
@@ -52,6 +82,10 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
   --shadow-overlay: var(--shadow-overlay);
+  /* Os raios da seção 14.4: rounded-lg é o raio base de 8 px, de campos e
+     botões; rounded-nav, de 10 px, dos itens da navegação; rounded-card,
+     de 16 px, dos cards. Os outros seguem a escala do shadcn/ui, em
+     múltiplos do raio base. */
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -63,6 +97,10 @@
   --radius-card: 16px;
 }
 
+/* As utilidades de texto da seção 14.3: tamanho, entrelinha e peso numa
+   classe só. O @utility registra a classe no Tailwind, que passa a aceitar
+   variantes, como md:text-title. O cn de lib/utils.ts não conhece estas
+   classes e as confunde com cor de texto: veja o aviso lá. */
 @utility text-caption {
   font-size: 12px;
   line-height: 16px;
@@ -81,6 +119,8 @@
   font-weight: 400;
 }
 
+/* A entrelinha das mensagens é maior: respostas longas são lidas, não
+   escaneadas (seção 14.3). */
 @utility text-message {
   font-size: 15px;
   line-height: 24px;
@@ -93,6 +133,7 @@
   font-weight: 600;
 }
 
+/* Algarismos de largura fixa: o número do indicador não pula quando muda. */
 @utility text-metric {
   font-size: 28px;
   line-height: 34px;
@@ -107,6 +148,8 @@
 }
 
 @layer base {
+  /* color-scheme: dark deixa escuros os controles nativos e as barras de
+     rolagem (seção 14.8). */
   html {
     color-scheme: dark;
     @apply bg-shell font-sans text-foreground;
@@ -116,12 +159,16 @@
     @apply m-0 min-h-dvh bg-background text-foreground antialiased;
   }
 
+  /* O anel de foco da seção 14.7: 2 px no token ring, com 2 px de
+     afastamento, em todo elemento focado pelo teclado. */
   :focus-visible {
     outline: 2px solid var(--ring);
     outline-offset: 2px;
   }
 }
 
+/* Esconde a barra de rolagem e mantém a rolagem, como na lista da barra
+   lateral (sidebar-body.tsx). */
 @utility scrollbar-none {
   scrollbar-width: none;
   &::-webkit-scrollbar {
@@ -129,6 +176,19 @@
   }
 }
 
+/* Movimento reduzido nas animações e transições de CSS (seção 16.4). O
+   GSAP não passa por estas regras: quem o desliga são os presets de
+   src/motion. Elas cobrem o que fica fora do GSAP, como o pulso do
+   Skeleton (seção 16.3), o giro do Spinner e as classes do tw-animate-css.
+
+   A primeira regra segue o sistema, salvo quando a pessoa escolheu animar
+   (data-motion full, a preferência Off). Ela vale também antes de o React
+   montar, quando o atributo ainda não existe. A segunda segue a
+   preferência resolvida pelo MotionProvider (data-motion reduce).
+
+   Com 0,01 ms, a animação ainda termina e dispara animationend e
+   transitionend: quem espera esses eventos, como a saída de um componente
+   do Radix, não fica preso. A contagem 1 encerra os laços. */
 @media (prefers-reduced-motion: reduce) {
   html:not([data-motion="full"]) *,
   html:not([data-motion="full"]) *::before,

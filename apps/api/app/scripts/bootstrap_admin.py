@@ -1,4 +1,17 @@
-"""Cria o primeiro admin ou remove um, com lock. Seção 10.5 do SDD."""
+"""Cria o primeiro admin ou remove um, com lock. Seção 10.5 do SDD.
+
+Uso, em `apps/api`:
+
+- `python -m app.scripts.bootstrap_admin`: se nenhum usuário tem `role = admin`, cria um com
+  `ADMIN_EMAIL` e `ADMIN_PASSWORD`. Se já existe um admin, as duas variáveis são ignoradas.
+- `python -m app.scripts.bootstrap_admin --remove EMAIL`: remove o admin com esse e-mail e
+  as sessões dele, e recusa remover o último admin. Na Railway, roda com `railway run`.
+
+Roda no pré-deploy da Railway, antes da semente, que precisa de um admin como autor dos
+documentos (seção 22.1). O `BootstrapAdminService` pega um `pg_advisory_lock`, então duas
+execuções simultâneas não criam dois admins (seção 6.4). Precisa de `DATABASE_URL`. Um erro de
+domínio, como credenciais vazias ou inválidas, sai com código 1 e a mensagem.
+"""
 
 import argparse
 import asyncio
@@ -13,6 +26,7 @@ from app.services.auth import BootstrapAdminService
 
 
 def main(argv: list[str] | None = None) -> None:
+    """Lê `--remove`, confere o banco e roda o caso de uso. Sem `argv`, lê `sys.argv`."""
     parser = argparse.ArgumentParser(description="Cria ou remove o admin inicial.")
     parser.add_argument("--remove", metavar="EMAIL", help="Remove o admin com este e-mail.")
     args = parser.parse_args(argv)
@@ -28,6 +42,7 @@ def main(argv: list[str] | None = None) -> None:
 
 
 async def _run(settings: Settings, remove: str | None) -> None:
+    """Remove o admin pedido ou garante o primeiro, e imprime o que aconteceu."""
     service = BootstrapAdminService(
         database_url=settings.database_url,
         clock=SystemClock(),

@@ -1,4 +1,12 @@
-"""O catálogo da seção 9 é a única fonte de telefones e horários do corpus."""
+"""O catálogo da seção 9 é a única fonte de telefones e horários do corpus. Seções 3.3 e 9.
+
+Lê a tabela de `docs/sdd/corpus.md` com `load_catalog` e confere os doze arquivos de
+`content/corpus`: cada um contém os fatos da sua linha, e nenhum cita telefone ou faixa de
+horário fora do catálogo. O `content/corpus/README.md` segue a mesma regra (a lista de
+cuidados do `CONTRIBUTING.md`). Os três últimos testes conferem o próprio verificador: ele
+recusa uma faixa e um telefone inventados e aceita uma faixa do catálogo escrita com hífen. Lê
+só arquivos do repositório; não usa banco nem rede.
+"""
 
 import re
 from dataclasses import dataclass
@@ -51,6 +59,8 @@ PUBLISHED_TIME_RANGES = frozenset(
 
 @dataclass(frozen=True)
 class Catalog:
+    """A tabela da seção 9: os fatos por arquivo, os telefones e as faixas de horário."""
+
     facts: dict[str, str]
     phones: frozenset[str]
     time_ranges: frozenset[str]
@@ -97,6 +107,7 @@ def test_invented_phone_is_outside_the_catalog() -> None:
 
 
 def load_catalog(path: Path) -> Catalog:
+    """Lê as linhas da tabela, com o arquivo e os fatos, e os telefones e faixas do documento."""
     text = path.read_text(encoding="utf-8")
     facts = {
         match.group(1): match.group(2).strip()
@@ -111,14 +122,17 @@ def load_catalog(path: Path) -> Catalog:
 
 
 def time_ranges_in(text: str) -> set[str]:
+    """Faixas de horário do texto, com hífen, meia-risca ou travessão, escritas com meia-risca."""
     return {f"{start}{EN_DASH}{end}" for start, end in TIME_RANGE.findall(text)}
 
 
 def assert_time_ranges_belong_to_catalog(text: str, catalog: Catalog) -> None:
+    """Levanta `AssertionError` com as faixas do texto que o catálogo não tem."""
     unknown = sorted(time_ranges_in(text) - set(catalog.time_ranges))
     if unknown:
         raise AssertionError(f"time ranges outside the catalog: {unknown}")
 
 
 def squash(text: str) -> str:
+    """Junta espaços e quebras de linha, para comparar fatos sem depender da formatação."""
     return re.sub(r"\s+", " ", text).strip()

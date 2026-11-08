@@ -17,9 +17,9 @@ Parte da [especificação do Atrium](../sdd.md). A numeração das seções é a
 | Componentes | shadcn/ui sobre Radix UI, ícones Lucide |
 | Estilo | Tailwind CSS com tokens em variáveis CSS |
 | Gráficos | Recharts, carregado só nas rotas de admin |
-| Tabelas | TanStack Table |
-| Paleta de comandos | `cmdk`, pelo componente Command do shadcn/ui |
-| Notificações | Sonner |
+| Tabelas | `DataTable` próprio, sobre o `Table` do shadcn/ui. O TanStack Table não entrou. |
+| Paleta de comandos | `SearchDialog` próprio, com o `Dialog` do shadcn/ui e a lista de `app/navigation.ts`. O `cmdk` não entrou. |
+| Notificações | Avisos em linha e regiões live. O Sonner não entrou. |
 | Movimento | GSAP com `@gsap/react` e o plugin Flip |
 | Fonte | Geist Sans e Geist Mono, servidas pela própria origem |
 | Catálogo | Storybook com o addon de acessibilidade |
@@ -44,22 +44,7 @@ Cada rota tem um error boundary com a mensagem amigável e o `request_id` copiá
 
 O `vite.config.ts` faz proxy de `/backend` para `http://127.0.0.1:8000` e remove o prefixo. Assim o desenvolvimento local também é de mesma origem.
 
-Na Vercel, o `vercel.ts` define, nesta ordem:
-
-```ts
-import { routes, type VercelConfig } from "@vercel/config/v1";
-
-export const config: VercelConfig = {
-  framework: "vite",
-  git: { deploymentEnabled: false },
-  rewrites: [
-    routes.rewrite("/backend/:path*", `${process.env.API_URL}/:path*`),
-    routes.rewrite("/((?!backend/).*)", "/index.html"),
-  ],
-};
-```
-
-`API_URL` é lida no build, então cada ambiente da Vercel aponta para a sua API. A publicação por Git fica desligada porque o GitHub Actions publica, seção 22.
+Na Vercel, o `vercel.ts` declara as rotas no formato `routes` (seção 22.2): os cabeçalhos abaixo, os arquivos do build, a reescrita de `/backend/*` para `API_URL`, com o segredo da borda (seção 10.3), e o fallback da SPA para o `index.html`. `API_URL` é lida no build, então cada ambiente da Vercel aponta para a sua API. A publicação por Git fica desligada porque o GitHub Actions publica, seção 22.
 
 Cabeçalhos definidos na Vercel:
 

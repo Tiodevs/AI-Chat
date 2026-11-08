@@ -1,3 +1,11 @@
+"""O `sslmode` da URL do banco vira o argumento `ssl` do asyncpg. Seção 17 do SDD.
+
+A seção 17 diz que a API fala com o banco pelo asyncpg. `adapt_asyncpg_url`, de
+`app/db/session.py`, tira o `sslmode` da query, porque o asyncpg recebe esse valor em `ssl`, e
+devolve a URL sem ele junto com os `connect_args`. A função é pura: não abre conexão nem usa
+rede.
+"""
+
 from app.db.session import adapt_asyncpg_url
 
 

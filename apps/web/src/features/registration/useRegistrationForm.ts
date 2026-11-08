@@ -1,3 +1,18 @@
+/**
+ * Controlador do cadastro por formulário (`/register/form`). Seções 7.2, 12
+ * e 15.5 do SDD.
+ *
+ * Lê a versão vigente dos documentos e, com `?session=` na URL, os campos
+ * já entendidos no chat, para preencher o formulário (jornada J4, seção
+ * 15.3). Envia tudo num pedido só, que a API conclui com a mesma função do
+ * chat. O formulário não chama o modelo nem consulta o orçamento (seção
+ * 7.2).
+ *
+ * Usado por `app/routes/register-form.tsx`, que passa o retorno inteiro
+ * para a `RegistrationFormScreen`. Usa o cliente tipado
+ * (`lib/api/client.ts`), o cache do TanStack Query (`meQuery`) e o
+ * `sessionStorage`.
+ */
 import { useEffect, useState } from "react"
 import { useNavigate, useSearchParams } from "react-router"
 
@@ -17,8 +32,19 @@ import {
   type SubmitFailure,
 } from "./model.ts"
 
+/**
+ * A mesma chave de `useRegistrationChat.ts`: concluir pelo formulário apaga
+ * o id do chat guardado na aba.
+ */
 const SESSION_KEY = "atrium.registration-session"
 
+/**
+ * Hook do formulário de cadastro.
+ *
+ * Devolve `loading`, os valores iniciais (`defaults`), a versão dos
+ * documentos, o erro de carga com o `request_id`, a marca `unavailable` da
+ * URL, o id da sessão do chat e `submit`.
+ */
 export function useRegistrationForm() {
   const navigate = useNavigate()
   const [params] = useSearchParams()
@@ -30,6 +56,9 @@ export function useRegistrationForm() {
   const [loadError, setLoadError] = useState<string | null>(null)
   const [requestId, setRequestId] = useState<string | null>(null)
 
+  // Lê a versão e a sessão em paralelo. Como no chat, o `AbortController`
+  // cancela os pedidos se a tela desmontar, e `signal.aborted` descarta as
+  // respostas de um efeito já encerrado.
   useEffect(() => {
     const controller = new AbortController()
     const signal = controller.signal
@@ -43,6 +72,7 @@ export function useRegistrationForm() {
               params: { path: { session_id: sessionId } },
             })
           : null
+        // O `Promise.all` aceita o `null` e o devolve como está.
         const [legal, existing] = await Promise.all([
           legalRequest,
           sessionRequest,
@@ -50,6 +80,8 @@ export function useRegistrationForm() {
         if (signal.aborted) {
           return
         }
+        // Sem a versão, o botão de envio fica desabilitado, e a tela mostra
+        // o erro com o `request_id`.
         if (legal.data?.terms) {
           setDocumentVersion(legal.data.terms)
         } else {
@@ -57,6 +89,7 @@ export function useRegistrationForm() {
           setLoadError(failure.message)
           setRequestId(failure.requestId)
         }
+        // Sem `?session=`, o formulário começa vazio.
         if (!existing) {
           return
         }
@@ -64,6 +97,7 @@ export function useRegistrationForm() {
           setDefaults(formValuesFromFields(existing.data.fields))
           return
         }
+        // A sessão não existe mais: a pessoa preenche do zero.
         if (existing.response.status === 404) {
           setLoadError(pt.registration.sessionMissing)
           return
@@ -86,7 +120,17 @@ export function useRegistrationForm() {
     return () => controller.abort()
   }, [sessionId])
 
+  /**
+   * Envia o formulário completo (`POST /v1/registration/form`).
+   *
+   * Devolve `null` no sucesso, depois de apagar o id do chat guardado, pôr
+   * o perfil devolvido no cache do `meQuery` e navegar para `/account`. A
+   * API cria a conta e define o cookie `atrium_session`. Numa falha,
+   * devolve a `SubmitFailure`, e a tela põe os erros nos campos. O e-mail
+   * já cadastrado responde 409 (seção 12).
+   */
   async function submit(values: FormValues): Promise<SubmitFailure | null> {
+    // A tela já desabilita o envio sem a versão; o hook repete a proteção.
     if (!documentVersion) {
       return {
         ok: false,

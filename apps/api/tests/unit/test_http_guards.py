@@ -1,3 +1,11 @@
+"""As guardas HTTP: `Origin`, `no-store`, envelope de validação, CORS e segredo da borda.
+
+NFR-11 e NFR-12, seções 10.3 e 12 do SDD e Etapa 12.5. `_client` sobe o app em `local`, onde a
+borda não é exigida. `_cloud_client` sobe em `production`, com teto, chaves, `METRICS_TOKEN` e
+o `EDGE_SECRET` de teste, e com `DATABASE_URL` vazia para nada tocar um banco. Os pedidos
+param na guarda ou em rotas que não leem o banco, como `/v1/legal/versions`. Não usa rede.
+"""
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -9,6 +17,7 @@ ORIGIN = "http://localhost:5173"
 
 
 def _client(monkeypatch: pytest.MonkeyPatch) -> TestClient:
+    """App em `local` com `WEB_ORIGIN` igual a `ORIGIN`, sem o segredo da borda."""
     monkeypatch.setenv("WEB_ORIGIN", ORIGIN)
     monkeypatch.setenv("APP_ENV", "local")
     get_settings.cache_clear()
@@ -92,6 +101,7 @@ EDGE_SECRET = "segredo-da-borda"
 
 
 def _cloud_client(monkeypatch: pytest.MonkeyPatch) -> TestClient:
+    """App em `production` com as proteções de `require_safeguards` e o `EDGE_SECRET` de teste."""
     monkeypatch.setenv("WEB_ORIGIN", ORIGIN)
     monkeypatch.setenv("APP_ENV", "production")
     monkeypatch.setenv("DATABASE_URL", "")
@@ -139,6 +149,7 @@ def test_health_ready_and_metrics_stay_reachable_without_the_edge_secret(
     """CA-2 da Etapa 12.5: a Railway e o Prometheus chamam a API direto."""
     client = _cloud_client(monkeypatch)
     assert client.get("/health").status_code == 200
+    # Sem `DATABASE_URL`, o `/ready` responde 503; o que importa é a guarda não dar 403.
     assert client.get("/ready").status_code != 403
     metrics = client.get("/metrics", headers={"Authorization": "Bearer metrics-token"})
     assert metrics.status_code == 200

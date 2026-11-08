@@ -1,4 +1,11 @@
-"""Regras do upload do admin. Seções 7.3 e 10.4, critério CA-1 da Etapa 7.1 (FR-10, NFR-10)."""
+"""As regras do upload do admin: tipo, tamanho, título, slug e limite. FR-10, NFR-10.
+
+Seções 7.3, 10.4 e 12 do SDD e o critério CA-1 da Etapa 7.1. Testa `app/domain/documents.py`
+sem banco nem rede: o tipo vem da extensão e é conferido no conteúdo, o limite é de 10 MB, o
+nome guardado perde o caminho, o slug é ASCII sem colisão, o balde de uploads aceita 30 por
+hora e uma versão em `processing` só bloqueia por 15 minutos. As rotas ficam em
+`tests/integration/test_admin_documents.py`.
+"""
 
 from datetime import UTC, datetime, timedelta
 

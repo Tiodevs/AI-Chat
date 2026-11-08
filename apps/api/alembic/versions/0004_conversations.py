@@ -7,6 +7,24 @@ Create Date: 2026-10-27
 Os B-tree de messages.conversation_id e conversations.user_id entram com as
 tabelas. Seções 8.1 e 8.2 do SDD.
 
+Cria as tabelas das perguntas (seções 7.1 e 8.1):
+
+- `guest_keys`: o SHA-256 do segredo do cookie `atrium_guest`, para uma conversa anônima
+  sobreviver a uma atualização da página.
+- `conversations`: o dono é o usuário ou a chave de convidado, e `conversations_owner` exige
+  pelo menos um. Apagar o usuário ou a chave apaga a conversa (`ondelete="CASCADE"`), o que
+  serve à exclusão da conta e à retenção (seção 11.6).
+- `messages`: o par `(conversation_id, client_message_id)` é único, e é ele que faz o
+  reenvio responder 409 sem chamar o modelo (seção 7.1). As respostas do assistente têm
+  `client_message_id` nulo, e o PostgreSQL não compara nulos numa restrição única.
+  `outcome` aceita só os desfechos de `app.domain.outcomes`.
+- `feedback`: uma nota por mensagem, `-1` ou `1`, com a mensagem como chave primária, o que
+  faz a segunda nota responder 409.
+
+`OUTCOME_CHECK_SQL` vem do código atual: um desfecho novo pede uma revisão que troque a
+restrição `messages_outcome` dos bancos que já existem. `messages_conversation_id_idx` repete
+o começo da restrição única, e falta índice em `conversations.guest_key_id`; a Etapa 13.5
+ajusta os dois. O downgrade apaga as quatro tabelas e as conversas com elas.
 """
 
 from collections.abc import Sequence
@@ -24,6 +42,9 @@ depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
+    """Cria `guest_keys`, `conversations`, `messages` e `feedback`."""
+    # O `created_at` destas tabelas não tem padrão no banco: o serviço grava o horário do
+    # relógio que recebeu.
     op.create_table(
         "guest_keys",
         sa.Column("id", sa.Uuid(), server_default=sa.text("gen_random_uuid()"), nullable=False),
@@ -89,6 +110,7 @@ def upgrade() -> None:
             name="messages_conversation_id_client_message_id_key",
         ),
     )
+    # Redundante com o começo da restrição única acima; a Etapa 13.5 o remove.
     op.create_index("messages_conversation_id_idx", "messages", ["conversation_id"], unique=False)
     op.create_table(
         "feedback",
@@ -107,6 +129,7 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    """Apaga as quatro tabelas, das dependentes para as donas, com as conversas e o feedback."""
     op.drop_table("feedback")
     op.drop_index("messages_conversation_id_idx", table_name="messages")
     op.drop_table("messages")

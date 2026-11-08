@@ -7,24 +7,37 @@
 // antes e fica fora da conta, porque a meta vale com a API aquecida. O padrão são 20 perguntas,
 // abaixo do limite de 30 por hora do convidado (seção 10.4). Mede pela origem da Vercel, como
 // o navegador; o Grafana mostra o mesmo sinal do lado da API em atrium_qa_first_token_seconds.
+//
+// Quem usa: quem opera, à mão. Não roda em nenhum workflow. A Etapa 12.4 registrou com ele o
+// p95 antes e depois da mudança. Todas as perguntas vão na mesma conversa, então o histórico
+// enviado ao modelo cresce até a janela da seção 7.1. Sai com 0 quando os dois p95 cumprem a
+// seção 5.3, com 1 quando um deles não cumpre ou não há o que medir, e com 2 para argumentos
+// inválidos.
 
 import { randomUUID } from "node:crypto"
 
 const base = (process.argv[2] ?? "").replace(/\/+$/, "")
 const total = Number(process.argv[3] ?? "20")
+// No máximo 29: com a pergunta de aquecimento, são 30 pedidos, o limite por hora da chave de
+// convidado.
 if (!/^https?:\/\/[^/]+$/.test(base) || !Number.isInteger(total) || total < 1 || total > 29) {
   console.error("Uso: node .github/scripts/ttft.mjs https://<frontend> [1 a 29 perguntas]")
   process.exit(2)
 }
 
+// As quatro perguntas que esperam `answered` no conjunto de avaliação (seção 21.2), em rodízio.
 const questions = [
   "Qual é o horário de visita?",
   "Onde posso estacionar?",
   "Quantas pessoas podem visitar a UTI ao mesmo tempo?",
   "Qual telefone eu ligo sobre uma cobrança?",
 ]
+// Um POST precisa de `Origin` igual ao WEB_ORIGIN da API (NFR-12), que é a própria origem
+// da Vercel.
 const headers = { Origin: base, "Content-Type": "application/json" }
 
+// Uma conversa de convidado. O `fetch` do Node não guarda cookies, então o `atrium_guest` da
+// resposta segue à mão em cada pergunta.
 const created = await fetch(`${base}/backend/v1/conversations`, {
   method: "POST",
   headers,
@@ -41,8 +54,16 @@ if (!guest) {
   process.exit(1)
 }
 
+/**
+ * Faz uma pergunta e lê o fluxo SSE até o fim.
+ *
+ * Devolve `{ ok: false, status }` quando o envio não responde 200, ou `ok`, o primeiro token e
+ * o total em milissegundos, contados do envio, e o desfecho do evento `done`. Cada pergunta
+ * leva um `client_message_id` novo, a chave de idempotência da seção 7.1.
+ */
 async function ask(text) {
   const started = performance.now()
+  // O prazo de 150 s fica acima dos 120 s de tempo limite do gerador (seção 5.3).
   const response = await fetch(`${base}/backend/v1/conversations/${conversation}/messages`, {
     method: "POST",
     headers: { ...headers, Cookie: `atrium_guest=${guest}` },
@@ -70,12 +91,17 @@ async function ask(text) {
   }
 }
 
+/**
+ * Percentil pelo posto mais próximo: o menor valor que deixa pelo menos `p`% das amostras
+ * até ele. Uma lista vazia devolve `undefined`.
+ */
 function percentile(values, p) {
   const sorted = [...values].sort((left, right) => left - right)
   const index = Math.min(sorted.length - 1, Math.ceil((p / 100) * sorted.length) - 1)
   return sorted[Math.max(0, index)]
 }
 
+// Aquecimento, fora da conta.
 await ask("Qual é o horário de visita?")
 const firstTokens = []
 const totals = []

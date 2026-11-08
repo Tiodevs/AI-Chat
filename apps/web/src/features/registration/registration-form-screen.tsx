@@ -1,3 +1,13 @@
+/**
+ * Tela `/register/form`: os mesmos campos, aceites e regras do chat numa
+ * página só. Seção 15.5 do SDD (Cadastro por formulário).
+ *
+ * View: recebe o retorno de `useRegistrationForm`, por
+ * `app/routes/register-form.tsx`, e não chama a API. O formulário usa o
+ * react-hook-form com o `registrationFormSchema` do `model.ts`, e os campos
+ * seguem `FieldGroup` e `Field` (seção 14.8). Usa `PasswordCard`,
+ * `ConsentFieldSet` e `RequestIdCopy`, de `components/patterns`.
+ */
 import { useState, type ReactNode } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import {
@@ -34,8 +44,13 @@ import {
 } from "@/features/registration/model.ts"
 import { useRegistrationForm } from "@/features/registration/useRegistrationForm.ts"
 
+/** Tudo o que `useRegistrationForm` devolve. */
 type FormModel = ReturnType<typeof useRegistrationForm>
 
+/**
+ * Campos que recebem um erro do servidor com `setError`. Um erro fora desta
+ * lista vai para o aviso geral do formulário.
+ */
 const formFields = [
   "full_name",
   "email",
@@ -47,6 +62,14 @@ const formFields = [
   "age_18_plus",
 ] as const
 
+/**
+ * Página do formulário. Enquanto carrega, mostra o skeleton e só então
+ * monta o formulário: o react-hook-form lê `defaultValues` uma vez, na
+ * montagem, então os campos do chat precisam chegar antes.
+ *
+ * O aviso `unavailable` aparece com `?unavailable=1` na URL. O erro de
+ * carga vem com o `request_id`, e o link no fim volta ao chat.
+ */
 export function RegistrationFormScreen(model: FormModel) {
   return (
     <div className="mx-auto flex w-full max-w-xl flex-col gap-6">
@@ -83,6 +106,15 @@ export function RegistrationFormScreen(model: FormModel) {
   )
 }
 
+/**
+ * O formulário em si.
+ *
+ * O `zodResolver` liga o esquema zod ao react-hook-form: no envio, o
+ * `handleSubmit` valida e só chama `submit` com valores válidos. Depois da
+ * primeira tentativa, os campos com `register` são validados de novo a
+ * cada mudança. Os erros do servidor entram nos campos com `setError`
+ * (seção 15.5).
+ */
 function RegistrationForm({
   defaults,
   documentReady,
@@ -101,6 +133,11 @@ function RegistrationForm({
     defaultValues: defaults,
   })
 
+  /**
+   * Envia pelo hook e trata a falha: cada erro de campo conhecido vai para
+   * o campo, o e-mail já cadastrado mostra o link Entrar, e uma falha sem
+   * campo conhecido vira o aviso geral, com o `request_id`.
+   */
   async function submit(values: FormValues) {
     setPending(true)
     setFormError(null)
@@ -128,6 +165,9 @@ function RegistrationForm({
     }
   }
 
+  // Os aceites e as escolhas não são campos nativos com `register`. A tela
+  // lê os valores com `useWatch`, que renderiza de novo quando eles mudam,
+  // e os grava com `setValue`.
   const acceptTerms = useWatch({ control: form.control, name: "accept_terms" })
   const age = useWatch({ control: form.control, name: "age_18_plus" })
   const personalization = useWatch({
@@ -150,8 +190,10 @@ function RegistrationForm({
 
   return (
     <form
+      // O nome acessível do formulário é o título da página (`PageHeading`).
       aria-labelledby="page-title"
       className="flex flex-col gap-6"
+      // Desliga a validação do navegador: valem as mensagens do zod.
       noValidate
       onSubmit={(event) => {
         void form.handleSubmit(submit)(event)
@@ -212,9 +254,14 @@ function RegistrationForm({
           error={form.formState.errors.visit_reason?.message}
           onChange={(value) => form.setValue("visit_reason", value)}
         />
+        {/* Sem a personalização, a API descarta os dois opcionais sensíveis
+            (seção 7.2, conclusão, passo 2). */}
         <p className="text-body text-foreground">
           {pt.registration.sensitiveKept}
         </p>
+        {/* O `PasswordCard` é controlado (`value` e `onChange`), e o
+            `Controller` o liga ao react-hook-form. Sem `moveFocus`: aqui a
+            senha não é um passo à parte. */}
         <Controller
           name="password"
           control={form.control}
@@ -237,6 +284,8 @@ function RegistrationForm({
           age_18_plus: form.formState.errors.age_18_plus?.message,
         }}
         onChange={(next) => {
+          // Os obrigatórios só validam a cada clique depois da primeira
+          // tentativa, para o erro sumir assim que a pessoa marca.
           form.setValue("accept_terms", next.accept_terms, {
             shouldValidate: form.formState.isSubmitted,
           })
@@ -256,6 +305,7 @@ function RegistrationForm({
       <Button
         type="submit"
         className="min-h-11 md:min-h-8"
+        // Sem a versão vigente dos documentos, o aceite não pode ir.
         disabled={pending || !documentReady}
       >
         {pending ? <Spinner aria-hidden data-icon="inline-start" /> : null}
@@ -265,6 +315,11 @@ function RegistrationForm({
   )
 }
 
+/**
+ * Campo de texto com rótulo, dica e erro, no padrão `Field` da seção 14.8:
+ * `aria-invalid` no controle e `aria-describedby` apontando para o erro.
+ * `extra` vem depois do erro, como o link Entrar.
+ */
 function TextField({
   id,
   label,
@@ -310,6 +365,11 @@ function TextField({
   )
 }
 
+/**
+ * Escolha única num `ToggleGroup`, para `visitor_type` e `visit_reason`.
+ * Clicar de novo na opção marcada a desmarca, e o valor vazio vira `null`
+ * no envio.
+ */
 function ChoiceField<T extends string>({
   label,
   value,
@@ -345,6 +405,7 @@ function ChoiceField<T extends string>({
   )
 }
 
+/** Guarda de tipo: o nome do erro do servidor é um dos `formFields`. */
 function isFormErrorField(field: string): field is (typeof formFields)[number] {
   return formFields.some((item) => item === field)
 }

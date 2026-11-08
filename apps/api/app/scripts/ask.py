@@ -1,4 +1,16 @@
-"""Roda o pipeline de perguntas com o Gemini de desenvolvimento. Seção 6.3 do SDD."""
+"""Roda o pipeline de perguntas com o Gemini de desenvolvimento. Seção 6.3 do SDD.
+
+Uso: `python -m app.scripts.ask "Qual é o horário de visita?"`, em `apps/api`.
+
+Ferramenta de desenvolvimento da Etapa 4.1: faz uma pergunta ao `QaWorkflow` sem HTTP, sem
+conversa e sem histórico, e imprime o desfecho, as citações e o texto. Passa pelo
+`QuestionService`, então consulta o orçamento diário antes e grava os tokens em
+`token_usage_days` depois (seção 7.1). Não grava mensagem nem rastro no LangSmith: o workflow
+nasce sem tracer.
+
+Precisa de `DATABASE_URL` com o corpus semeado pelo Gemini, `APP_AI_ADAPTER=gemini` e
+`GEMINI_API_KEY`. Sem eles, sai com código 1 e a mensagem do problema.
+"""
 
 import argparse
 import asyncio
@@ -20,6 +32,10 @@ from app.workflows.qa import QaResult, QaWorkflow
 
 
 def main(argv: list[str] | None = None) -> None:
+    """Lê a pergunta da linha de comando, confere o ambiente e imprime o resultado.
+
+    `argv` existe para os testes; sem ele, o `argparse` lê `sys.argv`.
+    """
     parser = argparse.ArgumentParser(description="Pipeline de perguntas, sem HTTP.")
     parser.add_argument("question")
     args = parser.parse_args(argv)
@@ -28,6 +44,7 @@ def main(argv: list[str] | None = None) -> None:
     if not settings.database_url:
         print(DATABASE_URL_MISSING, file=sys.stderr)
         raise SystemExit(1)
+    # O script confere o Gemini de desenvolvimento (Etapa 4.1); com outro adaptador, recusa.
     if settings.app_ai_adapter != "gemini" or not settings.gemini_api_key:
         print(ASK_NEEDS_GEMINI, file=sys.stderr)
         raise SystemExit(1)
@@ -36,6 +53,10 @@ def main(argv: list[str] | None = None) -> None:
 
 
 async def _run(settings: Settings, question: str) -> QaResult:
+    """Monta o workflow como o `AiRuntime` monta, sem tracer, e faz a pergunta.
+
+    O mesmo provedor de embedding serve à pergunta e à busca híbrida.
+    """
     embeddings = build_embedding_provider(settings)
     service = QuestionService(
         QaWorkflow(
@@ -58,6 +79,7 @@ async def _run(settings: Settings, question: str) -> QaResult:
 
 
 def format_ask_result(result: QaResult) -> str:
+    """O desfecho na primeira linha, uma linha por citação (ou "nenhuma") e o texto no fim."""
     lines = [result.outcome.value]
     if not result.citations:
         lines.append(NO_CITATIONS)
@@ -68,6 +90,7 @@ def format_ask_result(result: QaResult) -> str:
 
 
 def _citation_line(citation: Citation) -> str:
+    """`índice | título do documento | seção`, com "sem seção" quando o chunk não tem título."""
     heading = citation.heading or NO_SECTION
     return f"{citation.index} | {citation.document_title} | {heading}"
 

@@ -1,15 +1,35 @@
+# CI padrão do Atrium. Seções 21.1 e 22.3 do SDD.
+#
+# Quatro jobs sem dependência entre si, que rodam em paralelo: `api` (Ruff, mypy e Pytest),
+# `web` (ESLint, tipos, Vitest, Playwright com a API simulada, build e Storybook), `contract`
+# (OpenAPI e tipos iguais aos commitados) e `e2e` (jornadas contra a API real no adaptador
+# `demo`, ADR-014). Nenhum job lê segredo nem chave de provedor de IA: os testes usam os falsos
+# da seção 17 (NFR-3), e um teste de unidade da API lê este arquivo para garantir isso.
+#
+# O `deploy.yml` escuta este workflow pelo nome `ci`, em `workflow_run`, e publica quando ele
+# termina verde num push para a `main`. Renomear o `name` abaixo desliga o deploy.
+#
+# Este arquivo não declara `permissions` nem `concurrency`, e o Playwright baixa o Chromium a
+# cada execução. A Etapa 11.3, hoje débito técnico (seção 6 do plano de ação), acrescenta
+# `permissions: contents: read`, `concurrency` com `cancel-in-progress` e o cache do Playwright.
 name: ci
 
 on:
+  # Toda pull request, para conferir a mudança antes do merge.
   pull_request:
+  # Todo push na `main`, inclusive o merge de uma PR. É este resultado que libera o deploy.
   push:
     branches:
       - main
 
 jobs:
+  # Estáticos e as quatro suítes do Pytest da API, com a integração contra um PostgreSQL com
+  # pgvector de verdade (NFR-5).
   api:
     name: api
     runs-on: ubuntu-latest
+    # Contêiner de serviço: um PostgreSQL descartável, que só existe durante o job. A imagem é a
+    # mesma da Railway (seção 22.1) e já traz a extensão `vector`.
     services:
       postgres:
         image: pgvector/pgvector:pg18
@@ -17,71 +37,97 @@ jobs:
           POSTGRES_USER: atrium
           POSTGRES_PASSWORD: atrium
           POSTGRES_DB: atrium
+        # Publica a porta no runner, para os passos chegarem ao banco em 127.0.0.1:5432.
         ports:
           - 5432:5432
+        # Os passos esperam o banco ficar saudável: `pg_isready` a cada 10 s, com 5 s de prazo.
+        # Cinco falhas seguidas marcam o serviço como doente, e o job para.
         options: >-
           --health-cmd "pg_isready -U atrium -d atrium -p 5432"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
     env:
+      # Host local de propósito: a integração ignora qualquer host fora de localhost, 127.0.0.1 e
+      # ::1, para nunca tocar um banco da Railway (`apps/api/tests/integration/conftest.py`).
       DATABASE_URL: postgresql://atrium:atrium@127.0.0.1:5432/atrium
       # Sem o banco, a integração falha em vez de pular. Seção 21.1 do SDD.
       REQUIRE_INTEGRATION_DB: "1"
     steps:
       - uses: actions/checkout@v7
+      # O `uv` e o Python 3.12. `working-directory` aponta para a pasta da API, onde ficam o
+      # `pyproject.toml` e o `uv.lock`.
       - uses: astral-sh/setup-uv@v10.3.2
         with:
           python-version: "3.12"
           working-directory: apps/api
+      # `--frozen` instala exatamente o `uv.lock`, sem resolver as versões de novo.
       - name: Instalar dependências
         working-directory: apps/api
         run: uv sync --frozen
+      # Lint com as regras do `pyproject.toml`, inclusive o limite de 100 colunas.
       - name: Ruff
         working-directory: apps/api
         run: uv run ruff check
+      # Tipos em modo `strict` sobre `app`, `alembic` e `tests`.
       - name: mypy
         working-directory: apps/api
         run: uv run mypy
+      # As quatro suítes de `apps/api/tests`: unidade, integração, arquitetura e contrato.
       - name: Pytest
         working-directory: apps/api
         run: uv run pytest
 
+  # Estáticos, Vitest, a suíte simulada do Playwright e os dois builds do frontend.
   web:
     name: web
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+      # pnpm 10, a mesma versão maior do `deploy.yml`.
       - uses: pnpm/action-setup@v6
         with:
           version: 10
+      # Node 22, com o cache da loja do pnpm chaveado pelo lockfile do frontend.
       - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm
           cache-dependency-path: apps/web/pnpm-lock.yaml
+      # `--frozen-lockfile` falha se o `pnpm-lock.yaml` precisar mudar, em vez de reescrevê-lo.
       - name: Instalar dependências
         working-directory: apps/web
         run: pnpm install --frozen-lockfile
+      # Inclui as regras de camada do frontend: componente não chama `fetch` nem importa
+      # `src/lib/api` fora dos hooks de feature (NFR-1, seção 6.2).
       - name: ESLint
         working-directory: apps/web
         run: pnpm exec eslint .
+      # Os dois projetos do TypeScript: o app (`src`) e os arquivos de configuração do Node.
       - name: Typecheck
         working-directory: apps/web
         run: pnpm exec tsc --noEmit -p tsconfig.app.json && pnpm exec tsc --noEmit -p tsconfig.node.json
+      # `vitest run` nos projetos `dom` e `node` do `vite.config.ts` (seção 21.1).
       - name: Vitest
         working-directory: apps/web
         run: pnpm test
+      # A suíte simulada (`playwright.config.ts`): sobe o `pnpm dev` na porta 4173 e responde a
+      # API com `page.route`. O GitHub define `CI=true`, então o Playwright recusa `test.only` e
+      # repete uma vez o teste que falha. A seção 22.3 não lista este passo; a 21.1 lista.
       - name: Playwright
         working-directory: apps/web
         run: pnpm exec playwright install --with-deps chromium && pnpm exec playwright test
+      # `tsc -b` e `vite build`.
       - name: Build
         working-directory: apps/web
         run: pnpm build
+      # O catálogo de componentes também precisa compilar (seção 21.1, estáticos).
       - name: Build do Storybook
         working-directory: apps/web
         run: pnpm build-storybook
 
+  # Contrato entre API e frontend (NFR-16, seção 6.6): gera o OpenAPI e os tipos de novo e
+  # falha se o resultado difere do que está commitado. Precisa das duas cadeias de ferramentas.
   contract:
     name: contract
     runs-on: ubuntu-latest
@@ -105,19 +151,29 @@ jobs:
       - name: Instalar o frontend
         working-directory: apps/web
         run: pnpm install --frozen-lockfile
+      # Importa o app do FastAPI e grava `apps/web/src/lib/api/openapi.json`, sem subir servidor.
       - name: Gerar o OpenAPI
         working-directory: apps/api
         run: uv run python -m app.scripts.export_openapi
+      # O `openapi-typescript` gera `schema.ts` a partir desse JSON.
       - name: Gerar os tipos
         working-directory: apps/web
         run: pnpm openapi-types
+      # Qualquer diferença nos dois arquivos sai com código 1 e aparece no log. Para corrigir,
+      # rode os dois comandos acima na máquina e commite o resultado (CONTRIBUTING.md).
       - name: Conferir o contrato
         run: git diff --exit-code -- apps/web/src/lib/api/openapi.json apps/web/src/lib/api/schema.ts
 
+  # Jornadas J1, J2, J3, J4, J5 e J8 contra a API de verdade, com axe e checagem de CSP. Também
+  # audita as telas, faz J1 a J5 só com o teclado e mede `/` contra a seção 5.3. Seção 21.1 do
+  # SDD e ADR-014.
   e2e:
     name: e2e
     runs-on: ubuntu-latest
+    # Prazo do job inteiro. No `playwright.live.config.ts`, cada servidor tem até 240 s para
+    # responder e cada teste, até 60 s.
     timeout-minutes: 25
+    # O mesmo PostgreSQL descartável do job `api`.
     services:
       postgres:
         image: pgvector/pgvector:pg18
@@ -149,18 +205,26 @@ jobs:
           node-version: 22
           cache: pnpm
           cache-dependency-path: apps/web/pnpm-lock.yaml
+      # O Playwright sobe a API com `uv run` em `apps/api`, então as dependências dela vêm antes.
       - name: Instalar a API
         working-directory: apps/api
         run: uv sync --frozen
       - name: Instalar o frontend
         working-directory: apps/web
         run: pnpm install --frozen-lockfile
+      # Só o Chromium, com as bibliotecas do sistema de que ele precisa.
       - name: Instalar o Chromium
         working-directory: apps/web
         run: pnpm exec playwright install --with-deps chromium
+      # O `playwright.live.config.ts` sobe dois servidores antes dos testes: a API em :8000, com
+      # migrações, admin e semente, e o build servido pelo `vite preview` em :4173, com o proxy
+      # de `/backend` e os cabeçalhos de produção (seção 13.4). Sem nova tentativa: o backend é
+      # determinístico.
       - name: Jornadas com a API, vite preview e axe
         working-directory: apps/web
         run: pnpm exec playwright test -c playwright.live.config.ts
+      # Só quando um passo anterior falhou. O `trace: "retain-on-failure"` da configuração deixa
+      # os rastros em `apps/web/test-results`, e o artefato fica 7 dias na aba Actions.
       - name: Guardar os rastros das falhas
         if: failure()
         uses: actions/upload-artifact@v7.0.2

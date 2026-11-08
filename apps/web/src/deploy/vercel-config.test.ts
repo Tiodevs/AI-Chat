@@ -1,15 +1,31 @@
+/**
+ * O `vercel.ts` declara só `routes`, com o segredo da borda apenas na rota da
+ * API e as rotas na ordem que a Vercel gerava. Seções 10.3, 13.4 e 22.2 do
+ * SDD.
+ *
+ * Importa a configuração de verdade, com uma `API_URL` de teste, e compara a
+ * lista com a saída do `getTransformedRoutes` da `@vercel/routing-utils`
+ * 6.6.0 para os `rewrites` e `headers` de antes da Etapa 12.5. A saída está
+ * copiada no teste: ele não chama a biblioteca. Os cabeçalhos de segurança
+ * vêm do mesmo `security-headers.ts` que o `vite preview` usa. Roda no
+ * projeto `node` do Vitest. Não usa a API, a rede nem banco.
+ */
 import { beforeAll, describe, expect, it } from "vitest"
 
 import { securityHeaders } from "../../security-headers.ts"
 
 type Route = Record<string, unknown>
 
+/** Origem falsa da API, só para o `vercel.ts` montar o destino da rota. */
 const API = "https://api.example.test"
+/** Regex de `/backend/:path*` como `plain` a deixa, sem escapar as barras. */
 const BACKEND_SRC = "^/backend(?:/((?:[^/]+?)(?:/(?:[^/]+?))*))?$"
 
 let keys: string[] = []
 let routes: Route[] = []
 
+// O `vercel.ts` monta as rotas ao carregar e falha sem uma `API_URL` https
+// (seção 13.4). Por isso a variável entra antes da importação dinâmica.
 beforeAll(async () => {
   process.env.API_URL = API
   const { config } = await import("../../vercel.ts")
@@ -26,6 +42,7 @@ function plain(route: Route): Route {
   return copy
 }
 
+/** As rotas cuja regex `src` casa com `path`, na ordem da configuração. */
 function matching(path: string): Route[] {
   return routes.filter((route) => typeof route.src === "string" && new RegExp(route.src).test(path))
 }

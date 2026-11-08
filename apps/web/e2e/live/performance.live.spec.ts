@@ -1,3 +1,15 @@
+/**
+ * Metas de desempenho da seção 5.3 na página inicial. Etapa 9.1, CA-3, e
+ * seção 21.1 do SDD.
+ *
+ * Suíte ao vivo, só no projeto `live`: celular emulado (Pixel 5) com a rede
+ * do perfil "Slow 4G" do Lighthouse (150 ms de ida e volta, 1,6 Mbps de
+ * descida, 750 kbps de subida) e a CPU 4 vezes mais lenta, pelo CDP do
+ * Chromium. O `vite preview` entrega com gzip, como a meta mede; o teste
+ * comprime cada corpo de novo para somar os tamanhos, com gzip e com brotli,
+ * que é o que a Vercel entrega. O resultado vai para
+ * `test-results/desempenho.json`.
+ */
 import { mkdirSync, writeFileSync } from "node:fs"
 import { brotliCompressSync, gzipSync } from "node:zlib"
 
@@ -6,15 +18,7 @@ import { visitingQuestion } from "../api.ts"
 
 import { expect, test } from "./fixtures.ts"
 
-/**
- * Metas de desempenho da seção 5.3 na página inicial. Etapa 9.1, CA-3.
- *
- * Celular emulado (Pixel 5) com a rede do perfil "Slow 4G" do Lighthouse (150 ms de ida e
- * volta, 1,6 Mbps de descida, 750 kbps de subida) e a CPU 4 vezes mais lenta. O `vite preview`
- * entrega com gzip, como a meta mede; o teste comprime cada corpo de novo para somar os
- * tamanhos, com gzip e com brotli, que é o que a Vercel entrega. O resultado vai para
- * `test-results/desempenho.json`.
- */
+/** As metas da seção 5.3: LCP, CLS, INP e o JavaScript inicial em KB. */
 const budgets = { lcpMs: 2500, cls: 0.1, inpMs: 200, initialJsKb: 200 }
 
 test("a página inicial cumpre LCP, CLS, INP e o orçamento de JavaScript", async ({

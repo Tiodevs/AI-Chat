@@ -1,4 +1,10 @@
-"""Esquema do corpus: vector(768), tsv em português e índices da seção 8.2."""
+"""Esquema do corpus: `vector(768)`, `tsv` em português e índices. Seções 8.1 e 8.2 do SDD.
+
+Lê o catálogo do PostgreSQL (`pg_index`, `pg_attribute` e `information_schema`) e grava em SQL
+cru um documento, uma versão e um chunk para conferir o `tsv` gerado e as restrições. As
+linhas ficam no banco, com e-mail e slug de sufixo único. Precisa de PostgreSQL com pgvector
+local (`migrated_database`); sem ele pula, e com `REQUIRE_INTEGRATION_DB=1` falha.
+"""
 
 import asyncio
 from uuid import uuid4
@@ -26,6 +32,7 @@ def test_chunks_store_vector_768_and_portuguese_tsv(migrated_database: str) -> N
 
 
 async def _assert_indexes(database_url: str) -> None:
+    """Confere método, operador e predicado parcial dos índices de `EXPECTED_INDEXES`."""
     engine = create_async_engine(database_url)
     try:
         async with engine.connect() as connection:
@@ -64,6 +71,7 @@ async def _assert_indexes(database_url: str) -> None:
 
 
 async def _assert_vector_and_tsv(database_url: str) -> None:
+    """Confere `vector(768)` e o `tsv` gerado em português, e grava as linhas de teste."""
     engine = create_async_engine(database_url)
     suffix = uuid4().hex
     try:
@@ -101,6 +109,11 @@ async def _assert_vector_and_tsv(database_url: str) -> None:
 
 
 async def _exercise_corpus_rows(engine: AsyncEngine, suffix: str) -> None:
+    """Grava um usuário, um documento, uma versão e um chunk que casa com `visita` no `tsv`.
+
+    Depois confere que as restrições recusam status desconhecido, versão repetida e vetor de
+    outra dimensão. As linhas ficam no banco, com e-mail e slug de sufixo único.
+    """
     email = f"corpus-{suffix}@example.com"
     slug = f"visiting-{suffix}"
     async with engine.begin() as connection:

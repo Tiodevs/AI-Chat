@@ -1,4 +1,13 @@
-"""Visão geral, qualidade e inspetor do admin. Seções 11.8, 12 e 15.5 do SDD."""
+"""Visão geral, qualidade e inspetor do admin. Seções 11.8, 12 e 15.5 do SDD.
+
+Camada de controle. Toda rota chama `require_admin` na primeira linha e então o
+`InsightsService` de `get_insights_service`. Os números vêm do banco, não do Prometheus
+(seção 18.3). O inspetor só mostra pseudônimos; nome e e-mail saem só por `reveal`, com
+motivo e auditoria.
+
+A docstring de cada rota é a `description` da operação no OpenAPI (seção 6.6); a explicação
+a mais fica em comentários, para não mudar o contrato.
+"""
 
 from typing import TYPE_CHECKING, Annotated, Any
 from uuid import UUID
@@ -30,6 +39,7 @@ if TYPE_CHECKING:
 
 router = APIRouter()
 
+# Status de erro documentados no OpenAPI, todos com o envelope `ErrorResponse`.
 _ERRORS: dict[int | str, dict[str, Any]] = {
     401: {"model": ErrorResponse},
     403: {"model": ErrorResponse},
@@ -40,6 +50,7 @@ _ERRORS: dict[int | str, dict[str, Any]] = {
 
 
 def _metric(metric: "Metric") -> MetricResponse:
+    """Converte um indicador do serviço em `{current, previous}`; `null` sem denominador."""
     return MetricResponse(current=metric.current, previous=metric.previous)
 
 
@@ -52,6 +63,8 @@ async def admin_overview(
     period_days: Annotated[int, Query()] = DEFAULT_PERIOD_DAYS,
 ) -> OverviewResponse:
     """Indicadores do período contra o período anterior, tendência, desfechos, funil e orçamento."""
+    # `period_days` aceita 7 ou 30; outro valor responde 422 com `field_errors.period_days`. O
+    # orçamento é o do dia UTC corrente.
     await require_admin(request, settings, clock)
     overview = await service.overview(period_days)
     return OverviewResponse(
@@ -91,12 +104,16 @@ async def admin_quality(
     feedback: Annotated[str | None, Query(max_length=40)] = None,
 ) -> QualityResponse:
     """Contagens por desfecho e feedback e as conversas recentes, pseudonimizadas."""
+    # `outcome` e `feedback` filtram as conversas; um valor desconhecido responde 422 com
+    # `field_errors`, e um valor acima de 40 caracteres já cai na validação da query. A lista
+    # só traz convidados e membros com `quality_improvement` vigente (seção 12).
     await require_admin(request, settings, clock)
     quality = await service.quality(period_days=period_days, outcome=outcome, feedback=feedback)
     return QualityResponse(
         period_days=quality.period_days,
         outcomes=quality.outcomes,
         feedback=quality.feedback,
+        # `from_attributes` lê os campos direto do objeto do serviço, sem um dicionário no meio.
         conversations=[
             ConversationSummaryResponse.model_validate(item, from_attributes=True)
             for item in quality.conversations
@@ -117,6 +134,8 @@ async def admin_conversation(
     service: Annotated[Any, Depends(get_insights_service)],
 ) -> InspectionResponse:
     """Conversa pseudonimizada com os links de rastro. Grava `conversation.view`."""
+    # A auditoria vai na mesma transação da leitura. Conversa de membro sem
+    # `quality_improvement` vigente responde 404 e não grava nada (seção 12).
     admin = await require_admin(request, settings, clock)
     inspection = await service.inspect(admin_id=admin.id, conversation_id=conversation_id)
     return InspectionResponse(
@@ -145,6 +164,9 @@ async def reveal_identity(
     service: Annotated[Any, Depends(get_insights_service)],
 ) -> IdentityResponse:
     """Devolve a identidade do membro. Exige motivo e grava `identity.reveal`."""
+    # O motivo precisa ter de 10 a 500 caracteres depois de juntar espaços; fora disso, 422 em
+    # `field_errors.reason`. Conversa de convidado responde 409, e conversa fora do inspetor,
+    # 404 (seção 12).
     admin = await require_admin(request, settings, clock)
     identity = await service.reveal(
         admin_id=admin.id, conversation_id=conversation_id, reason=body.reason

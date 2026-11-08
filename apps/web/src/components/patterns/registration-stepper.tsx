@@ -1,3 +1,18 @@
+/**
+ * Indicador das etapas do cadastro: Dados, Senha, Revisão e Aceite, com
+ * uma barra de progresso (seção 14.6).
+ *
+ * Fora das telas desde 2026-11-04: o cadastro por conversa não tem mais
+ * indicador de etapas (seção 15.5). O componente fica no Storybook.
+ *
+ * Acessibilidade: uma lista ordenada com nome, e `aria-current="step"`
+ * na etapa atual. A etapa atual fica em `--primary` (seleção forte, seção
+ * 14.7). A barra é `aria-hidden`: a lista já diz onde a pessoa está.
+ *
+ * Movimento: M11 (seção 16.3), o preset `moveStepper`, que leva a barra
+ * ao `scaleX` da etapa com `ease.move`, sem animar a largura. Com
+ * movimento reduzido, a barra muda direto.
+ */
 import { useRef } from "react"
 
 import { pt } from "@/i18n/pt.ts"
@@ -11,13 +26,16 @@ import {
   type RegistrationPhase,
 } from "@/features/registration/model.ts"
 
+/** As quatro etapas e a barra, na fase dada. */
 export function RegistrationStepper({ phase }: { phase: RegistrationPhase }) {
   const rootRef = useRef<HTMLDivElement>(null)
   const barRef = useRef<HTMLDivElement>(null)
   const { reduced } = useMotion()
+  // Fração de 1/4 a 1: a etapa atual conta como andada.
   const scale = phaseScale(phase)
   const currentIndex = registrationPhases.indexOf(phase)
 
+  // Começa em `scale-x-0` pela classe e anima até `scale` a cada etapa.
   useGSAP(
     () => {
       presets.moveStepper(barRef.current, reduced, scale)

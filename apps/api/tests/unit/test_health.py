@@ -1,3 +1,13 @@
+"""O `/health` responde sem banco, com o commit no ar, e o log de pedido tem os campos certos.
+
+Seções 12 (`GET /health`), 18.1 e 22.3 do SDD, NFR-6. O `/health` não toca no banco: responde
+200 com URL inválida ou ausente, e nem carrega o driver. O `build` vem de `app/BUILD_SHA`,
+gravado pelo `deploy.yml`, ou do `RAILWAY_GIT_COMMIT_SHA`, e um valor que não é alfanumérico
+vira `null`. Os testes de `build` apontam o `_BUILD_FILE` para um arquivo em `tmp_path` e
+limpam o cache de `build_sha`. Os de log leem a linha JSON na stdout com `capsys`. Não usa
+banco nem rede.
+"""
+
 import json
 import subprocess
 import sys
@@ -13,6 +23,7 @@ API_ROOT = Path(__file__).resolve().parents[2]
 
 
 def _client_with_database_url(monkeypatch: pytest.MonkeyPatch, database_url: str) -> TestClient:
+    """`TestClient` de um app novo com `DATABASE_URL` trocada e o cache de `get_settings` limpo."""
     monkeypatch.setenv("DATABASE_URL", database_url)
     get_settings.cache_clear()
     return TestClient(create_app())
@@ -28,6 +39,7 @@ def test_health_returns_200_without_a_valid_database_url(
 
 
 def test_loading_the_app_for_health_does_not_import_the_database_driver() -> None:
+    """Roda num processo novo, porque este já importou o SQLAlchemy por outros testes."""
     script = """
 import os
 import sys

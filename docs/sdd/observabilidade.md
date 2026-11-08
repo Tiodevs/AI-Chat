@@ -97,7 +97,7 @@ Os atributos usam ids, contagens, enums e durações, nunca texto de pergunta ou
 
 ### 18.3 Métricas, painéis e alertas
 
-A API expõe Prometheus em `GET /metrics`, protegida por `METRICS_TOKEN` no cabeçalho `Authorization: Bearer`. Sem `METRICS_TOKEN` configurado a rota responde 404, e com token errado, 401. Pedidos sem rota correspondente entram com `route="unmatched"`. No ambiente `production` da Railway, um serviço Prometheus coleta `http://api.railway.internal:$PORT/metrics` pela rede privada a cada 30 segundos, e um serviço Grafana lê o Prometheus. A API escuta em `::` para aceitar conexões da rede privada.
+A API expõe Prometheus em `GET /metrics`, protegida por `METRICS_TOKEN` no cabeçalho `Authorization: Bearer`. Sem `METRICS_TOKEN` configurado a rota responde 404, e com token errado, 401. Pedidos sem rota correspondente entram com `route="unmatched"`. No ambiente `production` da Railway, um serviço Prometheus coleta `http://api.railway.internal:$PORT/metrics` pela rede privada a cada 30 segundos, e um serviço Grafana lê o Prometheus. A API escuta em `0.0.0.0`, o que aceita as conexões da rede privada (seção 22.1).
 
 | Métrica | Tipo | Rótulos |
 |---|---|---|

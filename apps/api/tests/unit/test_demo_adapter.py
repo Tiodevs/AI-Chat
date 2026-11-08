@@ -1,4 +1,12 @@
-"""Modo `demo`: chat por regras e embedding lexical, sem modelo. Seções 17 e 21.1."""
+"""O modo `demo`: chat por regras e embedding lexical, sem modelo. Seções 17 e 21.1, ADR-014.
+
+Testa o `DemoChatProvider` e o `LexicalEmbeddingProvider`, que a e2e da CI usa no lugar do
+Gemini: a classificação por palavras, a resposta com a primeira frase do primeiro bloco e a
+citação dele, o campo do cadastro lido pelo passo atual, a frase do cadastro que cai na cópia
+fixa e a proximidade de textos com palavras em comum. O último teste confere a fábrica de
+adaptadores e que `Settings` recusa `demo` em `development` e `production`. Não usa banco nem
+rede.
+"""
 
 import asyncio
 import math
@@ -24,12 +32,14 @@ TOOL = Tool(name=SET_FIELDS_TOOL_NAME, description="", parameters={})
 
 
 def _run() -> RunContext:
+    """Contexto de execução mínimo; o `DemoChatProvider` recebe, mas não lê, o `RunContext`."""
     return RunContext(
         run_id=uuid4(), request_id="demo", prompt_version="test", trace_policy="metadata_only"
     )
 
 
 def _classify(question: str) -> QuestionClassification:
+    """Classifica `question` pelo `DemoChatProvider`, como o passo de reescrita faria."""
     return asyncio.run(
         DemoChatProvider().complete_structured(
             [Message(role="system", content="x"), Message(role="user", content=question)],
@@ -57,7 +67,8 @@ def test_the_classification_follows_the_keyword_rules(question: str, intent: str
 
 
 def test_the_answer_quotes_the_first_block_and_cites_it() -> None:
-    content = "# Visitas\n\nHorário geral de visita 11:00–20:00. Silêncio 13:00–14:00."
+    # O primeiro bloco tem o índice 2: a resposta cita o índice do bloco, não a posição dele.
+    content ="# Visitas\n\nHorário geral de visita 11:00–20:00. Silêncio 13:00–14:00."
     prompt = (
         "Qual é o horário de visita?\n\n"
         f"{UNTRUSTED_INTRO}\n\n{untrusted_block(2, 'Horário', content)}\n\n"

@@ -1,5 +1,14 @@
+/**
+ * Helpers de acessibilidade da suíte ao vivo: alvos de toque e foco pelo
+ * teclado. NFR-14 e seção 15.8 do SDD.
+ *
+ * O `audit.live.spec.ts` mede os alvos com `smallTargets`, e o
+ * `keyboard.live.spec.ts` anda pela página com `tabTo`. Os dois rodam na
+ * página aberta e não chamam a API.
+ */
 import { expect, type Page } from "@playwright/test"
 
+/** Um alvo abaixo do mínimo: o elemento e o tamanho medido, em px. */
 export type SmallTarget = { name: string; width: number; height: number }
 
 /**
@@ -8,6 +17,9 @@ export type SmallTarget = { name: string; width: number; height: number }
  * Fica de fora o que o WCAG 2.2 (2.5.8) também deixa de fora: link dentro de uma frase, que
  * segue o tamanho do texto, e o que está escondido para leitores de tela (`sr-only`), como o
  * link de pular para o conteúdo antes de receber o foco.
+ *
+ * Devolve os alvos visíveis abaixo de `minimum` px, com a área do rótulo
+ * somada à do controle.
  */
 export async function smallTargets(page: Page, minimum: number): Promise<SmallTarget[]> {
   return page.evaluate((min) => {
@@ -77,6 +89,11 @@ export async function smallTargets(page: Page, minimum: number): Promise<SmallTa
   }, minimum)
 }
 
+/**
+ * Falha se algum alvo fica abaixo de 44 px numa tela com menos de 768 px de
+ * largura, ou de 24 px nas outras. Nenhum spec o usa hoje: o
+ * `audit.live.spec.ts` chama `smallTargets` com `expect.soft`.
+ */
 export async function expectTouchTargets(page: Page) {
   const width = page.viewportSize()?.width ?? 1280
   const minimum = width < 768 ? 44 : 24

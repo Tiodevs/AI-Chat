@@ -1,3 +1,13 @@
+/**
+ * Regras puras da conversa em `features/ask/model.ts`. FR-17, seções 7.1,
+ * 10.4, 11.4, 15.5 e 15.8 do SDD.
+ *
+ * Prova que `replace` troca o rascunho e guarda o anterior em `outgoing`, que
+ * o anúncio para leitor de tela só sai no `done`, que a pergunta gravada com
+ * o marcador de saúde aparece escondida e que o limite de taxa vira minutos,
+ * arredondados para cima. Monta os turnos à mão, sem tela. Roda no projeto
+ * `dom` do Vitest. Não usa `fetch`, a API nem banco.
+ */
 import { describe, expect, it } from "vitest"
 
 import { pt } from "@/i18n/pt.ts"
@@ -11,6 +21,7 @@ import {
 } from "./model.ts"
 import { HEALTH_MARKER, type AssistantTurn } from "./types.ts"
 
+/** Turno do assistente logo depois do envio, à espera do primeiro evento. */
 const waiting: AssistantTurn = {
   key: "assistant",
   role: "assistant",

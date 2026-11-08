@@ -1,3 +1,27 @@
+/**
+ * Resumo do que a IA entendeu no cadastro por conversa, com cada campo
+ * editável e o motivo de cada pergunta (seções 14.6 e 15.6, mostrar o que
+ * a IA entendeu).
+ *
+ * Aparece em `/register`, aberto pelo botão "Ver o que entendemos": à
+ * direita do chat no desktop e acima dele no celular (seção 15.5). Os
+ * campos chegam da sessão de cadastro; a edição sobe por `onEdit`, que
+ * grava na API e devolve se deu certo.
+ *
+ * Estados por campo: vazio ("Ainda não informado"), entendido (com o
+ * visto), em edição, com erro (texto em `--danger` e ícone, com
+ * `role="alert"`) e e-mail já cadastrado, que oferece Entrar.
+ *
+ * Acessibilidade: a seção tem o título como nome (`aria-labelledby`), e
+ * uma região `aria-live="polite"` anuncia cada campo novo que a IA
+ * entende. O link "Por que pedimos" é um disclosure com `aria-expanded`,
+ * e os botões Editar levam o nome do campo em `sr-only`.
+ *
+ * Movimento: M10 (seção 16.3), o preset `confirmField`. Quando um campo
+ * ganha valor, a camada `data-highlight` acende e apaga, e o visto
+ * `data-confirm` cresce de 0,6 a 1 com `ease.confirm`. Com movimento
+ * reduzido, só o visto aparece, sem destaque.
+ */
 import { useEffect, useId, useRef, useState } from "react"
 import { CheckIcon, CircleAlert } from "lucide-react"
 import { Link } from "react-router"
@@ -22,6 +46,7 @@ import {
   type RegistrationFields,
 } from "@/features/registration/model.ts"
 
+/** Cartão com os cinco campos do cadastro. */
 export function ProfileSummaryCard({
   fields,
   fieldErrors,
@@ -30,15 +55,22 @@ export function ProfileSummaryCard({
   signInHref = "/sign-in",
 }: {
   fields: RegistrationFields
+  /** Erros do servidor por campo, como `email`. */
   fieldErrors: Record<string, string>
+  /** Um envio está em curso: desabilita editar e salvar. */
   pending: boolean
+  /** Grava um campo (`null` apaga) e devolve `true` se a API aceitou. */
   onEdit: (field: FieldName, value: string | null) => Promise<boolean>
+  /** Destino do link Entrar, quando o e-mail já tem conta. */
   signInHref?: string
 }) {
   const titleId = useId()
   const previous = useRef(fields)
   const [announcement, setAnnouncement] = useState("")
 
+  // Compara com os campos da renderização anterior e anuncia só o que
+  // mudou, no formato "Nome completo: Ana Costa". Um texto vazio não
+  // substitui o anúncio anterior.
   useEffect(() => {
     const text = changedFieldAnnouncement(previous.current, fields)
     previous.current = fields
@@ -75,6 +107,10 @@ export function ProfileSummaryCard({
   )
 }
 
+/**
+ * Um campo do resumo: rótulo, valor ou editor, o motivo da pergunta, o
+ * erro e, no e-mail já cadastrado, o link Entrar.
+ */
 function SummaryField({
   name,
   value,
@@ -96,9 +132,12 @@ function SummaryField({
   const [openReason, setOpenReason] = useState(false)
   const [editing, setEditing] = useState(false)
   const label = fieldLabel(name)
+  // Tipo de visitante e motivo da visita viram o texto em português.
   const shown = displayFieldValue(name, value)
   const offerSignIn = name === "email" && emailOffersSignIn(error ?? undefined)
 
+  // M10 a cada valor novo. Como o `useGSAP` também roda ao montar, os
+  // campos já preenchidos piscam quando o cartão abre.
   useGSAP(
     () => {
       if (!value) {
@@ -111,6 +150,7 @@ function SummaryField({
 
   return (
     <li ref={rootRef} className="relative flex flex-col gap-2">
+      {/* Camada de destaque da M10: `--success` a 15%, começa invisível. */}
       <div
         data-highlight
         aria-hidden="true"
@@ -146,6 +186,8 @@ function SummaryField({
             <p className="text-body text-foreground">
               {shown ?? pt.registration.summaryEmpty}
             </p>
+            {/* O nome acessível é "Editar Nome completo": começa pelo */}
+            {/* texto visível (WCAG 2.5.3) e diz qual campo muda. */}
             <Button
               type="button"
               variant="ghost"
@@ -158,6 +200,8 @@ function SummaryField({
             </Button>
           </div>
         )}
+        {/* Disclosure: o link abre e fecha o motivo logo abaixo, sem */}
+        {/* navegar. O motivo aparece quando o dado é pedido (15.1). */}
         <a
           href={`#${reasonId}`}
           className="w-fit text-body text-foreground underline underline-offset-4"
@@ -202,6 +246,12 @@ function SummaryField({
   )
 }
 
+/**
+ * Editor de um campo, num formulário com o nome do campo. Tipo de
+ * visitante e motivo da visita usam chips; os outros, um `Input` com o
+ * `autoComplete` certo. Salvar manda o texto sem espaços nas pontas, ou
+ * `null` quando fica vazio. O editor só fecha se a API aceitar.
+ */
 function FieldEditor({
   name,
   label,
@@ -274,6 +324,7 @@ function FieldEditor({
   )
 }
 
+/** Escolhe as opções e os textos do campo de escolha. */
 function ChoiceEditor({
   name,
   label,
@@ -307,6 +358,10 @@ function ChoiceEditor({
   )
 }
 
+/**
+ * Chips de escolha única (`ToggleGroup` com `type="single"`), com o
+ * rótulo do campo como nome do grupo.
+ */
 function ChoiceGroup<T extends string>({
   label,
   value,
@@ -339,6 +394,7 @@ function ChoiceGroup<T extends string>({
   )
 }
 
+// O navegador sugere nome, e-mail e telefone; nos outros campos, não.
 function autoCompleteFor(name: FieldName) {
   if (name === "full_name") {
     return "name"

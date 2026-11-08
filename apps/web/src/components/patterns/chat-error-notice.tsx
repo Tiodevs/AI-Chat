@@ -1,3 +1,16 @@
+/**
+ * Aviso de falha dentro de uma conversa guiada, sem sair da tela.
+ *
+ * Usado no cadastro por conversa (`/register`), quando uma mensagem não é
+ * enviada (seção 15.5): mostra a mensagem do erro, o `RequestIdCopy`,
+ * Tentar de novo e Fechar, e o texto continua no compositor. Com o modelo
+ * fora (503) ou sem sessão, a tela põe Usar o formulário em `children`.
+ *
+ * Acessibilidade: `role="alert"` anuncia a falha quando o aviso aparece.
+ * O ícone é `aria-hidden`; o título e o texto dizem o problema, e a borda
+ * `--danger` só reforça (seção 15.8). Fechar é um botão só de ícone, com
+ * o nome "Fechar aviso", de 44 px no celular e 32 px no desktop.
+ */
 import { CircleAlert, X } from "lucide-react"
 import type { ReactNode } from "react"
 
@@ -17,8 +30,11 @@ export function ChatErrorNotice({
   title: string
   message: string
   requestId: string | null
+  /** Sem ele, não há Tentar de novo, como enquanto um envio está pendente. */
   onRetry?: () => void
+  /** Sem ele, não há Fechar, como antes de existir uma sessão de cadastro. */
   onDismiss?: () => void
+  /** Ações extras ao lado de Tentar de novo, como Usar o formulário. */
   children?: ReactNode
 }) {
   return (

@@ -1,3 +1,10 @@
+"""A senha fica gravada só como hash argon2id, e a conferência aceita só a certa. FR-7, seção 8.5.
+
+Usa o `Argon2idPasswordHasher` de verdade, sem falso. Não usa banco nem rede. Hoje o login e o
+cadastro chamam o hasher direto no loop de eventos; a Etapa 13.1 leva a chamada para
+`asyncio.to_thread` e acrescenta o teste de que ela roda fora da thread do loop.
+"""
+
 from app.adapters.password_hasher import Argon2idPasswordHasher
 
 

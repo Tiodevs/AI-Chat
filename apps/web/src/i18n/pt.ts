@@ -1,10 +1,32 @@
+/**
+ * Todos os textos que a pessoa vê, em português do Brasil (seção 15.7).
+ *
+ * Um objeto só, `pt`, agrupado por tela ou componente. Como o objeto é
+ * tipado, uma chave que não existe falha no `tsc`; o `as const` do fim
+ * deixa cada texto somente leitura e com o tipo literal. Os textos com
+ * `{nome}`, como `{minutes}` e `{count}`, são modelos: o código troca a
+ * marca pelo valor com `replace`.
+ *
+ * Quem usa: as telas e os hooks de `features`, os componentes de
+ * `components`, a casca e as rotas de `app`, e os testes, que acham os
+ * elementos pelo mesmo texto. As respostas fixas da IA e as falas do
+ * cadastro vêm da API, de `apps/api/app/prompts`.
+ */
 export const pt = {
+  // Textos soltos. `appName` vai no título da aba (`PageHeading`) e no
+  // logotipo; `skipToContent`, no link da casca; `close`, no botão de
+  // fechar de `Dialog` e `Sheet`; `loading`, no carregamento do roteador,
+  // das tabelas e do `Spinner`; `couldNotContinue`, no título de erro da
+  // moldura e na mensagem genérica dos hooks. `pageNotFound` ainda não tem
+  // tela: a Etapa 14.1 cria a página não encontrada.
   appName: "Atrium",
   skipToContent: "Pular para o conteúdo",
   close: "Fechar",
   loading: "Carregando",
   couldNotContinue: "Não foi possível continuar.",
   pageNotFound: "Não encontramos essa página.",
+  // Títulos de página: o `h1` de cada tela e o título da aba
+  // (`PageHeading`). Os testes da casca e da e2e acham as páginas por eles.
   pages: {
     home: "Início",
     ask: "Conversa",
@@ -20,6 +42,9 @@ export const pt = {
     quality: "Qualidade",
     privacyRequests: "Pedidos de titular",
   },
+  // Navegação (seção 15.4): grupos e itens da barra lateral e da busca ⌘K
+  // (`app/navigation.ts`), as ações do `GuestHeader`, os links Conta e
+  // Entrar do `ProfileButton` e os links de cadastro e entrada do início.
   nav: {
     assistant: "Assistente",
     account: "Conta",
@@ -40,6 +65,8 @@ export const pt = {
     quality: "Qualidade",
     privacyRequests: "Pedidos de privacidade",
   },
+  // A barra lateral (`AppSidebar` e `sidebar-body.tsx`), o menu do
+  // visitante (`GuestHeader`) e a busca (`SearchDialog`).
   sidebar: {
     label: "Navegação",
     collapse: "Recolher barra lateral",
@@ -51,10 +78,14 @@ export const pt = {
     searchPlaceholder: "Buscar uma página",
     searchEmpty: "Nenhuma página encontrada.",
   },
+  // O card de novidades da barra lateral (`SidebarNoticeCard`).
   notice: {
     title: "Novidades",
     body: "As respostas usam só as informações publicadas do Harborlight. Elas não substituem um atendimento.",
   },
+  // O `ProfileButton` do rodapé da barra lateral: o menu com Sair e a
+  // preferência de movimento. A aba Perfil da conta repete os rótulos de
+  // movimento, e `useSignOut` usa a falha de saída.
   profile: {
     menu: "Menu da conta",
     menuLabel: "{name}, menu da conta",
@@ -67,6 +98,8 @@ export const pt = {
     motionReduce: "Reduzir movimento",
     motionAllow: "Animar",
   },
+  // Entrar, `/sign-in`: o `SignInForm`, o `useSignIn` e os avisos de
+  // limite de tentativas (`features/auth/return-to.ts`).
   signIn: {
     lead: "Use o e-mail e a senha da sua conta.",
     email: "E-mail",
@@ -82,26 +115,36 @@ export const pt = {
     emailInvalid: "Informe um e-mail válido.",
     passwordRequired: "Informe a senha.",
   },
+  // A página 403 do `ErrorBoundary` de `app/route-frame.tsx`.
   forbidden: {
     title: "Acesso negado",
     body: "Sua conta não pode abrir esta página.",
     home: "Voltar ao início",
   },
+  // O `RequestIdCopy`, que copia o `request_id` nas telas de erro.
   requestId: {
     label: "Identificador do pedido",
     copy: "Copiar identificador",
     copied: "Identificador copiado",
   },
+  // A frase genérica do `ErrorBoundary` de `app/route-frame.tsx`.
   error: {
     body: "Tente de novo em alguns instantes.",
   },
+  // O título do início, `/` (`HomeScreen`).
   home: {
     title: "Como podemos ajudar no Harborlight?",
   },
+  // O `SafetyNotice` permanente sobre IA e orientação médica (seção 15.6).
   safety: {
     title: "O Atrium é uma inteligência artificial",
     body: "As respostas vêm das informações publicadas do Harborlight General Hospital. Elas não substituem um atendimento e não são orientação médica.",
   },
+  // Início e conversa, `/` e `/ask/:id?`: o `Composer`, as mensagens
+  // (`UserMessage`, `AssistantMessage`, `ChatThread`), as fontes
+  // (`CitationChip`, `SourceList`) e os estados da seção 15.5. Os textos de
+  // erro e de limite saem de `useAskConversation` e de
+  // `features/ask/model.ts`.
   ask: {
     suggestionsLabel: "Sugestões",
     questionLabel: "Sua pergunta",
@@ -131,6 +174,7 @@ export const pt = {
     couldNotFinish: "Não foi possível concluir a resposta.",
     alreadyRated: "Esta resposta já foi avaliada.",
     thread: "Mensagens da conversa",
+    // O `OutcomeBadge` de cada resposta.
     outcomes: {
       answered: "Respondida",
       abstained: "Não está nas informações publicadas",
@@ -138,6 +182,7 @@ export const pt = {
       replaced: "Substituída",
       unavailable: "Indisponível",
     },
+    // As quatro sugestões do início, em `suggestion-chips.tsx`.
     suggestions: [
       {
         id: "visiting",
@@ -161,11 +206,17 @@ export const pt = {
       },
     ],
   },
+  // Cadastro por conversa (`/register`) e por formulário
+  // (`/register/form`): as telas, o `ProfileSummaryCard`, o `PasswordCard`,
+  // o `ConsentFieldSet`, o `AssistantBubble` e a validação de
+  // `features/registration/model.ts`. A conta reaproveita os tipos de
+  // visitante e os motivos, e o novo aceite, os links dos documentos.
   registration: {
     lead: "Crie sua conta conversando. Você vê e corrige cada dado antes de confirmar.",
     formLead:
       "Os mesmos dados e aceites do cadastro por conversa, nesta página.",
     stepsLabel: "Etapas do cadastro",
+    // O `RegistrationStepper`, hoje só no Storybook (seção 14.6).
     steps: {
       details: "Dados",
       password: "Senha",
@@ -199,6 +250,7 @@ export const pt = {
     passwordForm: "Definir a senha",
     passwordHint: "Use de 12 a 72 caracteres.",
     strengthLabel: "Força da senha",
+    // O medidor de força do `PasswordCard`.
     strength: {
       empty: "A força da senha aparece aqui.",
       short: "Curta demais",
@@ -236,6 +288,7 @@ export const pt = {
     dismiss: "Fechar aviso",
     sessionMissing: "Não encontrei este cadastro. Você pode preencher do zero.",
     thread: "Conversa do cadastro",
+    // Os nomes dos campos: formulário, `PasswordCard` e mensagens de erro.
     fields: {
       full_name: "Nome completo",
       email: "E-mail",
@@ -244,6 +297,7 @@ export const pt = {
       visit_reason: "Motivo da visita",
       password: "Senha",
     },
+    // O "Por que pedimos" de cada campo no `ProfileSummaryCard`.
     reasons: {
       full_name: "O nome identifica a sua conta.",
       email:
@@ -255,6 +309,8 @@ export const pt = {
       visit_reason:
         "Opcional. Ajuda a personalizar respostas públicas. Pode indicar que você é paciente.",
     },
+    // As opções de tipo de visitante e de motivo da visita: resumo,
+    // formulário e aba Perfil da conta.
     visitorTypes: {
       patient: "Paciente",
       visitor: "Visita",
@@ -282,14 +338,19 @@ export const pt = {
     limitedMany:
       "Você fez muitas tentativas. Tente de novo em {minutes} minutos.",
   },
+  // Conta, `/account` (`AccountScreen`), com as abas da seção 15.5.
+  // `features/account/model.ts` usa a validação e a palavra que confirma a
+  // exclusão.
   account: {
     tabsLabel: "Seções da conta",
     loadError: "Não foi possível carregar esta seção.",
+    // Os nomes das abas.
     tabs: {
       profile: "Perfil",
       conversations: "Conversas",
       privacy: "Privacidade",
     },
+    // A aba Perfil.
     profile: {
       email: "E-mail",
       emailNote: "O e-mail é o seu acesso e não muda por aqui.",
@@ -310,12 +371,14 @@ export const pt = {
       motionTitle: "Movimento",
       motionHint: "Controla as animações do Atrium neste navegador.",
     },
+    // A aba Conversas.
     conversations: {
       empty: "Nenhuma conversa ainda.",
       untitled: "Conversa sem pergunta",
       listLabel: "Suas conversas",
       loading: "Carregando conversas",
     },
+    // A aba Privacidade: consentimentos, exportação e exclusão da conta.
     privacy: {
       consentsTitle: "Seus consentimentos",
       consentsLead:
@@ -352,6 +415,8 @@ export const pt = {
       requestsLink: "Fazer um pedido ao encarregado de dados",
     },
   },
+  // O Aviso de Privacidade, `/privacy` (`PrivacyScreen`, seção 11.11), em
+  // seções com âncoras. Os Termos usam também `fictional`.
   privacyNotice: {
     version: "Versão {version}",
     contentsLabel: "Nesta página",
@@ -457,6 +522,8 @@ export const pt = {
       },
     },
   },
+  // O formulário do canal do titular, no fim de `/privacy` (seção 11.5). A
+  // fila do admin usa `types` para nomear cada pedido.
   privacyRequest: {
     email: "E-mail para a resposta",
     type: "Tipo do pedido",
@@ -480,6 +547,8 @@ export const pt = {
       other: "Outro",
     },
   },
+  // Os Termos de Uso, `/terms` (`TermsScreen`). O `id` de cada seção é a
+  // âncora dela na página.
   termsOfUse: {
     version: "Versão {version}",
     sections: [
@@ -538,6 +607,8 @@ export const pt = {
     ],
     privacyLink: "Ler o Aviso de Privacidade",
   },
+  // Visão geral do admin, `/admin` (`OverviewScreen`, seção 15.5). A
+  // Qualidade reaproveita o período, os desfechos e o feedback.
   insights: {
     period: {
       label: "Período",
@@ -553,6 +624,7 @@ export const pt = {
       flat: "Sem variação",
       none: "Sem período anterior",
     },
+    // Os quatro `StatCard`.
     stats: {
       questions: "Perguntas",
       answerRate: "Taxa de respostas",
@@ -560,6 +632,7 @@ export const pt = {
       helpfulRate: "Taxa de útil",
       ariaLabel: "{label}: {value}. {delta}",
     },
+    // O `TrendChartCard` e a tabela equivalente para leitores de tela.
     trend: {
       title: "Perguntas ao longo do tempo",
       questions: "Perguntas",
@@ -567,6 +640,7 @@ export const pt = {
       date: "Data",
       tableCaption: "Perguntas e respostas por dia",
     },
+    // O `SegmentedStatusCard` de desfechos, com as abas.
     outcomesCard: {
       title: "Desfechos",
       outcome: "Desfecho",
@@ -575,6 +649,7 @@ export const pt = {
       empty: "Nenhuma resposta no período.",
       share: "{count} ({percent})",
     },
+    // Os desfechos gravados (seção 7.1), nos gráficos e nos filtros.
     outcomes: {
       answered: "Respondida",
       abstained: "Fora das informações",
@@ -595,6 +670,7 @@ export const pt = {
       not_helpful: "Não útil",
       none: "Sem feedback",
     },
+    // O `GroupedBarCard` do funil de cadastro.
     funnel: {
       title: "Funil de cadastro",
       chat: "Conversa com IA",
@@ -607,6 +683,7 @@ export const pt = {
       },
       tableCaption: "Cadastros por etapa, conversa contra formulário",
     },
+    // O card do orçamento diário de tokens.
     budget: {
       title: "Orçamento diário de tokens",
       used: "{used} de {budget} tokens hoje",
@@ -615,6 +692,8 @@ export const pt = {
       label: "Uso do orçamento de hoje",
     },
   },
+  // Qualidade, `/admin/quality` (`QualityScreen`): filtros, a tabela de
+  // conversas, o inspetor em `Sheet` e o diálogo de revelar identidade.
   quality: {
     lead: "Conversas pseudonimizadas para revisar respostas. Só aparecem convidados e membros que consentiram com a melhoria.",
     filters: {
@@ -674,6 +753,9 @@ export const pt = {
       guestHint: "Conversa de convidado: não há identidade para revelar.",
     },
   },
+  // Documentos, `/admin/documents` (`DocumentsScreen`): o envio com o
+  // `FileDropzone`, a tabela, os status e as ações de substituir, tentar de
+  // novo e arquivar.
   documents: {
     lead: "Envie, substitua e arquive os documentos que o assistente usa para responder.",
     dropzone: {
@@ -735,6 +817,7 @@ export const pt = {
       sent: "Nova versão de “{title}” enviada. A ingestão começou.",
     },
   },
+  // O `DueDateBadge` dos pedidos de titular (seção 14.6).
   dueDate: {
     overdueToday: "Atrasado há menos de 1 dia",
     overdueOne: "Atrasado há 1 dia",
@@ -745,6 +828,8 @@ export const pt = {
     closed: "Fechado em {date}",
     deadline: "Prazo: {date}",
   },
+  // Pedidos de titular, `/admin/privacy` (`PrivacyQueueScreen`): os
+  // `StatTile` do resumo, a tabela e o `Sheet` do pedido.
   privacyQueue: {
     lead: "Pedidos abertos pelo canal do titular. O prazo é de 15 dias corridos, e os atrasados aparecem primeiro.",
     summary: {
@@ -793,6 +878,7 @@ export const pt = {
       noNote: "Sem nota de resolução.",
     },
   },
+  // Novo aceite, `/legal/accept` (`LegalAcceptScreen`, seção 13.3).
   legalAccept: {
     lead: "Atualizamos os Termos de Uso e o Aviso de Privacidade (versão {version}). Leia e aceite para continuar.",
     accept: "Aceitar e continuar",

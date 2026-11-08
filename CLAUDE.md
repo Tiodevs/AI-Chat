@@ -4,6 +4,8 @@ Assistente público para visitantes do hospital fictício Harborlight General Ho
 
 A especificação é `docs/sdd.md` (seções em `docs/sdd/`). A implementação segue `docs/plano-de-acao.md`, em etapas com aprovação a cada entrega. A especificação vem antes do código: cite a seção que a tarefa implementa e atualize o SDD na mesma mudança quando o comportamento mudar.
 
+O mapa de toda a documentação é `docs/README.md`, e o guia do código fica em `docs/guia/`. Comentários, READMEs de pasta e guia seguem a seção "Como documentar" do `CONTRIBUTING.md`: mudou um arquivo, atualize os comentários dele e a tabela do README da pasta; mudou um fluxo entre camadas, atualize a página do guia.
+
 ## Comandos
 
 API (em `apps/api`, sem Docker, banco na Railway; veja o `README.md`):

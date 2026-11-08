@@ -1,3 +1,13 @@
+/**
+ * J5 com a API simulada: corrigir o perfil, ver as conversas, ligar e desligar
+ * a personalização, exportar os dados e excluir a conta. FR-9 e NFR-14,
+ * seções 11.5, 15.3 e 15.8 do SDD.
+ *
+ * Suíte simulada, projeto `mobile` (Pixel 5 com movimento reduzido). O
+ * `beforeEach` instala o `installAccountApi` de `account-api.ts`, e o teste
+ * lê o estado do falso para conferir o que a tela mandou. Sem API e sem
+ * banco.
+ */
 import { expect, test } from "@playwright/test"
 
 import { pt } from "../src/i18n/pt.ts"
@@ -5,6 +15,7 @@ import { pt } from "../src/i18n/pt.ts"
 import { expectNoSeriousViolations } from "./api.ts"
 import { installAccountApi, type AccountApi } from "./account-api.ts"
 
+// O falso de cada teste, recriado no `beforeEach`.
 let api: AccountApi
 
 test.beforeEach(async ({ page }) => {
@@ -72,6 +83,7 @@ test("J5 o membro corrige o perfil, exporta os dados e exclui a conta", async ({
 })
 
 test("J5 funciona no celular com movimento reduzido", async ({ page }) => {
+  // Largura de 375 px, mais estreita que os 393 px do Pixel 5 do projeto.
   await page.setViewportSize({ width: 375, height: 812 })
   await page.goto("/account")
   await page.getByRole("tab", { name: pt.account.tabs.privacy }).click()

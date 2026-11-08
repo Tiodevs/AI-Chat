@@ -1,4 +1,13 @@
-"""API de cadastro contra o PostgreSQL. Seções 7.2, 8.1, 8.5 e 10.4."""
+"""Cadastro por chat e por formulário. FR-5 a FR-9 e NFR-13, seções 7.2, 8.1, 8.5 e 10.4.
+
+A fixture `api` troca o `get_registration_service` por um `RegistrationService` sobre o
+`FakeChatProvider` da fixture `chat`, com o relógio `FrozenClock` e o orçamento desligado.
+`_say` roteiriza o falso antes de cada turno com o `set_fields` que o modelo extrairia, então
+o teste escolhe o que foi entendido. Os testes de orçamento montam o cliente com `_client` e o
+`BudgetClock`, num dia só deles. `_cleanup` apaga usuários pelo e-mail e sessões de cadastro
+pelo id. Precisa de PostgreSQL com pgvector local (`migrated_database`); sem ele pula, e com
+`REQUIRE_INTEGRATION_DB=1` falha.
+"""
 
 import asyncio
 from collections.abc import Coroutine
@@ -43,12 +52,19 @@ BUDGET_DAY = datetime(2026, 10, 30, 12, 0, tzinfo=UTC)
 
 
 class FrozenClock:
+    """Relógio parado em `FIXED`, às 03:00 em ponto.
+
+    A janela de uma hora do cadastro começa nesse instante, então o limite devolve
+    `retry_after_seconds` 3600.
+    """
+
     def now(self) -> datetime:
         return FIXED
 
 
 @pytest.fixture
 def chat() -> FakeChatProvider:
+    """O `FakeChatProvider` que o serviço usa. `_say` o roteiriza antes de cada turno."""
     return FakeChatProvider()
 
 
@@ -65,6 +81,7 @@ def api(
     migrated_database: str,
     chat: FakeChatProvider,
 ) -> TestClient:
+    """API com o `RegistrationService` sobre o `chat` da fixture e o orçamento desligado."""
     return _client(
         monkeypatch,
         migrated_database,
@@ -79,6 +96,11 @@ def _client(
     chat: FakeChatProvider,
     budget: PostgresTokenBudget,
 ) -> TestClient:
+    """API real com o `get_registration_service` trocado por um serviço com estes falsos.
+
+    O serviço usa o `FrozenClock`, o argon2id de verdade, o `RegistrationWorkflow` sobre o
+    `chat` e o orçamento `budget`.
+    """
     monkeypatch.setenv("DATABASE_URL", database_url)
     monkeypatch.setenv("RATE_LIMIT_HMAC_KEY", HMAC_KEY)
     monkeypatch.setenv("WEB_ORIGIN", ORIGIN)
@@ -103,7 +125,10 @@ def test_exceeded_budget_offers_the_form_without_calling_the_model(
     monkeypatch: pytest.MonkeyPatch,
     migrated_database: str,
 ) -> None:
-    """CA-1 da Etapa 12.2. Seção 7.1: com o teto estourado, o cadastro oferece o formulário."""
+    """CA-1 da Etapa 12.2. Seção 7.1: com o teto estourado, o cadastro oferece o formulário.
+
+    A transcrição fica só com a saudação: a mensagem recusada não é gravada (seção 7.2).
+    """
     chat = FakeChatProvider(
         tool_result=ToolResult(name="set_fields", arguments={"full_name": "Ana Costa"}),
         structured=PhraseText(text="Qual é o seu e-mail?"),
@@ -135,7 +160,10 @@ def test_each_chat_turn_adds_its_tokens_to_the_daily_counter(
     monkeypatch: pytest.MonkeyPatch,
     migrated_database: str,
 ) -> None:
-    """CA-2 da Etapa 12.2: extração e frase de cada turno entram em `token_usage_days`."""
+    """CA-2 da Etapa 12.2: extração e frase de cada turno entram em `token_usage_days`.
+
+    Cada turno soma a extração, (30, 5), e a frase, (12, 4): 42 de entrada e 9 de saída.
+    """
     chat = FakeChatProvider(
         structured=PhraseText(text="Pode me dizer o próximo dado?"),
         tool_usage=(30, 5),
@@ -328,6 +356,7 @@ def test_registration_guest_conversation_belongs_to_the_member(
     guest = created.cookies.get("atrium_guest")
     assert isinstance(guest, str) and guest
     conversation_id = created.json()["id"]
+    # Sem o pote de cookies, cada pedido leva só o cookie escrito no cabeçalho.
     api.cookies.clear()
     try:
         registered = api.post(
@@ -396,6 +425,7 @@ def test_registration_rate_limit_returns_429(
 
 
 def _prepare_acceptance(api: TestClient, chat: FakeChatProvider, email: str) -> str:
+    """Leva uma sessão nova até o aceite: obrigatórios, opcionais pulados, senha e revisão."""
     session_id = _start(api)
     _collect_required(api, chat, session_id, email)
     _skip_optionals(api, chat, session_id)
@@ -404,6 +434,7 @@ def _prepare_acceptance(api: TestClient, chat: FakeChatProvider, email: str) -> 
 
 
 def _start(api: TestClient) -> str:
+    """Abre uma sessão de cadastro e confere a saudação sem senha. Devolve o id."""
     response = api.post("/v1/registration/sessions", headers=_headers())
     assert response.status_code == 201, response.text
     body = response.json()
@@ -414,6 +445,7 @@ def _start(api: TestClient) -> str:
 
 
 def _collect_required(api: TestClient, chat: FakeChatProvider, session_id: str, email: str) -> None:
+    """Entrega nome e e-mail e confere que o próximo passo é o telefone."""
     named = _say(api, chat, session_id, "Ana Costa", {"full_name": "Ana Costa"})
     assert named.json()["next_step"] == "email"
     assert named.json()["prompt"] == prompt_for("email", correcting=False)
@@ -423,12 +455,14 @@ def _collect_required(api: TestClient, chat: FakeChatProvider, session_id: str, 
 
 
 def _skip_optionals(api: TestClient, chat: FakeChatProvider, session_id: str) -> None:
+    """Pula telefone, tipo de visitante e motivo até o passo da senha."""
     for expected in ("visitor_type", "visit_reason", "password"):
         response = _say(api, chat, session_id, "pular", {"skip_current": True})
         assert response.json()["next_step"] == expected
 
 
 def _password_and_review(api: TestClient, session_id: str) -> None:
+    """Define a senha e confirma o resumo, até o passo do aceite."""
     password = api.post(
         f"/v1/registration/sessions/{session_id}/password",
         headers=_headers(),
@@ -452,6 +486,11 @@ def _say(
     text: str,
     arguments: dict[str, object],
 ) -> Any:
+    """Envia um turno do chat com o `set_fields` que o falso devolve como extração.
+
+    O teste escolhe o que o modelo entendeu, e o serviço valida a carga com as regras do
+    formulário (seção 7.2).
+    """
     chat.script(tool_result=ToolResult(name="set_fields", arguments=arguments))
     response = api.post(
         f"/v1/registration/sessions/{session_id}/messages",
@@ -471,6 +510,7 @@ def _accept(
     personalization: bool = False,
     quality: bool = False,
 ) -> Any:
+    """`POST /v1/registration/sessions/{id}/acceptance` com os aceites e a versão vigente."""
     return api.post(
         f"/v1/registration/sessions/{session_id}/acceptance",
         headers=_headers(),
@@ -494,6 +534,7 @@ def _submit(
     quality: bool = False,
     phone: str | None = None,
 ) -> Any:
+    """`POST /v1/registration/form` com o corpo de `_form`."""
     return api.post("/v1/registration/form", headers=_headers(), json=_form(
         email,
         visitor_type=visitor_type,
@@ -513,6 +554,7 @@ def _form(
     quality: bool = False,
     phone: str | None = None,
 ) -> dict[str, object]:
+    """Corpo completo do formulário: campos, senha e aceites."""
     return {
         "full_name": "Ana Costa",
         "email": email,
@@ -529,10 +571,12 @@ def _form(
 
 
 def _headers(ip: str | None = None) -> dict[str, str]:
+    """`Origin` certo e um IP único, ou `ip`."""
     return {"Origin": ORIGIN, "X-Forwarded-For": ip or f"test-{uuid4().hex}"}
 
 
 def _cookie(response: Any) -> str:
+    """Valor do primeiro cookie do `set-cookie`, o `atrium_session` da conclusão."""
     header = response.headers["set-cookie"]
     if not isinstance(header, str):
         raise AssertionError(header)
@@ -540,24 +584,29 @@ def _cookie(response: Any) -> str:
 
 
 def _email(label: str) -> str:
+    """E-mail único por chamada, para os testes não colidirem no banco compartilhado."""
     return f"{label}-{uuid4().hex}@example.com"
 
 
 def _grant_key(grants: list[ConsentRecord]) -> set[tuple[str, str]]:
+    """Finalidade e versão de cada consentimento, para comparar chat e formulário."""
     return {(grant.purpose, grant.document_version) for grant in grants}
 
 
 def _hasher() -> Any:
+    """O argon2id da aplicação."""
     from app.adapters.password_hasher import get_password_hasher
 
     return get_password_hasher()
 
 
 def _run[T](coro: Coroutine[object, object, T]) -> T:
+    """Roda a corrotina num loop novo e devolve o resultado."""
     return asyncio.run(coro)
 
 
 async def _insert_user(database_url: str, email: str) -> None:
+    """Grava um membro com este e-mail, para o e-mail já ter conta."""
     async with open_session(database_url) as session, UnitOfWork(session):
         await UserRepository(session).insert(
             email=email,
@@ -569,11 +618,13 @@ async def _insert_user(database_url: str, email: str) -> None:
 
 
 async def _seed_window(database_url: str, *, key: str, start: datetime, count: int) -> None:
+    """Grava uma janela de limite já com `count` pedidos, para o próximo passar do limite."""
     async with open_session(database_url) as session, UnitOfWork(session):
         session.add(RateLimitWindow(bucket_key=key, window_start=start, count=count))
 
 
 async def _count_users(database_url: str, email: str) -> int:
+    """Quantos usuários têm este e-mail."""
     async with open_session(database_url) as session:
         value = await session.scalar(
             select(func.count()).select_from(User).where(User.email == email)
@@ -585,6 +636,7 @@ async def _stored(
     database_url: str,
     email: str,
 ) -> tuple[User, list[ConsentRecord]]:
+    """O usuário do e-mail e os consentimentos dele."""
     async with open_session(database_url) as session:
         user = await session.scalar(select(User).where(User.email == email))
         if user is None:
@@ -599,6 +651,7 @@ async def _session_secret(
     database_url: str,
     session_id: str,
 ) -> tuple[list[Any], str | None, str]:
+    """Transcrição, hash de senha e status gravados da sessão de cadastro."""
     async with open_session(database_url) as session:
         row = await session.get(RegistrationSession, UUID(session_id))
         if row is None:
@@ -607,6 +660,7 @@ async def _session_secret(
 
 
 async def _set_usage(database_url: str, *, input_tokens: int, output_tokens: int) -> None:
+    """Põe o uso do dia de `BUDGET_DAY` nos valores dados."""
     await _delete_usage(database_url)
     async with open_session(database_url) as session, UnitOfWork(session):
         session.add(
@@ -619,17 +673,22 @@ async def _set_usage(database_url: str, *, input_tokens: int, output_tokens: int
 
 
 async def _usage(database_url: str) -> tuple[int, int]:
+    """Tokens do dia de `BUDGET_DAY`."""
     async with open_session(database_url) as session, UnitOfWork(session):
         return await TokenUsageRepository(session).totals(BUDGET_DAY.date())
+    # Inalcançável: o `__aexit__` do `UnitOfWork` devolve `bool`, então o mypy supõe que o bloco
+    # pode engolir a exceção e exige um fim depois dele.
     raise AssertionError("token usage")
 
 
 async def _delete_usage(database_url: str) -> None:
+    """Apaga o uso do dia de `BUDGET_DAY`."""
     async with open_session(database_url) as session, UnitOfWork(session):
         await session.execute(delete(TokenUsageDay).where(TokenUsageDay.day == BUDGET_DAY.date()))
 
 
 async def _cleanup(database_url: str, emails: list[str], session_ids: list[str]) -> None:
+    """Apaga os usuários pelo e-mail, com as sessões, e as sessões de cadastro pelo id."""
     async with open_session(database_url) as session, UnitOfWork(session):
         users = UserRepository(session)
         for email in emails:

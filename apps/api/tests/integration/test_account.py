@@ -1,6 +1,10 @@
-"""Conta do membro contra o PostgreSQL: perfil, exportação, consentimentos e exclusão.
+"""Conta do membro: perfil, exportação, consentimentos e exclusão. FR-9 e NFR-12.
 
-Seções 11.5, 11.6 e 12 do SDD, critérios CA-1 a CA-5 da Etapa 6.1.
+Seções 11.5, 11.6 e 12 do SDD, critérios CA-1 a CA-5 da Etapa 6.1. O `TestClient` chama a API
+real com `APP_AI_ADAPTER=fake` e o relógio `FrozenClock`. `_seed_member` e
+`_seed_conversation` gravam o membro, os aceites e uma troca com citação e feedback pelos
+repositórios, e `_purge` apaga tudo pelo e-mail no fim. Precisa de PostgreSQL com pgvector local
+(`migrated_database`); sem ele pula, e com `REQUIRE_INTEGRATION_DB=1` falha.
 """
 
 import asyncio
@@ -43,12 +47,15 @@ LEGAL = LEGAL_DOCUMENT_VERSION
 
 
 class FrozenClock:
+    """Relógio parado em `FIXED`, no lugar de `get_clock`."""
+
     def now(self) -> datetime:
         return FIXED
 
 
 @pytest.fixture
 def api(monkeypatch: pytest.MonkeyPatch, migrated_database: str) -> TestClient:
+    """API real com `APP_AI_ADAPTER=fake`, o relógio parado e o banco migrado."""
     monkeypatch.setenv("DATABASE_URL", migrated_database)
     monkeypatch.setenv("RATE_LIMIT_HMAC_KEY", HMAC_KEY)
     monkeypatch.setenv("WEB_ORIGIN", ORIGIN)
@@ -209,6 +216,7 @@ def test_delete_removes_everything_revokes_the_session_and_audits_only_the_id(
 
         events = _run_value(_audit_events(migrated_database, user_id))
         assert events == [("account.delete", "user", user_id, None)]
+        # Semear de novo com o mesmo e-mail só passa se a exclusão liberou o e-mail único.
         _run(_seed_member(migrated_database, email=email))
     finally:
         _run(_purge(migrated_database, email))
@@ -269,14 +277,17 @@ def test_account_routes_require_a_session_and_the_origin(api: TestClient) -> Non
     assert api.get("/v1/me/export").status_code == 401
     assert api.get("/v1/me/consents").status_code == 401
     assert api.delete("/v1/me", headers=_headers()).status_code == 401
+    # Sem `Origin`, o pedido recebe 403 antes de a sessão ser conferida (NFR-12).
     assert api.delete("/v1/me").status_code == 403
 
 
 def _headers() -> dict[str, str]:
+    """Cabeçalho `Origin` que os pedidos de mudança de estado exigem (NFR-12)."""
     return {"Origin": ORIGIN}
 
 
 def _login(client: TestClient, email: str) -> None:
+    """Entra com `PASSWORD` de um IP único. O cookie fica no pote do cliente."""
     response = client.post(
         "/v1/auth/login",
         headers={"Origin": ORIGIN, "X-Forwarded-For": f"test-{uuid4().hex}"},
@@ -286,14 +297,17 @@ def _login(client: TestClient, email: str) -> None:
 
 
 def _email(label: str) -> str:
+    """E-mail único por chamada, para os testes não colidirem no banco compartilhado."""
     return f"{label}-{uuid4().hex}@example.com"
 
 
 def _run(coro: Coroutine[object, object, None]) -> None:
+    """Roda a corrotina num loop novo e descarta o resultado."""
     asyncio.run(coro)
 
 
 def _run_value(coro: Coroutine[object, object, Any]) -> Any:
+    """Roda a corrotina num loop novo e devolve o resultado."""
     return asyncio.run(coro)
 
 
@@ -304,6 +318,7 @@ async def _seed_member(
     role: str = "member",
     terms_version: str = LEGAL,
 ) -> None:
+    """Grava um usuário com os aceites dos Termos e da maioridade em `terms_version`."""
     async with open_session(database_url) as session, UnitOfWork(session):
         user_id = await UserRepository(session).insert(
             email=email,
@@ -324,6 +339,7 @@ async def _seed_member(
 
 
 async def _seed_conversation(database_url: str, *, email: str, text: str) -> None:
+    """Grava numa conversa do membro a pergunta `text` e uma resposta citada com feedback útil."""
     async with open_session(database_url) as session, UnitOfWork(session):
         user = await UserRepository(session).get_by_email(email)
         assert user is not None
@@ -375,11 +391,13 @@ async def _seed_conversation(database_url: str, *, email: str, text: str) -> Non
 
 
 async def _user_id(database_url: str, email: str) -> UUID | None:
+    """Id do usuário com este e-mail, ou `None`."""
     async with open_session(database_url) as session:
         return await session.scalar(select(User.id).where(User.email == email))
 
 
 async def _read_sensitive(database_url: str, email: str) -> tuple[str | None, str | None]:
+    """Lê `visitor_type` e `visit_reason` direto da tabela `users`."""
     async with open_session(database_url) as session:
         row = (
             await session.execute(
@@ -390,6 +408,7 @@ async def _read_sensitive(database_url: str, email: str) -> tuple[str | None, st
 
 
 async def _counts(database_url: str, user_id: UUID) -> dict[str, int]:
+    """Conta as linhas do usuário que a exclusão precisa apagar."""
     queries = {
         "users": select(func.count()).select_from(User).where(User.id == user_id),
         "consents": select(func.count())
@@ -409,6 +428,7 @@ async def _counts(database_url: str, user_id: UUID) -> dict[str, int]:
 async def _audit_events(
     database_url: str, user_id: UUID
 ) -> list[tuple[str, str, UUID, str | None]]:
+    """Eventos de auditoria com este usuário como ator."""
     async with open_session(database_url) as session:
         rows = await session.execute(
             select(
@@ -422,11 +442,16 @@ async def _audit_events(
 
 
 async def _purge_audit(database_url: str, user_id: UUID) -> None:
+    """Apaga a auditoria do usuário, que sobrevive à exclusão da conta (seção 11.6)."""
     async with open_session(database_url) as session, UnitOfWork(session):
         await session.execute(delete(AuditEvent).where(AuditEvent.actor_user_id == user_id))
 
 
 async def _purge(database_url: str, email: str) -> None:
+    """Apaga o usuário pelo e-mail, com as mensagens, as sessões e a auditoria dele.
+
+    Consentimentos e conversas caem em cascata com o usuário.
+    """
     async with open_session(database_url) as session, UnitOfWork(session):
         users = UserRepository(session)
         user = await users.get_by_email(email)

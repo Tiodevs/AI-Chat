@@ -1,4 +1,12 @@
-"""Provedor, circuit breaker e pool do banco com vida de processo. Seções 6.4 e 7.1 do SDD."""
+"""Provedor, circuit breaker e pool do banco com vida de processo. Seções 6.4 e 7.1 do SDD.
+
+Critérios CA-1 e CA-2 da Etapa 12.4. O teste do circuito põe em `app.state.ai_runtime` um
+runtime com o `GeminiChatProvider` de verdade sobre o falso `_FailingBackend`, sem rede. O do
+pool entra no `lifespan` com `with TestClient(...)` e conta, por eventos do SQLAlchemy, as
+conexões novas e os checkouts. Reaproveita os helpers de `test_conversations.py` e
+`test_auth.py`, e `_delete_guest` apaga a conversa no fim. Precisa de PostgreSQL com pgvector
+local (`migrated_database`); sem ele pula, e com `REQUIRE_INTEGRATION_DB=1` falha.
+"""
 
 import asyncio
 from collections.abc import AsyncIterator

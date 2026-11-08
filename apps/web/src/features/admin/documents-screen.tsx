@@ -1,3 +1,15 @@
+/**
+ * Tela de documentos do admin, em `/admin/documents`: o envio com
+ * `FileDropzone`, a tabela do corpus e as ações de cada linha.
+ *
+ * Camada: view (SDD 13.2). Recebe o `DocumentsModel` de `useDocuments` pela
+ * rota `app/routes/admin-documents.tsx` e não chama a API. Usa as regras de
+ * `documents-model.ts`, o `DataTable`, o `FileDropzone` e o
+ * `RequestIdCopy` de `components/patterns` e o `AlertDialog`, o `Sheet` e
+ * o `Badge` de `components/ui`.
+ *
+ * SDD 15.5 (Documentos), 7.3 (ingestão), 12 e a Jornada J6 (15.3).
+ */
 import { useState, type FormEvent } from "react"
 
 import { PageHeading } from "@/app/page-heading.tsx"
@@ -48,22 +60,37 @@ import {
 } from "./documents-model.ts"
 import type { ActionFailure, ActionResult, DocumentsModel } from "./useDocuments.ts"
 
+// O aviso da região `aria-live`: o texto, o `request_id` de uma falha e se
+// ele é uma falha.
 type Notice = { text: string; requestId: string | null; failed: boolean }
 
 const t = pt.documents
 
+/**
+ * Página de documentos: título, cartão de envio, região de avisos, tabela e
+ * o `Sheet` de substituição.
+ *
+ * O resultado de cada ação é anunciado numa região `aria-live` (SDD 15.5).
+ * Um sucesso entra com `role="status"`, e uma falha com `role="alert"` e o
+ * `request_id` copiável.
+ */
 export function DocumentsScreen(model: DocumentsModel) {
   const [notice, setNotice] = useState<Notice | null>(null)
+  // O documento do `Sheet` de substituição. `null` deixa o `Sheet` fechado.
   const [replacing, setReplacing] = useState<AdminDocument | null>(null)
 
+  /** Anuncia um sucesso na região de avisos. */
   function announce(text: string) {
     setNotice({ text, requestId: null, failed: false })
   }
 
+  /** Anuncia uma falha, com o `request_id` quando o servidor mandou um. */
   function report(result: ActionFailure) {
     setNotice({ text: result.message, requestId: result.requestId, failed: true })
   }
 
+  // As colunas da seção 15.5: título, versão ativa, status, data e ações. O
+  // título é o cabeçalho de cada linha para o leitor de tela.
   const columns: DataTableColumn<AdminDocument>[] = [
     {
       key: "title",
@@ -125,12 +152,16 @@ export function DocumentsScreen(model: DocumentsModel) {
         upload={model.upload}
         onDone={announce}
         onFailure={(result) => {
+          // Um erro de campo já aparece no próprio campo do cartão. Só as
+          // outras falhas, como o 429, vão para a região de avisos.
           if (Object.keys(result.fieldErrors).length === 0) {
             report(result)
           }
         }}
       />
 
+      {/* A região existe desde o início, vazia, para o leitor de tela
+          anunciar cada aviso novo sem mover o foco. */}
       <div aria-live="polite" className="flex flex-col gap-2">
         {notice ? (
           <>
@@ -172,6 +203,12 @@ export function DocumentsScreen(model: DocumentsModel) {
   )
 }
 
+/**
+ * Célula do título: o título, o `slug` e, quando cabe, uma nota. Em
+ * processamento com uma versão ativa, a nota avisa que a ativa continua
+ * respondendo (FR-11). Na falha, mostra a versão e o erro da ingestão em
+ * `--danger`, que `text-destructive` usa (SDD 15.5).
+ */
 function TitleCell({ document }: { document: AdminDocument }) {
   const latest = document.latest_version
   const status = displayStatus(document)
@@ -195,6 +232,15 @@ function TitleCell({ document }: { document: AdminDocument }) {
   )
 }
 
+/**
+ * Ações de uma linha (SDD 15.5). Arquivado não tem ações, e uma falha ganha
+ * Tentar de novo. Substituir fica desabilitado durante o processamento,
+ * quando a API responderia 409. Arquivar pede confirmação num
+ * `AlertDialog`.
+ *
+ * O nome acessível de cada botão começa pelo texto visível e termina com o
+ * título do documento, para distinguir as linhas (SDD 15.8, WCAG 2.5.3).
+ */
 function RowActions({
   document,
   model,
@@ -208,6 +254,8 @@ function RowActions({
   onDone: (text: string) => void
   onFailure: (result: ActionFailure) => void
 }) {
+  // Os `useState` vêm antes do retorno antecipado abaixo: o React exige os
+  // mesmos hooks, na mesma ordem, em toda renderização.
   const [pending, setPending] = useState<"retry" | "archive" | null>(null)
   const [confirming, setConfirming] = useState(false)
   const status = displayStatus(document)
@@ -216,6 +264,10 @@ function RowActions({
     return null
   }
 
+  /**
+   * Executa Tentar de novo ou Arquivar, fecha a confirmação e anuncia o
+   * resultado com o título do documento.
+   */
   async function run(kind: "retry" | "archive", done: string) {
     setPending(kind)
     const result: ActionResult =
@@ -278,6 +330,8 @@ function RowActions({
               variant="destructive"
               disabled={pending !== null}
               onClick={(event) => {
+                // O Radix fecharia o diálogo no clique. O `preventDefault` o
+                // mantém aberto, com o spinner, até a resposta; `run` o fecha.
                 event.preventDefault()
                 void run("archive", t.actions.archived)
               }}
@@ -292,6 +346,12 @@ function RowActions({
   )
 }
 
+/**
+ * Cartão de envio (SDD 15.5): `FileDropzone`, título opcional e o botão
+ * Enviar. O aviso de tipo e tamanho aparece antes do envio, pelo
+ * `fileProblem`, sem chamar a API. No sucesso, o cartão volta vazio e a
+ * tela anuncia o envio.
+ */
 function UploadCard({
   upload,
   onDone,
@@ -303,12 +363,16 @@ function UploadCard({
 }) {
   const [file, setFile] = useState<File | null>(null)
   const [title, setTitle] = useState("")
+  // Erros por campo, `file` e `title`, do navegador ou do servidor.
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [pending, setPending] = useState(false)
 
+  /** Confere o arquivo, envia e mostra o resultado. */
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const problem = fileProblem(file)
+    // O `!file` só estreita o tipo para o TypeScript: sem arquivo, o
+    // `fileProblem` já devolve a mensagem.
     if (problem || !file) {
       setErrors({ file: problem ?? t.dropzone.required })
       return
@@ -342,11 +406,15 @@ function UploadCard({
               accept={acceptAttribute}
               error={errors.file}
               disabled={pending}
+              // Confere o arquivo assim que ele é escolhido ou solto. Texto
+              // vazio quer dizer sem erro.
               onFileChange={(next) => {
                 setFile(next)
                 setErrors((current) => ({ ...current, file: next ? (fileProblem(next) ?? "") : "" }))
               }}
             />
+            {/* O título vai até 200 caracteres, o limite da API (SDD 12).
+                Sem título, a API usa o nome do arquivo. */}
             <Field data-invalid={errors.title ? true : undefined}>
               <FieldLabel htmlFor="document-title">{t.upload.titleLabel}</FieldLabel>
               <Input
@@ -376,6 +444,11 @@ function UploadCard({
   )
 }
 
+/**
+ * `Sheet` de substituição (SDD 15.5 e FR-11). Pede o arquivo da versão nova
+ * e avisa que a versão ativa continua respondendo até a nova ficar pronta.
+ * Fica aberto enquanto `document` não é nulo e não fecha durante o envio.
+ */
 function ReplaceSheet({
   document,
   replace,
@@ -388,10 +461,13 @@ function ReplaceSheet({
   onDone: (text: string) => void
 }) {
   const [file, setFile] = useState<File | null>(null)
+  // O erro do arquivo, mostrado na área de upload.
   const [error, setError] = useState<string | null>(null)
+  // Uma falha que não é do arquivo, como o 409, mostrada como alerta.
   const [failure, setFailure] = useState<ActionFailure | null>(null)
   const [pending, setPending] = useState(false)
 
+  /** Limpa o estado e fecha, para a próxima abertura começar vazia. */
   function close() {
     setFile(null)
     setError(null)
@@ -399,6 +475,7 @@ function ReplaceSheet({
     onClose()
   }
 
+  /** Confere o arquivo, envia a versão nova e fecha no sucesso. */
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!document) {
@@ -424,6 +501,8 @@ function ReplaceSheet({
   return (
     <Sheet
       open={document !== null}
+      // Esc, o botão fechar e o clique fora pedem para fechar. Durante o
+      // envio, o pedido é ignorado.
       onOpenChange={(open) => {
         if (!open && !pending) {
           close()

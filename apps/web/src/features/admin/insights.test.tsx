@@ -1,3 +1,17 @@
+/**
+ * A visão geral (`/admin`) e a qualidade (`/admin/quality`) do admin. FR-15,
+ * NFR-14, seções 11.8, 12, 15.3 (J7), 15.5, 15.8 e 16.3 (M2) do SDD.
+ *
+ * `delta` compara contagem em porcentagem e taxa em pontos percentuais. Na
+ * visão geral, os quatro indicadores levam o valor final no `aria-label`, os
+ * gráficos têm tabela equivalente, o orçamento em 85% avisa que está perto do
+ * limite e o período troca a consulta. Na qualidade, a lista é
+ * pseudonimizada e filtra por feedback, o inspetor leva ao rastro do
+ * LangSmith (J7) e revelar a identidade exige motivo. `installApi` troca o
+ * `fetch` por uma API falsa com um admin e as respostas de `overview`,
+ * `quality` e do inspetor. Projeto `dom` do Vitest, com as rotas reais. Não
+ * usa a API nem banco.
+ */
 import { render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import axe from "axe-core"
@@ -19,6 +33,7 @@ beforeAll(async () => {
   await Promise.all([import("@/app/routes/admin.tsx"), import("@/app/routes/admin-quality.tsx")])
 }, 30_000)
 
+/** Perfil de `GET /v1/me` do admin que abre as telas. */
 const admin = {
   id: "00000000-0000-4000-8000-0000000000ad",
   email: "admin@example.com",
@@ -30,6 +45,10 @@ const admin = {
   needs_legal_acceptance: false,
 }
 
+/**
+ * Corpo de `GET /v1/admin/overview` para `period` dias: 1.234 perguntas
+ * contra 1.000, taxa de útil sem período anterior e orçamento em 85%.
+ */
 function overview(period = 7): Overview {
   return {
     period_days: period,
@@ -54,6 +73,7 @@ function overview(period = 7): Overview {
   }
 }
 
+/** Linha da qualidade de uma conversa de convidado, com o pseudônimo. */
 const guest = {
   id: "00000000-0000-4000-8000-000000000201",
   subject_kind: "guest" as const,
@@ -65,6 +85,7 @@ const guest = {
   helpful: 1,
   not_helpful: 0,
 }
+/** Linha de uma conversa de membro: só ela oferece revelar a identidade. */
 const member = {
   ...guest,
   id: "00000000-0000-4000-8000-000000000202",
@@ -75,6 +96,7 @@ const member = {
   not_helpful: 1,
 }
 
+/** Corpo de `GET /v1/admin/quality`, com as duas conversas. */
 const quality: Quality = {
   period_days: 7,
   outcomes: overview().outcomes,
@@ -82,6 +104,10 @@ const quality: Quality = {
   conversations: [guest, member],
 }
 
+/**
+ * Corpo de `GET /v1/admin/conversations/{id}`: uma pergunta e a resposta com
+ * versão do prompt, citação, nota e o link do rastro no LangSmith.
+ */
 function inspection(subject: typeof guest | typeof member) {
   return {
     id: subject.id,
@@ -105,8 +131,10 @@ function inspection(subject: typeof guest | typeof member) {
   }
 }
 
+/** Um pedido que o `fetch` falso recebeu, com a query string em `search`. */
 type Call = { method: string; path: string; search: string; body: unknown }
 
+/** Resposta JSON com o `status` dado, como a API devolve. */
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
@@ -114,6 +142,11 @@ function json(body: unknown, status = 200) {
   })
 }
 
+/**
+ * Troca o `fetch` por uma API falsa com um admin. `handlers`, com chaves
+ * `MÉTODO caminho`, vem antes das respostas fixas de visão geral, qualidade
+ * e inspetor; o resto responde 404. Devolve a lista de chamadas.
+ */
 function installApi(handlers: Record<string, (call: Call) => Response> = {}) {
   const calls: Call[] = []
   vi.stubGlobal(
@@ -150,6 +183,7 @@ function installApi(handlers: Record<string, (call: Call) => Response> = {}) {
   return calls
 }
 
+/** Abre o app inteiro em `path`, com as rotas reais e os provedores. */
 function renderAt(path: string) {
   const router = createMemoryRouter(routes, { initialEntries: [path] })
   return render(
@@ -159,6 +193,7 @@ function renderAt(path: string) {
   )
 }
 
+/** Roda o axe em `container` e devolve os ids das violações sérias. */
 async function seriousViolations(container: HTMLElement) {
   const result = await axe.run(container, { resultTypes: ["violations"] })
   return result.violations
@@ -207,6 +242,7 @@ describe("visão geral", () => {
     expect(within(trend).getAllByRole("row")).toHaveLength(3)
     const funnel = screen.getByRole("table", { name: t.funnel.tableCaption })
     const started = within(funnel).getByRole("row", { name: new RegExp(t.funnel.steps.started) })
+    // "21" é o texto das células de chat (2) e de formulário (1), juntas.
     expect(started).toHaveTextContent("21")
     expect(screen.getByText(t.budget.nearLimit)).toBeInTheDocument()
     expect(screen.getByRole("progressbar", { name: t.budget.label })).toBeInTheDocument()

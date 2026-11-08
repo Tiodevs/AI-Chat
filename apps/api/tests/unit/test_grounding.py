@@ -1,4 +1,11 @@
-"""Citação válida e telefone presente no contexto. Seção 7.1."""
+"""A fundamentação aceita só citação válida e telefone que está no contexto. FR-2, FR-4.
+
+Seção 7.1 do SDD, passo 7. Testa a função pura `check_grounding`, de
+`app/domain/grounding.py`, com blocos de contexto montados por `_block`: um marcador `[n]` só
+vale quando há o bloco `n`, um grupo como `[1, 2]` conta cada índice, uma citação repetida
+fica uma vez, e um telefone ausente do texto recuperado reprova o rascunho inteiro. Não usa
+banco nem rede.
+"""
 
 from uuid import UUID
 
@@ -78,6 +85,7 @@ def test_grouped_citation_counts_each_index() -> None:
 
 
 def _block(content: str, *, index: int = 1, title: str = "Visitas") -> ContextBlock:
+    """Bloco de contexto numerado com `content`, como os que o gerador recebe."""
     return ContextBlock(
         index=index,
         chunk_id=_CHUNK,

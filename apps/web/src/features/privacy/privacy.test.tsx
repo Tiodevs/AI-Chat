@@ -1,3 +1,17 @@
+/**
+ * O Aviso de Privacidade, os Termos de Uso e o canal do titular. FR-16,
+ * NFR-14, seções 10.4, 11.5, 11.7, 11.9, 11.11, 12 e 15.5 do SDD.
+ *
+ * As regras do canal validam e-mail, tipo e descrição de até 2.000
+ * caracteres. Na tela, o Aviso lista os quatro operadores com país e
+ * finalidade, explica os dois cookies e mostra a versão, o contato do
+ * encarregado e as âncoras; uma pessoa sem conta envia um pedido e vê o
+ * prazo; os campos vazios não enviam; o 429 mostra o limite diário; quem
+ * está na conta recebe o e-mail preenchido. `installApi` troca o `fetch` por
+ * uma API falsa por rota, que responde 401 ao que não conhece, como sem
+ * sessão. Projeto `dom` do Vitest, com as rotas reais. Não usa a API nem
+ * banco.
+ */
 import { render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import axe from "axe-core"
@@ -11,14 +25,17 @@ import { pt } from "@/i18n/pt.ts"
 
 import { requestSchema, sentMessage } from "./model.ts"
 
+/** Corpo de `GET /v1/legal/versions`, com o contato do encarregado. */
 const versions = {
   terms: "2026-10-25.1",
   privacy_notice: "2026-10-25.1",
   privacy_contact_email: "privacidade@harborlight.example",
 }
 
+/** Um pedido que o `fetch` falso recebeu, com o caminho sem `/backend`. */
 type Call = { method: string; path: string; body: unknown }
 
+/** Resposta JSON com o `status` dado, como a API devolve. */
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
@@ -26,6 +43,11 @@ function json(body: unknown, status = 200) {
   })
 }
 
+/**
+ * Troca o `fetch` por uma API falsa. Cada chave de `handlers` é
+ * `MÉTODO caminho`; o que não tem tratador responde 401, como um visitante
+ * sem sessão. Devolve a lista de chamadas, com o corpo JSON já lido.
+ */
 function installApi(handlers: Record<string, (call: Call) => Response>) {
   const calls: Call[] = []
   vi.stubGlobal(
@@ -54,6 +76,10 @@ function installApi(handlers: Record<string, (call: Call) => Response>) {
   return calls
 }
 
+/**
+ * Abre o app inteiro em `path`, com as rotas reais e os provedores. Devolve o
+ * roteador e o resultado do `render`.
+ */
 function renderAt(path: string) {
   const router = createMemoryRouter(routes, { initialEntries: [path] })
   const view = render(

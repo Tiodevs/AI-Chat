@@ -11,7 +11,7 @@ Use quando uma versão nova está no ar e algo grave aparece: a fumaça falha, o
 1. Anote o que está no ar agora, para saber voltar:
    - **API:** `curl -s https://atrium-gold.vercel.app/backend/health` devolve `build` com o commit em execução.
    - **Frontend:** `curl -s https://atrium-gold.vercel.app/ | grep -o 'assets/index-[^"]*'` mostra o arquivo de entrada da versão no ar.
-2. Confira se a versão nova trouxe migração: `git diff --stat <commit anterior> <commit novo> -- apps/api/migrations`.
+2. Confira se a versão nova trouxe migração: `git diff --stat <commit anterior> <commit novo> -- apps/api/alembic/versions`. Um arquivo listado quer dizer migração.
    - **Sem migração:** siga o roteiro.
    - **Com migração:** o rollback da API falha no pré-deploy. O `alembic upgrade head` da versão anterior não conhece a revisão nova do banco e para, e a Railway mantém a versão nova no ar. Nesse caso, a saída é corrigir para frente com uma nova PR. A Vercel pode voltar normalmente.
 

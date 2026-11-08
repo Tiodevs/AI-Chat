@@ -1,4 +1,10 @@
-"""O feedback chega na execução certa e uma falha não sobe. FR-14."""
+"""A nota do visitante chega ao LangSmith na execução certa, e uma falha não sobe. FR-14.
+
+Seção 18.4 do SDD, "Ligação com o produto": útil vira `user_helpful` 1 e não útil vira 0, e a
+falha no envio fica só no log. `_Sink` e `_Boom` fazem o papel da porta `FeedbackSink`, e
+`_Client` substitui o `langsmith.Client` dentro do `LangSmithFeedbackSink` real. Nada sai
+para a rede, e não há banco.
+"""
 
 import asyncio
 from typing import cast
@@ -13,6 +19,8 @@ from app.services.conversations import FeedbackNotice, send_user_feedback
 
 
 class _Sink:
+    """Falso da porta `FeedbackSink` que guarda cada chamada em `calls`."""
+
     def __init__(self) -> None:
         self.calls: list[tuple[object, ...]] = []
 
@@ -21,11 +29,15 @@ class _Sink:
 
 
 class _Boom:
+    """Falso da porta `FeedbackSink` que falha como um LangSmith fora do ar."""
+
     async def record(self, run_id: UUID, key: str, score: float) -> None:
         raise RuntimeError("langsmith down")
 
 
 class _Client:
+    """Falso do `langsmith.Client` que guarda os argumentos de `create_feedback`."""
+
     def __init__(self) -> None:
         self.calls: list[tuple[object, ...]] = []
 
@@ -69,4 +81,5 @@ def test_langsmith_sink_posts_feedback_on_that_run() -> None:
     sink = LangSmithFeedbackSink(cast(Client, client))
     run_id = uuid4()
     asyncio.run(sink.record(run_id, "user_helpful", 0.0))
+    # O `run_id` é o da execução raiz da pergunta (seção 18.4), então o rastro tem o mesmo id.
     assert client.calls == [(run_id, "user_helpful", 0.0, run_id)]

@@ -1,8 +1,22 @@
+/**
+ * Termos de Uso, em `/terms`: a versão vigente e as seções do texto.
+ *
+ * Camada: view (SDD 13.2). Recebe a versão de `useLegalVersions` pela rota
+ * `app/routes/terms.tsx` e não chama a API. O texto mora em
+ * `pt.termsOfUse`, de `i18n/pt.ts` (SDD 15.7). Usa o `PageHeading`.
+ *
+ * SDD 11.11 (documentos de privacidade).
+ */
 import { Link } from "react-router"
 
 import { PageHeading } from "@/app/page-heading.tsx"
 import { pt } from "@/i18n/pt.ts"
 
+/**
+ * Mostra cada seção com o `id` como âncora e o título como nome da região,
+ * e termina com o link para o Aviso de Privacidade. Sem a versão carregada,
+ * a linha da versão some.
+ */
 export function TermsScreen({ version }: { version: string | null }) {
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-8">

@@ -1,4 +1,10 @@
-"""Prefixos da seção 8.3 e o vetor determinístico."""
+"""Os prefixos de embedding da seção 8.3, o vetor determinístico e a mensagem da semente.
+
+`document_embedding_text` e `query_embedding_text` montam o texto exato da seção 8.3. O
+`DeterministicEmbeddingProvider`, o falso de embedding dos testes (seção 17), devolve um vetor
+unitário de 768 dimensões que só depende do texto. `seed_message(0)` é o que a segunda semente
+imprime quando nada mudou (FR-13). Não usa banco nem rede.
+"""
 
 import math
 

@@ -1,3 +1,16 @@
+/**
+ * A página da conta e o novo aceite dos documentos legais. FR-9, NFR-14,
+ * NFR-15, seções 8.5, 10.5, 11.5, 12, 13.3, 15.5 e 16.4 do SDD.
+ *
+ * As regras do perfil validam como o servidor, mandam os campos sensíveis só
+ * com a personalização e pedem a palavra exata para excluir. Nas abas, o
+ * membro corrige o perfil e vê o erro de campo do servidor, lista as
+ * conversas, liga e desliga um consentimento, exporta os dados e exclui a
+ * conta; um admin recebe a recusa da exclusão. Um membro com documento novo
+ * passa por `/legal/accept` antes de voltar. `installApi` troca o `fetch` por
+ * uma API falsa por rota, que responde 404 ao que não conhece. Projeto `dom`
+ * do Vitest, com as rotas reais do `router.tsx`. Não usa a API nem banco.
+ */
 import { render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import axe from "axe-core"
@@ -16,6 +29,7 @@ import {
   profileSchema,
 } from "./model.ts"
 
+/** Perfil de `GET /v1/me` de um membro, sem os opcionais preenchidos. */
 const member = {
   id: "00000000-0000-0000-0000-000000000002",
   email: "ana@example.com",
@@ -27,8 +41,13 @@ const member = {
   needs_legal_acceptance: false,
 }
 
+/** Data de aceite usada nos consentimentos concedidos. */
 const granted = "2026-11-03T12:00:00.000Z"
 
+/**
+ * Corpo de `GET /v1/me/consents`: Termos e maioridade concedidos, e os dois
+ * opcionais conforme `options`, desligados por padrão. O histórico vem vazio.
+ */
 function consentsBody(options: { personalization?: boolean; quality?: boolean }) {
   const state = (purpose: string, on: boolean) => ({
     purpose,
@@ -47,6 +66,7 @@ function consentsBody(options: { personalization?: boolean; quality?: boolean })
   }
 }
 
+/** Resposta JSON com o `status` dado, como a API devolve. */
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
@@ -54,10 +74,16 @@ function json(body: unknown, status = 200) {
   })
 }
 
+/** Um pedido que o `fetch` falso recebeu, com o caminho sem `/backend`. */
 type Call = { method: string; path: string; body: unknown }
 
 type Handler = (call: Call) => Response | Promise<Response>
 
+/**
+ * Troca o `fetch` por uma API falsa. Cada chave de `handlers` é
+ * `MÉTODO caminho`, como `GET /v1/me`; o que não tem tratador responde 404.
+ * Devolve a lista de chamadas, com o corpo JSON já lido.
+ */
 function installApi(handlers: Record<string, Handler>) {
   const calls: Call[] = []
   vi.stubGlobal(
@@ -83,6 +109,10 @@ function installApi(handlers: Record<string, Handler>) {
   return calls
 }
 
+/**
+ * Abre o app inteiro em `path`, com as rotas reais e os provedores. Devolve o
+ * roteador e o resultado do `render`.
+ */
 function renderAt(path: string) {
   const router = createMemoryRouter(routes, { initialEntries: [path] })
   const view = render(
@@ -93,6 +123,7 @@ function renderAt(path: string) {
   return { router, ...view }
 }
 
+/** O mínimo para abrir `/account`: perfil, consentimentos e conversas. */
 const baseHandlers = (user = member): Record<string, Handler> => ({
   "GET /v1/me": () => json(user),
   "GET /v1/me/consents": () => json(consentsBody({})),
@@ -274,6 +305,7 @@ describe("aba Conversas", () => {
 })
 
 describe("aba Privacidade", () => {
+  /** Abre `/account` e clica na aba Privacidade. */
   async function openPrivacy(user: ReturnType<typeof userEvent.setup>) {
     renderAt("/account")
     await user.click(
@@ -323,6 +355,8 @@ describe("aba Privacidade", () => {
 
   it("exporta os dados em um arquivo JSON", async () => {
     const user = userEvent.setup()
+    // O jsdom não baixa arquivos: o teste troca `URL.createObjectURL` e o
+    // clique do link por espiões e confere que os dois foram chamados.
     const createUrl = vi.fn(() => "blob:atrium")
     Object.assign(URL, { createObjectURL: createUrl, revokeObjectURL: vi.fn() })
     const click = vi

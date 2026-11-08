@@ -1,3 +1,18 @@
+/**
+ * A fila de pedidos de titular do admin, em `/admin/privacy`. FR-16, NFR-14,
+ * seções 11.5, 12, 14.6 (`DueDateBadge`), 15.5 e 15.8 do SDD.
+ *
+ * `dueState` diz em texto se o pedido está atrasado, perto do prazo, no prazo
+ * ou fechado, e `mailtoHref` só gera link para um endereço seguro. Na tela,
+ * os atrasados vêm primeiro, com texto e não só cor; mudar o status e fechar
+ * com nota chamam o `PATCH`, e fechar sem nota não envia; o erro de campo do
+ * servidor aparece, e um 409 mostra o `request_id` e relê a fila; um pedido
+ * fechado abre só para leitura. `installApi` troca o `fetch` por uma API
+ * falsa que guarda os pedidos em memória e aplica o `PATCH` como o servidor.
+ * Os prazos contam a partir do `now` fixo, que a fila devolve em
+ * `generated_at`. Projeto `dom` do Vitest, com as rotas reais. Não usa a API
+ * nem banco.
+ */
 import { render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import axe from "axe-core"
@@ -13,8 +28,10 @@ import { mailtoHref, type PrivacyQueue, type PrivacyQueueItem } from "./privacy-
 
 const t = pt.privacyQueue
 const d = pt.privacyQueue.detail
+/** O instante da leitura: vira o `generated_at` e o agora dos prazos. */
 const now = "2031-01-15T12:00:00Z"
 
+/** Perfil de `GET /v1/me` do admin que abre a tela. */
 const admin = {
   id: "00000000-0000-4000-8000-0000000000ad",
   email: "admin@example.com",
@@ -26,6 +43,10 @@ const admin = {
   needs_legal_acceptance: false,
 }
 
+/**
+ * Um pedido de eliminação aberto e atrasado, sem conta ligada. `overrides`
+ * troca o que o teste precisar.
+ */
 function item(overrides: Partial<PrivacyQueueItem>): PrivacyQueueItem {
   return {
     id: "00000000-0000-4000-8000-000000000301",
@@ -76,8 +97,10 @@ function fixtures(): PrivacyQueueItem[] {
   ]
 }
 
+/** Um pedido que o `fetch` falso recebeu, com o caminho sem `/backend`. */
 type Call = { method: string; path: string; body: unknown }
 
+/** Resposta JSON com o `status` dado, como a API devolve. */
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
@@ -85,6 +108,13 @@ function json(body: unknown, status = 200) {
   })
 }
 
+/**
+ * Troca o `fetch` por uma API falsa com um admin e os pedidos de `fixtures`.
+ * Sem `patch`, o `PATCH` muda o pedido em memória como o servidor: fechar
+ * grava `closed_at` e tira o atraso, e uma nota ausente mantém a gravada.
+ * Com `patch`, a resposta é a que o teste escrever. Devolve a lista de
+ * chamadas.
+ */
 function installApi(patch?: (call: Call, items: PrivacyQueueItem[]) => Response) {
   const calls: Call[] = []
   const items = fixtures()
@@ -131,6 +161,7 @@ function installApi(patch?: (call: Call, items: PrivacyQueueItem[]) => Response)
   return calls
 }
 
+/** Abre o app inteiro em `path`, com as rotas reais e os provedores. */
 function renderAt(path: string) {
   const router = createMemoryRouter(routes, { initialEntries: [path] })
   return render(
@@ -140,6 +171,7 @@ function renderAt(path: string) {
   )
 }
 
+/** Roda o axe em `container` e devolve os ids das violações sérias. */
 async function seriousViolations(container: HTMLElement) {
   const result = await axe.run(container, { resultTypes: ["violations"] })
   return result.violations
@@ -147,6 +179,7 @@ async function seriousViolations(container: HTMLElement) {
     .map((violation) => violation.id)
 }
 
+/** Espera o botão Abrir do pedido, pelo nome acessível com tipo e contato. */
 function openButton(type: string, email: string) {
   return screen.findByRole("button", { name: `${t.table.open}: ${type}, ${email}` })
 }
@@ -330,6 +363,7 @@ describe("pedidos de titular", () => {
     await waitFor(() => {
       expect(within(sheet).getByRole("radio", { name: t.status.in_progress })).toBeInTheDocument()
     })
+    // O `Sheet` abre num portal, fora do `container`: o axe olha o `body`.
     expect(await seriousViolations(document.body)).toEqual([])
   })
 })

@@ -68,5 +68,5 @@ A API da Railway é pública, e `x-forwarded-for` pode ser forjado por quem a ch
 
 ### 10.6 Segredos
 
-`.env.example` lista as chaves e não contém segredo real. `GEMINI_API_KEY`, `LANGSMITH_API_KEY`, `ADMIN_PASSWORD`, `METRICS_TOKEN`, `RATE_LIMIT_HMAC_KEY`, `EDGE_SECRET` e as senhas de banco são variáveis de ambiente. Elas estão ausentes de rastros, logs e exemplos do OpenAPI. Os segredos de implantação do GitHub ficam em GitHub Environments, separados por ambiente.
+`.env.example` lista as chaves e não contém segredo real. `GEMINI_API_KEY`, `LANGSMITH_API_KEY`, `ADMIN_PASSWORD`, `METRICS_TOKEN`, `RATE_LIMIT_HMAC_KEY`, `PSEUDONYM_KEY`, `EDGE_SECRET` e as senhas de banco são variáveis de ambiente. Elas estão ausentes de rastros, logs e exemplos do OpenAPI. Os segredos de implantação do GitHub ficam em GitHub Environments, separados por ambiente.
 

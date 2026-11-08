@@ -1,3 +1,24 @@
+/**
+ * Conteúdo da barra lateral, igual no desktop e no celular (seções 14.5,
+ * 14.6 e 15.4): logotipo e botão de recolher no topo, busca com o atalho,
+ * os grupos de navegação, o `SidebarNoticeCard` e o `ProfileButton` no
+ * rodapé.
+ *
+ * Usado só pelo `AppSidebar` e pelo `MobileSidebar`; não tem história
+ * própria, e as histórias do `AppSidebar` o mostram. Os grupos vêm de
+ * `navigationFor(viewer)`, em `app/navigation.ts`: Assistente e Conta
+ * para o membro, mais Operação e Sistema para o admin.
+ *
+ * Estados de interação (seção 14.7): item inativo em `--muted-foreground`,
+ * que no hover ganha o fundo `--muted` e o texto `--foreground`; item
+ * ativo em `--card`. Itens de 44 px no celular e 32 px no desktop (seção
+ * 15.8), com o raio de navegação de 10 px (`rounded-nav`, seção 14.4).
+ *
+ * Recolhida (M13): os rótulos ficam em `sr-only`, nunca com
+ * `visibility: hidden`, e continuam dando nome aos links (WCAG 2.5.3,
+ * seção 15.8); cada link ganha um tooltip à direita. Os ícones levam
+ * `data-flip-id`, que o Flip usa para achar o mesmo ícone antes e depois.
+ */
 import { PanelLeftClose, PanelLeftOpen, Search } from "lucide-react"
 import { NavLink } from "react-router"
 
@@ -18,6 +39,8 @@ import { navigationFor, type NavItem, type Viewer } from "@/app/navigation.ts"
 import { pt } from "@/i18n/pt.ts"
 import { cn } from "@/lib/utils.ts"
 
+// O atalho que a busca mostra: `⌘K` nos aparelhos da Apple e `Ctrl+K`
+// nos outros (seção 15.8). Sem `navigator`, fica o `⌘K`.
 function commandShortcutLabel() {
   if (typeof navigator === "undefined") {
     return "⌘K"
@@ -25,6 +48,8 @@ function commandShortcutLabel() {
   return /Mac|iPhone|iPad/.test(navigator.userAgent) ? "⌘K" : "Ctrl+K"
 }
 
+// Classes de um item da navegação. Recolhida, o item é um quadrado de
+// 32 px só com o ícone; a barra recolhida não existe no celular.
 function itemClass(collapsed: boolean, active = false) {
   return cn(
     "flex items-center rounded-nav text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground",
@@ -35,6 +60,11 @@ function itemClass(collapsed: boolean, active = false) {
   )
 }
 
+/**
+ * Um link da navegação. O `NavLink` do React Router marca a rota atual
+ * com `aria-current="page"` e passa `isActive` para a classe. Recolhida,
+ * o link vai dentro de um `Tooltip`.
+ */
 function SidebarLink({
   item,
   collapsed,
@@ -48,6 +78,8 @@ function SidebarLink({
   const link = (
     <NavLink
       to={item.to}
+      // `end` ativa o link só na rota exata. Conversas (`/ask`) não o
+      // usa e fica ativo também em `/ask/:id`.
       end={item.end ?? false}
       aria-label={item.label}
       onClick={onNavigate}
@@ -77,6 +109,7 @@ function SidebarLink({
   )
 }
 
+/** O conteúdo da barra, de cima para baixo. */
 function SidebarContent({
   collapsed,
   onSearch,
@@ -88,8 +121,10 @@ function SidebarContent({
 }: {
   collapsed: boolean
   onSearch: () => void
+  /** Chamado ao escolher um link; o celular fecha o sheet. */
   onNavigate?: () => void
   onToggle?: () => void
+  /** Mostra o botão de recolher, só no `AppSidebar`. */
   showCollapse?: boolean
   viewer?: Viewer
   account?: ProfileAccount
@@ -127,6 +162,8 @@ function SidebarContent({
             {pt.appName}
           </span>
         </NavLink>
+        {/* Recolher: `aria-expanded` diz se a barra está aberta, e o nome */}
+        {/* troca entre "Recolher barra lateral" e "Expandir barra lateral". */}
         {showCollapse && onToggle ? (
           <Button
             variant="ghost"
@@ -146,6 +183,8 @@ function SidebarContent({
         ) : null}
       </div>
 
+      {/* A busca: `aria-keyshortcuts` diz ao leitor de tela que o */}
+      {/* atalho existe; quem o escuta é a casca (`app/shell.tsx`). */}
       <Button
         variant="outline"
         aria-keyshortcuts="Meta+K Control+K"
@@ -219,6 +258,9 @@ function SidebarContent({
       <Separator className={collapsed ? "w-8" : "w-full"} />
 
       <div className={cn("flex w-full flex-col", collapsed ? "items-center" : "gap-3")}>
+        {/* A linha da grade vai de `1fr` a `0fr` e some com o card sem */}
+        {/* animar altura. Recolhido, `inert` e `aria-hidden` tiram o card */}
+        {/* do foco e do leitor de tela. */}
         <div className={cn("grid w-full", collapsed ? "grid-rows-[0fr]" : "grid-rows-[1fr]")}>
           <div
             className="min-h-0 overflow-hidden"

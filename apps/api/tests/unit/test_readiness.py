@@ -1,3 +1,12 @@
+"""O `/ready` responde 503 e registra o motivo quando o banco falta ou não responde. NFR-9.
+
+Seção 12 do SDD (`GET /ready`) e NFR-7. Cada teste troca a `DATABASE_URL` com `monkeypatch`,
+limpa o cache de `get_settings` e chama a rota por um `TestClient(create_app())`, sem
+`lifespan`. As URLs são vazia, inválida ou apontam para a porta 1 local, que recusa a conexão,
+então nenhum banco de verdade é usado. Os motivos `vector_missing` e `dimension_mismatch`
+precisam de um PostgreSQL e ficam em `tests/integration/test_database.py`.
+"""
+
 import json
 
 import pytest
@@ -8,6 +17,7 @@ from app.main import create_app
 
 
 def _events(capsys: pytest.CaptureFixture[str]) -> list[dict[str, object]]:
+    """Lê os eventos JSON que o `structlog` escreveu na stdout capturada."""
     captured = capsys.readouterr().out
     return [json.loads(line) for line in captured.splitlines() if line.startswith("{")]
 
@@ -32,6 +42,7 @@ def test_ready_fails_when_the_database_is_unreachable(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
+    # A senha na URL serve para provar que a falha de conexão não a leva para o log (NFR-7).
     monkeypatch.setenv(
         "DATABASE_URL",
         "postgresql://atrium:super-secret-password@127.0.0.1:1/atrium",

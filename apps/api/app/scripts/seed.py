@@ -2,6 +2,18 @@
 
 `--skip-without-key` é o modo do pré-deploy da Railway: sem `GEMINI_API_KEY`, a semente
 é adiada com um aviso e o deploy segue. O próximo deploy com a chave semeia o corpus.
+
+Uso: `python -m app.scripts.seed [--skip-without-key]`, em `apps/api`.
+
+O `SeedService` ingere cada arquivo Markdown de `content/corpus` pelo mesmo pipeline do admin
+(`IngestionService`) e pula os que têm o checksum igual ao da versão ativa (FR-13). Pega um
+`pg_advisory_lock`, então duas semeaduras simultâneas não duplicam nada (seção 6.4). Grava no
+banco e chama o embedding pela rede. Com o LangSmith ligado, cada ingestão vai ao rastro com a
+política `full` (seção 18.4).
+
+Precisa de `DATABASE_URL` e de um admin, criado antes por `bootstrap_admin`. Com
+`APP_AI_ADAPTER=gemini`, precisa também de `GEMINI_API_KEY`; com `fake` ou `demo`, semeia com
+o embedding desse adaptador, como fazem o `docker compose` e a e2e.
 """
 
 import argparse
@@ -23,6 +35,11 @@ from app.services.seed import SeedReport, SeedService
 
 
 def main(argv: list[str] | None = None) -> None:
+    """Confere o ambiente, semeia e imprime quantos arquivos foram embedados.
+
+    Sem a chave do Gemini: com `--skip-without-key`, imprime o aviso e sai com sucesso; sem a
+    opção, sai com código 1. Um erro de domínio da semente também sai com código 1.
+    """
     parser = argparse.ArgumentParser(prog="python -m app.scripts.seed")
     parser.add_argument(
         "--skip-without-key",
@@ -51,6 +68,7 @@ def main(argv: list[str] | None = None) -> None:
 
 
 async def _run(settings: Settings) -> SeedReport:
+    """Monta a ingestão com o embedding da configuração e roda a semente."""
     ingestion = IngestionService(
         settings.database_url,
         build_embedding_provider(settings),
@@ -62,6 +80,10 @@ async def _run(settings: Settings) -> SeedReport:
 
 
 def default_corpus_dir() -> Path:
+    """`content/corpus`, na raiz do repositório, quatro pastas acima deste arquivo.
+
+    Por isso o contexto do build da imagem da API é a raiz do repositório (seção 22.1).
+    """
     return Path(__file__).resolve().parents[4] / "content" / "corpus"
 
 

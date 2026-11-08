@@ -1,4 +1,11 @@
-"""Regras da visão geral e da qualidade. Seções 11.8, 12 e 15.5 do SDD."""
+"""As regras puras da visão geral e da qualidade do admin. FR-15, seções 11.8, 12 e 15.5.
+
+Testa `app/domain/insights.py`, da Etapa 7.2, sem banco nem rede: os períodos de 7 ou 30
+dias, a janela anterior de mesmo tamanho, as taxas nulas sem denominador, a intenção derivada
+do desfecho, o motivo da revelação de identidade, o link do rastro pelo
+`LANGSMITH_RUN_URL_TEMPLATE`, o pseudônimo de 8 caracteres e a razão do orçamento. As rotas
+ficam em `tests/integration/test_admin_insights.py`.
+"""
 
 from datetime import UTC, date, datetime, timedelta
 from uuid import UUID

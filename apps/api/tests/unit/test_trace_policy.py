@@ -1,4 +1,12 @@
-"""Cada política deixa sair só o permitido. Seção 18.4."""
+"""Cada política de rastro deixa sair só o permitido, e a CI padrão não lê o LangSmith.
+
+Seção 18.4 do SDD, ADR-006 e NFR-3. Passa um nome, um e-mail, um telefone e uma sequência
+longa de dígitos (`_PAYLOAD`) por `outgoing`, `selected_metadata` e pelos eventos de cadastro e
+de ingestão de `app/domain/trace_policy.py`, e confere o que sairia em `full`, `masked` e
+`metadata_only`. Também testa os clientes de `app/adapters/langsmith_tracing.py` sem enviar
+nada, o pseudônimo HMAC, o `flush` que tolera falha, que o `ci.yml` não cita o LangSmith e que
+o `conftest.py` raiz deixa o `LANGSMITH_TRACING` desligado. Não usa banco nem rede.
+"""
 
 import json
 import os
@@ -151,6 +159,9 @@ def test_ingestion_trace_is_full_and_anonymized() -> None:
 
 
 def test_clients_match_the_policy_projection(monkeypatch: pytest.MonkeyPatch) -> None:
+    # O esconder global ligado prova que cada cliente usa o próprio `hide_inputs` e não mexe
+    # no ambiente (seção 18.4). O endpoint é a porta 9 local, e nada é enviado: o teste só
+    # chama as funções de esconder dos clientes.
     monkeypatch.setenv("LANGSMITH_HIDE_INPUTS", "true")
     monkeypatch.setenv("LANGSMITH_HIDE_OUTPUTS", "true")
     clients = build_policy_clients(
@@ -201,6 +212,7 @@ def test_flush_records_the_call_and_ignores_a_failure() -> None:
 
 
 def test_standard_ci_does_not_read_a_langsmith_key() -> None:
+    """O `ci.yml` não pode ter a palavra, em nenhuma caixa, nem num comentário (NFR-3)."""
     text = CI.read_text(encoding="utf-8")
     assert "LANGSMITH_API_KEY" not in text
     assert "langsmith" not in text.casefold()

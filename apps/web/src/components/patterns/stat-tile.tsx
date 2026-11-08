@@ -1,3 +1,17 @@
+/**
+ * Bloco de contagem, como Open e In Progress da imagem de referência
+ * (seção 14.6).
+ *
+ * Aparece abaixo da barra do `SegmentedStatusCard` (`/admin` e
+ * `/admin/quality`), uma por segmento, com a contagem e a porcentagem, e
+ * nas três contagens do topo de `/admin/privacy`: atrasados, abertos e em
+ * andamento (seção 15.5). A seção 14.6 cita Documentos, mas a tela de
+ * documentos não o usa.
+ *
+ * O ponto colorido é `aria-hidden`: o rótulo em texto diz o que é a
+ * contagem, e a cor só reforça (seção 15.8). Número em `tabular-nums`,
+ * para não pular quando muda (seção 14.3).
+ */
 import { cn } from "@/lib/utils.ts"
 
 import { toneDot, type Tone } from "./tone.ts"
@@ -10,7 +24,9 @@ export function StatTile({
   tone = "neutral",
 }: {
   label: string
+  /** Contagem já formatada, como "1.234". */
   value: string
+  /** Texto menor ao lado do valor, como a porcentagem. */
   detail?: string
   tone?: Tone
 }) {

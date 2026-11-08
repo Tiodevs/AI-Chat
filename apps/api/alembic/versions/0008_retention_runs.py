@@ -4,6 +4,12 @@ Revision ID: 0008_retention_runs
 Revises: 0007_data_subject_requests
 Create Date: 2026-11-03
 
+Cria `retention_runs`: uma linha por regra a cada execução do `retention-job`, gravada na
+mesma transação que apaga (seção 8.1), sem dado pessoal. O job roda em outro processo, que o
+Prometheus não alcança, então o `GET /metrics` lê esta tabela a cada coleta para
+`atrium_retention_deleted` e `atrium_retention_last_run_timestamp_seconds` (seção 18.3). O
+índice em `ran_at` serve à consulta da última execução. O downgrade apaga a tabela, e o
+alerta de retenção parada passa a disparar.
 """
 
 from collections.abc import Sequence
@@ -18,6 +24,7 @@ depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
+    """Cria `retention_runs` e o índice em `ran_at`."""
     op.create_table(
         "retention_runs",
         sa.Column("id", sa.Uuid(), server_default=sa.text("gen_random_uuid()"), nullable=False),
@@ -30,5 +37,6 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    """Apaga o índice e a tabela de execuções."""
     op.drop_index("retention_runs_ran_at_idx", table_name="retention_runs")
     op.drop_table("retention_runs")

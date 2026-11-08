@@ -1,3 +1,12 @@
+"""As pastas, os ADRs, as regras, o `.env.example` e os documentos de privacidade do repositório.
+
+Seções 6.3, 10.6, 11.11, 17, 20 e 24 do SDD. Lê só arquivos do repositório, a partir de
+`ROOT`: as pastas da seção 6.3 existem, cada ADR tem as quatro seções e está na tabela da
+seção 24, as regras de `.claude/rules` citam a sua seção, o `.env.example` lista exatamente os
+campos de `Settings` com os segredos vazios, e os quatro documentos de `docs/privacy` existem
+com o conteúdo que a seção 11.11 pede. Não usa banco nem rede.
+"""
+
 import re
 from pathlib import Path
 
@@ -50,6 +59,7 @@ EXPECTED_DIRECTORIES = (
 )
 
 SECTION_17_ENV_NAMES = {name.upper() for name in Settings.model_fields}
+# Segredos e valores de cada ambiente: o exemplo os deixa vazios (seção 10.6).
 EMPTY_SECRET_KEYS = {
     "GEMINI_API_KEY",
     "ADMIN_EMAIL",

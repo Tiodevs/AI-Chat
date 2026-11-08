@@ -123,13 +123,20 @@ A IA é a porta de entrada, mas não trabalha solta:
 | Privacidade | Canal do titular, retenção automática e documentos de privacidade (RIPD, ROPA, LIA) |
 | Operação | Logs estruturados, rastros OpenTelemetry, métricas Prometheus, painéis Grafana e LangSmith |
 
-O andamento etapa por etapa está no [plano de ação](docs/plano-de-acao.md#4-status-das-etapas). Os próximos passos são a fila de pedidos de titular no admin, o acabamento de acessibilidade e a publicação em produção.
+O andamento etapa por etapa está no [plano de ação](docs/plano-de-acao.md#4-status-das-etapas). O produto está publicado em produção. Os próximos passos são as Fases 13 a 16 do plano, que corrigem e endurecem o que a auditoria de novembro encontrou (resiliência da API, experiência do visitante, privacidade e qualidade de IA), e o teste de usabilidade.
 
 ---
 
 # Por dentro
 
-A partir daqui, a parte técnica. A especificação completa está em [`docs/sdd.md`](docs/sdd.md), dividida em seções em [`docs/sdd/`](docs/sdd/). As decisões estruturais estão nos [ADRs](docs/adr/).
+A partir daqui, a parte técnica. Cada documento responde uma pergunta, em profundidades diferentes:
+
+| Documento | Responde |
+|---|---|
+| [Engenharia do Atrium](docs/engenharia/README.md) | Como o projeto é construído, em uma página para apresentar, com uma versão em HTML para projetar |
+| [Especificação (SDD)](docs/sdd.md) e [ADRs](docs/adr/) | O que o sistema faz e por quê |
+| [Guia do código](docs/guia/README.md) | Como o código faz, arquivo por arquivo, numa trilha de estudo em 14 partes |
+| [Mapa da documentação](docs/README.md) | Onde está cada documento e por onde começar |
 
 ## Stack
 
@@ -167,136 +174,48 @@ flowchart LR
   prom -->|coleta /metrics| api
 ```
 
-O navegador fala só com a origem do frontend. A Vercel (ou o proxy do Vite, localmente) encaminha `/backend/*` para a API, o que mantém o cookie de sessão primário e dispensa CORS.
+O navegador fala só com a origem do frontend. A Vercel (ou o proxy do Vite, localmente) encaminha `/backend/*` para a API, o que mantém o cookie de sessão primário e dispensa CORS. A API segue MVC, com o "M" dividido nas camadas que um sistema de IA precisa, e um teste de arquitetura impede que uma camada importe o que não deve.
 
-A API segue MVC, com o "M" dividido nas camadas que um sistema de IA exige ([SDD 6.2](docs/sdd/arquitetura.md#62-mvc-com-as-camadas-de-que-um-sistema-de-ia-precisa)):
+## Para estudar o código
 
-```text
-controller → service → workflow → ports ← adapters
-     ↓          ↓          ↓
-   schema    domain ←──────┘
-                ↑
-service → unit of work → repository → model
-```
+O [guia do código](docs/guia/README.md) segue o sistema arquivo por arquivo, com diagramas e exercícios. Os pontos de entrada mais pedidos:
 
-O domínio é Python puro. Os workflows recebem as portas pelo construtor e não abrem sessão de banco. Os serviços são donos da transação. Um teste de arquitetura impede que uma camada importe o que não deve.
-
-## Como uma pergunta é respondida
-
-```mermaid
-flowchart TD
-  q[Pergunta do visitante] --> r[Reescrever e classificar]
-  r -->|orientação médica| refuse[Recusa fixa, mensagem não guardada]
-  r -->|fora de tema ou baixa confiança| off[Resposta fixa de escopo]
-  r -->|informação pública| e[Embedding da pergunta]
-  e --> s[Busca híbrida: vetor + texto completo]
-  s -->|abaixo do piso de similaridade| abs[Abstenção com telefone da central]
-  s -->|contexto encontrado| g[Gerar resposta em fluxo]
-  g --> v{Citações e telefones conferem?}
-  v -->|sim| ok[Resposta com fontes]
-  v -->|não| rep[Substitui pela resposta segura]
-```
-
-A resposta chega por Server-Sent Events (`meta`, `token`, `replace`, `citation`, `done`). Cada mensagem gravada guarda o desfecho, as citações, o modelo, a versão do prompt, os tokens, a latência e o id do rastro. Detalhes em [SDD 7.1](docs/sdd/arquitetura.md#71-fazer-uma-pergunta).
-
-## Segurança e ética na prática
-
-- **Contexto não confiável.** Documentos e mensagens entram delimitados e rotulados. O modelo é instruído a ignorar instruções encontradas neles.
-- **O modelo não decide.** A máquina de estados do cadastro é Python puro, no domínio. O Gemini só extrai campos e formula a próxima pergunta. `role`, consentimentos e senha não fazem parte do schema da ferramenta.
-- **Senha fora da IA.** A senha vai para um endpoint próprio e é guardada como hash argon2id.
-- **Fundamentação conferida.** Uma citação só fica se aponta para um trecho realmente recuperado. Telefones na resposta precisam existir no contexto.
-- **Sessões e transporte.** Cookies `HttpOnly` e `SameSite=Lax`, conferência de `Origin` em métodos que alteram estado e `Cache-Control: no-store` em toda a API.
-- **Limites de uso.** Limites de taxa por e-mail, IP, convidado e usuário, mais um orçamento diário de tokens que degrada o serviço de forma controlada.
-- **Prompts versionados.** Cada prompt tem `PROMPT_VERSION`. Um teste falha se o texto muda sem a versão mudar.
-- **LGPD.** Inventário de tratamento, consentimento específico para dados que podem revelar saúde, retenção com prazo, direitos do titular e plano de incidentes. Veja [SDD 11](docs/sdd/lgpd.md) e [`docs/privacy/`](docs/privacy/).
-
-Mais em [SDD 10, Segurança](docs/sdd/seguranca.md).
-
-## Estrutura do repositório
-
-```text
-.
-├── apps/
-│   ├── api/            FastAPI, LangChain, LangGraph, Alembic e testes Pytest
-│   │   └── app/        controllers, services, workflows, domain, repositories, ports, adapters…
-│   └── web/            React, Vite, shadcn/ui, GSAP, Vitest, Playwright e Storybook
-├── content/corpus/     documentos fictícios do hospital usados nas respostas
-├── evals/              conjunto de avaliação das respostas públicas
-├── ops/                configuração de Prometheus e Grafana
-├── docs/
-│   ├── sdd.md          especificação (seções em docs/sdd/)
-│   ├── plano-de-acao.md  etapas de implementação e status
-│   ├── adr/            registros de decisão de arquitetura
-│   └── privacy/        RIPD, ROPA, LIA e plano de incidentes
-└── docker-compose.yml  ambiente completo opcional
-```
+| Quero entender | Leia |
+|---|---|
+| O que roda onde e como as pastas se dividem | [Mapa do sistema](docs/guia/01-mapa-do-sistema.md) |
+| Como uma pergunta vira uma resposta com fontes | [Uma pergunta de ponta a ponta](docs/guia/04-pergunta-de-ponta-a-ponta.md) |
+| Como a IA busca nos documentos | [RAG, corpus e ingestão](docs/guia/05-rag-corpus-e-ingestao.md) |
+| Como o cadastro por conversa evita que o modelo decida | [Cadastro com IA](docs/guia/06-cadastro-com-ia.md) |
+| Cada proteção de segurança e ética, com o código que a cumpre | [Contas, sessões e segurança](docs/guia/07-contas-sessoes-e-seguranca.md) |
+| A LGPD dentro do código | [Privacidade no código](docs/guia/08-privacidade-no-codigo.md) |
 
 ## Rodar localmente
 
-### Pré-requisitos
+Você precisa de Python 3.12 com [uv](https://docs.astral.sh/uv/), Node.js 22 ou mais com [pnpm](https://pnpm.io/) e um PostgreSQL com a extensão `vector`: o do ambiente `development` da Railway ou o do Docker abaixo. A chave do Gemini é opcional; sem ela, use o adaptador `fake`.
 
-- Python 3.12 e [uv](https://docs.astral.sh/uv/)
-- Node.js e [pnpm](https://pnpm.io/)
-- Um PostgreSQL com a extensão `vector` (o ambiente `development` da Railway, ou o Docker abaixo)
-- Opcional: uma chave do Gemini. Sem ela, use o adaptador `fake`.
+**API**, em `apps/api`, depois de copiar `.env.example` para `.env` e preencher `DATABASE_URL`, `RATE_LIMIT_HMAC_KEY` e `PSEUDONYM_KEY`:
 
-### API
+```bash
+uv sync && uv run alembic upgrade head && uv run uvicorn app.main:app --reload
+```
 
-A API roda direto na máquina. Docker não é necessário.
+**Frontend**, em `apps/web`. Abra `http://localhost:5173`; o Vite encaminha `/backend` para a API:
 
-1. Entre em `apps/api`.
-2. Copie `.env.example` para `.env` e preencha `DATABASE_URL` com a URL pública do ambiente `development`. O `.env` não vai para o Git.
-3. Instale as dependências com `uv sync`.
-4. Aplique as migrações com `uv run alembic upgrade head`.
-5. Suba a API com `uv run uvicorn app.main:app --reload`.
-6. Abra `http://127.0.0.1:8000/health` e `http://127.0.0.1:8000/ready`. `/health` responde 200 sem o banco. `/ready` responde 200 quando o banco responde e a extensão `vector` está instalada.
+```bash
+pnpm install && pnpm dev
+```
 
-### Frontend
-
-1. Entre em `apps/web`.
-2. Instale as dependências com `pnpm install`.
-3. Suba com `pnpm dev` e abra `http://localhost:5173`. O Vite encaminha `/backend` para a API.
-
-### Tudo em Docker
-
-Alternativa ao banco da Railway: o `docker-compose.yml` da raiz sobe PostgreSQL com pgvector, API, frontend, Prometheus e Grafana, com dados e senhas só de desenvolvimento.
+**Tudo em Docker**, na raiz: banco, API, frontend, Prometheus e Grafana, com dados e senhas só de desenvolvimento. Sem chave do Gemini, crie antes um `.env` na raiz com `APP_AI_ADAPTER=demo`, que responde por regras; com o padrão `fake`, feito para os testes, as perguntas recebem a resposta de indisponibilidade.
 
 ```bash
 docker compose up --build
 ```
 
-A API aplica as migrações, cria o admin e carrega o corpus antes de aceitar pedidos. O adaptador de IA é `fake`, então não precisa de chave. Ele não tem roteiro para o cadastro por conversa, então ali cada mensagem responde 503 e a tela mostra o aviso de indisponível; o formulário funciona. Para usar o Gemini, crie um `.env` na raiz com `APP_AI_ADAPTER=gemini` e `GEMINI_API_KEY`. O mesmo `.env` define o admin com `ADMIN_EMAIL` e `ADMIN_PASSWORD`; sem eles, vale `admin@example.com` / `Atrium-local-2026-admin`. O admin só é criado quando o banco não tem nenhum, então trocar essas variáveis depois exige `docker compose down -v` (ou remover o admin antigo).
-
-| Serviço | Endereço | Acesso |
-|---|---|---|
-| Frontend | http://localhost:5173 | |
-| API | http://127.0.0.1:8000 (`/health`, `/ready`) | admin de `ADMIN_EMAIL` (padrão `admin@example.com`) |
-| Prometheus | http://localhost:9090 | |
-| Grafana | http://localhost:3000 | `admin` / `admin` |
-| PostgreSQL | `postgresql://atrium:atrium@127.0.0.1:5432/atrium` | |
-
-`/metrics` pede o token `local-metrics-token`. Com esse banco local, `uv run pytest` em `apps/api` também roda os testes de integração. `docker compose down` para tudo e mantém os dados; `docker compose down -v` apaga os volumes.
-
-A retenção da seção 11.6 roda com `uv run python -m app.scripts.retention`, em `apps/api`. Ela imprime quantas linhas cada regra apagou.
+O passo a passo completo, com o admin, a semente do corpus, as portas de cada serviço, os adaptadores de IA e os problemas comuns, está em [Rodar e explorar](docs/guia/02-rodar-e-explorar.md).
 
 ## Testes e qualidade
 
-Os testes automáticos nunca chamam o Gemini nem o LangSmith. Eles usam `FakeChatProvider`, `DeterministicEmbeddingProvider` e `NoopFeedbackSink`.
-
-```bash
-# apps/api
-uv run ruff check && uv run mypy && uv run pytest
-```
-
-```bash
-# apps/web
-pnpm exec eslint . && pnpm test
-pnpm exec tsc --noEmit -p tsconfig.app.json && pnpm exec tsc --noEmit -p tsconfig.node.json
-pnpm build && pnpm build-storybook
-pnpm exec playwright test
-```
-
-A [CI](.github/workflows/ci.yml) roda tudo isso e confere que os tipos do frontend batem com o OpenAPI da API. A qualidade das respostas é medida com o conjunto em [`evals/`](evals/README.md).
+Os testes automáticos nunca chamam o Gemini nem o LangSmith: eles usam falsos determinísticos no lugar dos provedores. A [CI](.github/workflows/ci.yml) roda lint, tipos, testes de unidade, integração contra pgvector, ponta a ponta com a API real e a conferência do contrato OpenAPI. A qualidade das respostas é medida com o conjunto em [`evals/`](evals/README.md). Os comandos estão no [guia de contribuição](CONTRIBUTING.md#antes-de-abrir-a-pr), e a estratégia em [Testes](docs/guia/13-testes.md).
 
 ## Contribuir
 

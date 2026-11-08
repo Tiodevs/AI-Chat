@@ -1,8 +1,28 @@
+/**
+ * Card de barras agrupadas, como Retention Rate da imagem de referência
+ * (seção 14.6).
+ *
+ * Aparece no "Funil de cadastro" de `/admin`: por etapa, as sessões que
+ * vieram do chat contra as do formulário (seção 15.5). As séries usam os
+ * tons de cinza `--chart-1` e `--chart-3`: a cor fica para status (seção
+ * 14.1).
+ *
+ * Acessibilidade: a legenda e o gráfico são `aria-hidden`, e uma tabela
+ * em `sr-only`, com legenda, cabeçalhos de coluna e de linha, dá os
+ * mesmos números ao leitor de tela (seção 15.8). O gráfico também desliga
+ * a camada de acessibilidade do Recharts, que o deixaria focável dentro
+ * de uma área escondida.
+ *
+ * Movimento: nenhum. A animação do Recharts fica desligada
+ * (`isAnimationActive={false}`), porque o movimento é do GSAP (ADR-011),
+ * e o catálogo da seção 16.3 não tem entrada para este gráfico.
+ */
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.tsx"
 import { ChartContainer, type ChartConfig } from "@/components/ui/chart.tsx"
 
+/** Uma etapa do funil: o valor da primeira série e o da segunda. */
 export type GroupedBarRow = { key: string; label: string; first: number; second: number }
 
 /**
@@ -21,9 +41,13 @@ export function GroupedBarCard({
   rows: GroupedBarRow[]
   firstLabel: string
   secondLabel: string
+  /** Título da coluna das etapas na tabela equivalente. */
   categoryLabel: string
+  /** Legenda da tabela equivalente, lida pelo leitor de tela. */
   tableCaption: string
 }) {
+  // O `ChartContainer` transforma cada chave em `--color-first` e
+  // `--color-second`, que as barras usam no `fill`.
   const config = {
     first: { label: firstLabel, color: "var(--chart-1)" },
     second: { label: secondLabel, color: "var(--chart-3)" },
@@ -48,6 +72,8 @@ export function GroupedBarCard({
           </span>
         </div>
         <div aria-hidden="true">
+          {/* `aspect-auto h-56`: altura fixa, que o `ResponsiveContainer` */}
+          {/* mede para desenhar o gráfico. */}
           <ChartContainer config={config} className="aspect-auto h-56 w-full">
             <BarChart
               accessibilityLayer={false}
@@ -63,6 +89,7 @@ export function GroupedBarCard({
             </BarChart>
           </ChartContainer>
         </div>
+        {/* A tabela equivalente da seção 15.8, só para o leitor de tela. */}
         <table className="sr-only">
           <caption>{tableCaption}</caption>
           <thead>

@@ -1,7 +1,11 @@
-"""Gestão de documentos pelo admin contra o PostgreSQL. Etapa 7.1, CA-1 a CA-5.
+"""Documentos do admin: upload, substituição, nova tentativa e arquivo. FR-10 a FR-12, NFR-10.
 
-Seções 7.3, 8.2, 10.4 e 12 do SDD. A ingestão roda na tarefa de fundo, que o TestClient
-termina antes de devolver a resposta.
+Seções 7.3, 8.1, 8.2, 10.4 e 12 do SDD, critérios CA-1 a CA-5 da Etapa 7.1. A fixture
+`harness` troca o serviço de documentos por um com o falso `_Embeddings`, que dá o mesmo vetor
+a todo texto, e entra como admin. A ingestão roda na tarefa de fundo, que o `TestClient`
+termina antes de devolver a resposta, então o teste já vê a versão `ready` ou `failed`.
+`_cleanup` apaga o que o admin criou. Precisa de PostgreSQL com pgvector local
+(`migrated_database`); sem ele pula, e com `REQUIRE_INTEGRATION_DB=1` falha.
 """
 
 import asyncio
@@ -73,6 +77,8 @@ class _Embeddings:
 
 @dataclass
 class _Harness:
+    """O que cada teste recebe: o cliente com o admin logado, o banco e o falso."""
+
     client: TestClient
     database_url: str
     embeddings: _Embeddings
@@ -82,6 +88,12 @@ class _Harness:
 
 @pytest.fixture
 def harness(monkeypatch: pytest.MonkeyPatch, migrated_database: str) -> Iterator[_Harness]:
+    """API com um admin logado e o serviço de documentos sobre o falso `_Embeddings`.
+
+    Troca o `get_document_admin_service` por um `DocumentAdminService` com o `SystemClock` e a
+    ingestão de verdade, e o falso dá a todo texto o vetor da pergunta `QUESTION`. No fim,
+    `_cleanup` apaga o que o admin criou.
+    """
     monkeypatch.setenv("DATABASE_URL", migrated_database)
     monkeypatch.setenv("RATE_LIMIT_HMAC_KEY", HMAC_KEY)
     monkeypatch.setenv("WEB_ORIGIN", ORIGIN)
@@ -159,6 +171,7 @@ def test_during_a_replacement_the_previous_version_keeps_answering(harness: _Har
     async def probe() -> list[str]:
         return await _searchable(harness, slug)
 
+    # A sonda busca no meio da ingestão da versão nova, antes de ela chegar a `ready`.
     harness.embeddings.probe = probe
     new_text = b"# Vagas\n\nVersao nova: Rua B."
     replaced = _replace(harness.client, document["id"], "vagas.md", new_text)
@@ -182,7 +195,10 @@ def test_during_a_replacement_the_previous_version_keeps_answering(harness: _Har
 def test_a_failed_replacement_keeps_the_previous_version_and_retry_recovers(
     harness: _Harness,
 ) -> None:
-    """CA-2 (FR-11), ação Retry e CA-4 (document.retry)."""
+    """CA-2 (FR-11), ação Retry e CA-4 (document.retry).
+
+    A nova tentativa cria a versão 3 com os bytes da 2, que falhou (seção 7.3).
+    """
     document = _upload(harness.client, "guia.txt", "Guia antigo: café às 9h.".encode()).json()
     harness.embeddings.fail = True
     replaced = _replace(harness.client, document["id"], "guia.txt", b"Guia novo: cafe as 10h.")
@@ -238,6 +254,7 @@ def test_archiving_takes_the_document_out_of_the_answers(harness: _Harness) -> N
 
 
 def test_a_replacement_waits_for_a_version_still_processing(harness: _Harness) -> None:
+    """Uma versão em `processing` há menos de 15 minutos faz a substituição responder 409."""
     document = _upload(harness.client, "farmacia.md", b"# Farmacia\n\nTerreo.").json()
     _run(_insert_processing_version(harness.database_url, UUID(document["id"])))
     response = _replace(harness.client, document["id"], "farmacia.md", b"# Farmacia\n\n1o andar.")
@@ -283,6 +300,7 @@ def test_a_member_gets_403_and_a_visitor_401_on_document_routes(harness: _Harnes
 def _upload(
     client: TestClient, filename: str, data: bytes, *, title: str | None = None
 ) -> Any:
+    """Envia um arquivo novo por `POST /v1/admin/documents`, com título opcional."""
     return client.post(
         "/v1/admin/documents",
         headers={"Origin": ORIGIN},
@@ -292,6 +310,7 @@ def _upload(
 
 
 def _replace(client: TestClient, document_id: str, filename: str, data: bytes) -> Any:
+    """Envia a versão nova de um documento por `POST /v1/admin/documents/{id}/replace`."""
     return client.post(
         f"/v1/admin/documents/{document_id}/replace",
         headers={"Origin": ORIGIN},
@@ -300,6 +319,7 @@ def _replace(client: TestClient, document_id: str, filename: str, data: bytes) -
 
 
 def _find(client: TestClient, document_id: str) -> dict[str, Any]:
+    """Acha o documento na listagem do admin. Falha se ele não aparecer uma vez só."""
     response = client.get("/v1/admin/documents")
     assert response.status_code == 200, response.text
     matches = [item for item in response.json()["documents"] if item["id"] == document_id]
@@ -309,6 +329,7 @@ def _find(client: TestClient, document_id: str) -> dict[str, Any]:
 
 
 def _login(client: TestClient, email: str) -> None:
+    """Entra com `PASSWORD` de um IP único. O cookie fica no pote do cliente."""
     response = client.post(
         "/v1/auth/login",
         headers={"Origin": ORIGIN, "X-Forwarded-For": f"docs-{uuid4().hex}"},
@@ -318,6 +339,7 @@ def _login(client: TestClient, email: str) -> None:
 
 
 def _run(coro: Coroutine[object, object, Any]) -> Any:
+    """Roda a corrotina num loop novo e devolve o resultado."""
     return asyncio.run(coro)
 
 
@@ -330,6 +352,7 @@ async def _searchable(harness: _Harness, slug: str) -> list[str]:
 
 
 async def _insert_user(database_url: str, email: str, role: str) -> UUID:
+    """Grava um usuário com o papel `role` e o aceite vigente dos Termos. Devolve o id."""
     async with open_session(database_url) as session, UnitOfWork(session):
         user_id = await UserRepository(session).insert(
             email=email,
@@ -349,6 +372,7 @@ async def _insert_user(database_url: str, email: str, role: str) -> UUID:
 
 
 async def _insert_processing_version(database_url: str, document_id: UUID) -> None:
+    """Grava a próxima versão do documento em `processing`, criada agora."""
     async with open_session(database_url) as session, UnitOfWork(session):
         repository = DocumentRepository(session)
         await repository.insert_version(
@@ -362,6 +386,7 @@ async def _insert_processing_version(database_url: str, document_id: UUID) -> No
 
 
 async def _fill_upload_bucket(database_url: str, admin_id: UUID) -> None:
+    """Enche o balde de uploads do admin com `UPLOAD_LIMIT` pedidos na janela atual."""
     now = datetime.now(UTC)
     key = bucket_key(purpose=UPLOAD_PURPOSE, subject=str(admin_id), day=now.date(), key=HMAC_KEY)
     async with open_session(database_url) as session, UnitOfWork(session):
@@ -371,6 +396,7 @@ async def _fill_upload_bucket(database_url: str, admin_id: UUID) -> None:
 
 
 async def _document_count(database_url: str, created_by: UUID) -> int:
+    """Quantos documentos este usuário criou."""
     async with open_session(database_url) as session:
         value = await session.scalar(
             text("SELECT count(*) FROM documents WHERE created_by = :id"), {"id": created_by}
@@ -379,6 +405,7 @@ async def _document_count(database_url: str, created_by: UUID) -> int:
 
 
 async def _actions(database_url: str, actor: UUID) -> list[str]:
+    """Ações de auditoria sobre documentos com este ator, na ordem de gravação."""
     async with open_session(database_url) as session:
         result = await session.execute(
             text(
@@ -391,6 +418,11 @@ async def _actions(database_url: str, actor: UUID) -> list[str]:
 
 
 async def _cleanup(database_url: str, user_id: UUID) -> None:
+    """Apaga o que o usuário criou e o próprio usuário.
+
+    Zera `active_version` e apaga chunks, versões e documentos antes do usuário, porque essas
+    chaves estrangeiras não apagam em cascata.
+    """
     async with open_session(database_url) as session, UnitOfWork(session):
         scope = "SELECT id FROM documents WHERE created_by = :user_id"
         versions = f"SELECT id FROM document_versions WHERE document_id IN ({scope})"

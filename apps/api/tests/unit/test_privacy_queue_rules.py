@@ -1,4 +1,12 @@
-"""Regras puras da fila de pedidos de titular do admin. Seções 11.5 e 12, Etapa 7.3."""
+"""As regras puras da fila de pedidos de titular do admin. FR-16, seções 11.5 e 12, Etapa 7.3.
+
+Testa `app/domain/privacy.py` sem banco nem rede: só um pedido aberto com prazo vencido é
+atrasado, fechar (`done` ou `rejected`) exige nota e grava `closed_at`, um pedido fechado não
+muda mais, o mesmo status com a mesma nota não é mudança, e o motivo de `dsr.update` leva só a
+troca de status. Também recusa o e-mail de contato que um link `mailto:` poderia partir em
+cópia ou cabeçalho, e caracteres de controle na descrição e na nota. As rotas ficam em
+`tests/integration/test_admin_privacy.py`.
+"""
 
 from datetime import UTC, datetime, timedelta
 

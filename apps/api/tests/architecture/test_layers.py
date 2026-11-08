@@ -1,3 +1,12 @@
+"""As camadas da API respeitam a direção de dependência da seção 6.2 do SDD. NFR-1.
+
+O primeiro teste roda as regras de `layers.py` sobre todo `app/`. Os outros alimentam
+`import_violations` com fontes de uma linha, para provar que cada proibição da tabela "Teste de
+arquitetura" da seção 6.2 é de fato detectada, inclusive o import relativo, e que o permitido
+passa. Sem esses casos, uma regra quebrada deixaria o primeiro teste verde em silêncio. Não usa
+banco nem rede.
+"""
+
 import pytest
 
 from tests.architecture.layers import import_violations, package_violations

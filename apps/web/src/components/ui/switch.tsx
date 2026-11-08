@@ -1,7 +1,28 @@
+/**
+ * Interruptor sobre o `Switch` do Radix, que renderiza um `button` com
+ * `role="switch"` e `aria-checked`.
+ *
+ * Usado nos consentimentos opcionais da aba Privacidade de `/account`
+ * (seção 15.5), um por aceite, com a data em que ele foi dado.
+ *
+ * O projeto trocou o visual do shadcn:
+ * - 24 por 44 px, que cumpre o alvo de 24 px do desktop (seção 15.8). No
+ *   celular, o `FieldLabel` da conta chega a 44 px de altura.
+ * - Borda `--border-strong` e fundo `--card`; borda `--danger` com
+ *   `aria-invalid`.
+ * - Ligado em `--primary` com o polegar em `--primary-foreground`, a
+ *   seleção invertida da seção 14.1.
+ * - Contorno de foco explícito de 2 px com 2 px de afastamento e cursor
+ *   padrão quando desabilitado (seção 14.7).
+ *
+ * O polegar muda de lado com `translate-x` pelo `data-state` do Radix, sem
+ * transição: troca direto. Seção 14.6.
+ */
 import * as React from "react"
 import { cn } from "cn"
 import { Switch as SwitchPrimitive } from "radix-ui"
 
+/** Interruptor controlado por `checked` e `onCheckedChange`. */
 function Switch({
   className,
   ...props

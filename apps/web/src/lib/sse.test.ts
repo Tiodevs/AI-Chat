@@ -1,3 +1,12 @@
+/**
+ * O leitor SSE de `src/lib/sse.ts` junta eventos partidos entre leituras e
+ * ignora comentários. Seções 7.1, 13.1 e 21.1 do SDD.
+ *
+ * `takeEvents` recebe o texto acumulado e devolve os eventos completos e o
+ * resto; `readEventStream` lê um `ReadableStream` montado no teste, com o
+ * corte no meio do JSON. Roda no projeto `dom` do Vitest, embora não use a
+ * tela. Não usa `fetch`, a API nem banco.
+ */
 import { describe, expect, it } from "vitest"
 
 import { readEventStream, takeEvents } from "./sse.ts"
@@ -30,6 +39,8 @@ describe("leitor SSE", () => {
 
   it("lê o fluxo quando o corte cai no meio do JSON", async () => {
     const encoder = new TextEncoder()
+    // O `done` chega sem a linha em branco final: o leitor o entrega quando o
+    // fluxo fecha.
     const chunks = [
       'event: token\ndata: {"text":"vis',
       'ita"}\n\nevent: done\ndata: {"outcome":"answered"}',

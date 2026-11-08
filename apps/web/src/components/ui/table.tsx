@@ -1,6 +1,18 @@
+/**
+ * Peças de tabela do shadcn/ui, sem mudança: `<table>` e classes, sem
+ * Radix.
+ *
+ * Usadas pelo `DataTable`, que monta as tabelas de documentos, conversas
+ * e pedidos de titular do admin. As bordas usam `--border`, e o hover da
+ * linha usa `--muted` (seção 14.7). Seção 14.6.
+ */
 import * as React from "react"
 import { cn } from "cn"
 
+/**
+ * Tabela dentro de um `div` com rolagem horizontal: colunas largas rolam
+ * dentro da tabela, sem alargar a página no celular.
+ */
 function Table({ className, ...props }: React.ComponentProps<"table">) {
   return (
     <div
@@ -16,6 +28,7 @@ function Table({ className, ...props }: React.ComponentProps<"table">) {
   )
 }
 
+/** `<thead>`, com borda embaixo das linhas do cabeçalho. */
 function TableHeader({ className, ...props }: React.ComponentProps<"thead">) {
   return (
     <thead
@@ -26,6 +39,7 @@ function TableHeader({ className, ...props }: React.ComponentProps<"thead">) {
   )
 }
 
+/** `<tbody>`, sem a borda da última linha. */
 function TableBody({ className, ...props }: React.ComponentProps<"tbody">) {
   return (
     <tbody
@@ -36,6 +50,7 @@ function TableBody({ className, ...props }: React.ComponentProps<"tbody">) {
   )
 }
 
+/** `<tfoot>` com fundo `--muted` a 50%. Sem uso nas telas. */
 function TableFooter({ className, ...props }: React.ComponentProps<"tfoot">) {
   return (
     <tfoot
@@ -49,6 +64,11 @@ function TableFooter({ className, ...props }: React.ComponentProps<"tfoot">) {
   )
 }
 
+/**
+ * `<tr>` com hover em `--muted` a 50%. `data-state="selected"` pinta a
+ * linha de `--muted`, e `has-aria-expanded` destaca a linha com um botão
+ * aberto.
+ */
 function TableRow({ className, ...props }: React.ComponentProps<"tr">) {
   return (
     <tr
@@ -62,6 +82,10 @@ function TableRow({ className, ...props }: React.ComponentProps<"tr">) {
   )
 }
 
+/**
+ * `<th>`. O chamador passa `scope="col"` ou `scope="row"`, que diz ao
+ * leitor de tela se a célula é título de coluna ou de linha.
+ */
 function TableHead({ className, ...props }: React.ComponentProps<"th">) {
   return (
     <th
@@ -75,6 +99,7 @@ function TableHead({ className, ...props }: React.ComponentProps<"th">) {
   )
 }
 
+/** `<td>`. Sem quebra de linha por padrão; o `DataTable` a liga. */
 function TableCell({ className, ...props }: React.ComponentProps<"td">) {
   return (
     <td
@@ -88,6 +113,10 @@ function TableCell({ className, ...props }: React.ComponentProps<"td">) {
   )
 }
 
+/**
+ * `<caption>`, o nome da tabela. O `DataTable` a esconde com `sr-only`:
+ * ela fica só para o leitor de tela, que a anuncia ao entrar na tabela.
+ */
 function TableCaption({
   className,
   ...props

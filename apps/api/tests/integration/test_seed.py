@@ -1,4 +1,11 @@
-"""Semente idempotente, falha de versão, prefixos e ingestão presa. Seções 6.4 e 7.3."""
+"""Semente idempotente, falha de versão, prefixos e ingestão presa. FR-11 e FR-13.
+
+Seções 6.4, 7.3 e 8.3 do SDD. Usa o `SeedService` e o `IngestionService` de verdade, com o
+falso `_CountingEmbedding`, que conta as chamadas ao `DeterministicEmbeddingProvider`, ou o
+`_FailingEmbedding`, que sempre falha. A semente lê dois arquivos escritos em `tmp_path`, não o
+`content/corpus`. Cada teste apaga os próprios slugs antes e depois. Precisa de PostgreSQL com
+pgvector local (`migrated_database`); sem ele pula, e com `REQUIRE_INTEGRATION_DB=1` falha.
+"""
 
 import asyncio
 from datetime import UTC, datetime, timedelta
@@ -23,6 +30,8 @@ pytestmark = pytest.mark.integration
 
 
 class _Clock:
+    """Relógio parado no instante dado."""
+
     def __init__(self, moment: datetime) -> None:
         self._moment = moment
 
@@ -31,6 +40,8 @@ class _Clock:
 
 
 class _CountingEmbedding:
+    """Envolve o `DeterministicEmbeddingProvider` e conta as chamadas e os textos enviados."""
+
     def __init__(self) -> None:
         self.calls = 0
         self.texts: list[str] = []
@@ -48,6 +59,8 @@ class _CountingEmbedding:
 
 
 class _FailingEmbedding:
+    """Embedding que sempre falha, para a ingestão marcar a versão como `failed`."""
+
     model_name = "failing"
     dimensions = 768
 
@@ -87,6 +100,10 @@ def test_app_startup_fails_a_stale_processing_version(
     migrated_database: str,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """O `with TestClient(...)` roda o `lifespan`, que marca as versões presas na subida.
+
+    Seção 7.3 do SDD. A Etapa 13.5 leva a mesma checagem ao `retention-job`.
+    """
     monkeypatch.setenv("DATABASE_URL", migrated_database)
     get_settings.cache_clear()
     slug = f"startup-{uuid4().hex}"
@@ -112,6 +129,11 @@ def test_app_startup_fails_a_stale_processing_version(
 
 
 async def _seed_once(database_url: str, directory: Path) -> None:
+    """Semeia dois arquivos duas vezes e depois roda duas semeaduras ao mesmo tempo.
+
+    A segunda rodada não embeda nada, porque os checksums não mudaram (FR-13). Na corrida, o
+    `pg_advisory_lock` da semente faz uma esperar a outra, e cada arquivo vira uma versão só.
+    """
     (directory / "01-um.md").write_text("# Um\n\nTexto um do hospital.\n", encoding="utf-8")
     (directory / "02-dois.md").write_text("# Dois\n\nTexto dois do hospital.\n", encoding="utf-8")
     slugs = ["01-um", "02-dois"]
@@ -139,6 +161,7 @@ async def _seed_once(database_url: str, directory: Path) -> None:
 
 
 async def _failed_version(database_url: str) -> None:
+    """Ingere uma versão boa e outra com o embedding falho: a boa continua ativa (FR-11)."""
     slug = f"stable-{uuid4().hex}"
     await _delete_slugs(database_url, [slug])
     try:
@@ -173,6 +196,7 @@ async def _failed_version(database_url: str) -> None:
 
 
 async def _prefixes(database_url: str) -> None:
+    """Confere que o embedding recebe o prefixo `title: ... | text:` e o chunk gravado não."""
     slug = f"prefix-{uuid4().hex}"
     await _delete_slugs(database_url, [slug])
     try:
@@ -199,6 +223,7 @@ async def _prefixes(database_url: str) -> None:
 
 
 async def _empty(database_url: str) -> None:
+    """Documento só com espaço vira `failed` com `EMPTY_DOCUMENT`, sem embedar (seção 7.3)."""
     slug = f"empty-{uuid4().hex}"
     await _delete_slugs(database_url, [slug])
     try:
@@ -221,6 +246,7 @@ async def _empty(database_url: str) -> None:
 
 
 async def _stale(database_url: str) -> None:
+    """Uma versão em `processing` há 16 minutos vira `failed`; a de 1 minuto continua."""
     slug = f"stale-{uuid4().hex}"
     await _delete_slugs(database_url, [slug])
     try:
@@ -241,15 +267,18 @@ def _seed_service(
     directory: Path,
     embeddings: _CountingEmbedding,
 ) -> SeedService:
+    """`SeedService` de verdade, lendo `directory` em vez de `content/corpus`."""
     ingestion = _ingestion(database_url, embeddings)
     return SeedService(database_url, ingestion, directory)
 
 
 def _ingestion(database_url: str, embeddings: object) -> IngestionService:
+    """`IngestionService` de verdade com o embedding dado e o extrator de arquivos."""
     return IngestionService(database_url, embeddings, FileTextExtractor())  # type: ignore[arg-type]
 
 
 async def _insert_admin(database_url: str) -> UUID:
+    """Grava um admin para `created_by`. Ele fica no banco depois do teste."""
     engine = create_async_engine(database_url)
     try:
         async with engine.begin() as connection:
@@ -267,6 +296,7 @@ async def _insert_admin(database_url: str) -> UUID:
 
 
 async def _delete_slugs(database_url: str, slugs: list[str]) -> None:
+    """Apaga documentos, versões e chunks destes slugs, se existirem."""
     engine = create_async_engine(database_url)
     try:
         async with engine.begin() as connection:
@@ -300,6 +330,7 @@ async def _delete_slugs(database_url: str, slugs: list[str]) -> None:
 
 
 async def _version_count(database_url: str, slugs: list[str]) -> int:
+    """Quantas versões os slugs têm, somadas."""
     engine = create_async_engine(database_url)
     try:
         async with engine.connect() as connection:
@@ -320,6 +351,7 @@ async def _version_count(database_url: str, slugs: list[str]) -> int:
 
 
 async def _active_contents(database_url: str, slug: str) -> list[str]:
+    """Conteúdo dos chunks pesquisáveis do slug, na ordem."""
     engine = create_async_engine(database_url)
     try:
         async with engine.connect() as connection:
@@ -339,6 +371,7 @@ async def _active_contents(database_url: str, slug: str) -> list[str]:
 
 
 async def _latest_status(database_url: str, slug: str) -> str:
+    """`ingestion_status` da versão mais nova do slug."""
     engine = create_async_engine(database_url)
     try:
         async with engine.connect() as connection:
@@ -356,6 +389,7 @@ async def _latest_status(database_url: str, slug: str) -> str:
 
 
 async def _latest_error(database_url: str, slug: str) -> str:
+    """`error` da versão mais nova do slug."""
     engine = create_async_engine(database_url)
     try:
         async with engine.connect() as connection:
@@ -378,6 +412,7 @@ async def _insert_processing_pair(
     created_by: UUID,
     now: datetime,
 ) -> tuple[UUID, UUID]:
+    """Grava um documento com duas versões em `processing`, de 16 minutos e de 1 minuto."""
     engine = create_async_engine(database_url)
     try:
         async with engine.begin() as connection:
@@ -430,6 +465,7 @@ async def _insert_processing_pair(
 
 
 async def _version_status(database_url: str, version_id: UUID) -> str:
+    """`ingestion_status` desta versão."""
     engine = create_async_engine(database_url)
     try:
         async with engine.connect() as connection:
@@ -443,6 +479,7 @@ async def _version_status(database_url: str, version_id: UUID) -> str:
 
 
 async def _version_error(database_url: str, version_id: UUID) -> str:
+    """`error` desta versão."""
     engine = create_async_engine(database_url)
     try:
         async with engine.connect() as connection:

@@ -3,25 +3,39 @@
 # Os valores abaixo são de desenvolvimento local e não servem para nenhum outro ambiente.
 # Para usar o Gemini de verdade, crie um .env na raiz com APP_AI_ADAPTER=gemini e GEMINI_API_KEY.
 # O mesmo .env pode definir ADMIN_EMAIL e ADMIN_PASSWORD do admin criado no banco vazio.
+#
+# É um caminho opcional: o desenvolvimento local não exige Docker (NFR-4, seção 6.1). A API usa
+# o mesmo apps/api/Dockerfile da Railway, então a imagem local e a de produção são uma só
+# (seção 22.1, ADR-013). A seção 4.2 ainda lista a pilha local de Docker Compose como fora do
+# escopo. Sem .env, a API sobe com o adaptador `fake`, e toda pergunta recebe a resposta de
+# indisponibilidade; `APP_AI_ADAPTER=demo` percorre as jornadas sem chave (seção 17, ADR-014).
+# Todas as portas ficam presas a 127.0.0.1, fora do alcance da rede.
 name: atrium
 
 services:
+  # O mesmo PostgreSQL com pgvector da CI e da Railway.
   db:
     image: pgvector/pgvector:pg18
     environment:
       POSTGRES_USER: atrium
       POSTGRES_PASSWORD: atrium
       POSTGRES_DB: atrium
+    # Em 127.0.0.1:5432, este banco é aceito pela integração da API, que remove a extensão
+    # `vector` e recria as tabelas (apps/api/tests/integration). Rode a integração e a e2e ao
+    # vivo num banco descartável, não neste.
     ports:
       - "127.0.0.1:5432:5432"
+    # Os dados sobrevivem a `docker compose down`; `down -v` apaga o volume.
     volumes:
       - db-data:/var/lib/postgresql
+    # A API só sobe depois de o banco aceitar conexão.
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U atrium -d atrium"]
       interval: 5s
       timeout: 5s
       retries: 20
 
+  # A API com a imagem da Railway. O contexto é a raiz, porque a semente lê content/corpus.
   api:
     build:
       context: .
@@ -29,25 +43,41 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    # Os valores sem `${...}` são fixos de desenvolvimento local. Os com `${VAR:-padrão}` vêm do
+    # .env da raiz ou do padrão depois de `:-`.
     environment:
+      # `local`: as conferências de `create_app` (seção 7.1) e o segredo da borda (seção 10.3)
+      # não se aplicam, e o teto de tokens fica desligado sem `LLM_DAILY_TOKEN_BUDGET`.
       APP_ENV: local
+      # `db` é o nome do serviço acima na rede do Compose. A configuração troca o esquema por
+      # `postgresql+asyncpg://` (seção 17).
       DATABASE_URL: postgresql://atrium:atrium@db:5432/atrium
+      # A origem do serviço `web`, exigida no `Origin` de todo POST (NFR-12).
       WEB_ORIGIN: http://localhost:5173
       APP_AI_ADAPTER: ${APP_AI_ADAPTER:-fake}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       CHAT_MODEL: ${CHAT_MODEL:-gemini-2.5-flash}
       EMBEDDING_MODEL: ${EMBEDDING_MODEL:-gemini-embedding-2}
+      # O admin que o `bootstrap_admin` cria quando o banco não tem nenhum (seção 10.5).
       ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@example.com}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-Atrium-local-2026-admin}
+      # O mesmo token do serviço `prometheus`, para a coleta de /metrics passar (seção 18.3).
       METRICS_TOKEN: local-metrics-token
+      # As duas chaves são obrigatórias para o login, mesmo em `local` (seção 19).
       RATE_LIMIT_HMAC_KEY: local-rate-limit-key-0000000000000000000000000000000000
       PSEUDONYM_KEY: local-pseudonym-key-0000000000000000000000000000000000000
       PRIVACY_CONTACT_EMAIL: privacidade@example.com
       LANGSMITH_TRACING: "false"
+      # O OpenTelemetry carrega, mas não exporta nada: localmente não há receptor (seção 18.2).
       OTEL_SERVICE_NAME: atrium-api
       OTEL_TRACES_EXPORTER: none
       OTEL_METRICS_EXPORTER: none
       OTEL_LOGS_EXPORTER: none
+    # Substitui o `CMD` do Dockerfile. Faz o pré-deploy da Railway (seção 22.1) antes do
+    # servidor, mas sem `--skip-without-key`: sem chave, a semente com `gemini` falha e a API
+    # não sobe. A semente pula os arquivos de checksum igual, então trocar o adaptador num
+    # volume já semeado deixa os vetores do embedding anterior (seção 22.1); `down -v`
+    # recomeça do banco vazio. O `exec` troca o shell pelo uvicorn, que recebe o sinal de parada.
     command:
       - sh
       - -c
@@ -58,6 +88,8 @@ services:
         && exec opentelemetry-instrument uvicorn app.main:app --host 0.0.0.0 --port 8000 --proxy-headers
     ports:
       - "127.0.0.1:8000:8000"
+    # O `web` só sobe quando o /ready responde, depois das migrações, do admin e da semente. A
+    # imagem slim não tem curl, então a sonda usa o Python; o `start_period` dá folga à semente.
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/ready')"]
       interval: 10s
@@ -65,6 +97,7 @@ services:
       retries: 30
       start_period: 30s
 
+  # O frontend em modo de desenvolvimento, em http://localhost:5173.
   web:
     build:
       context: .
@@ -72,15 +105,19 @@ services:
     depends_on:
       api:
         condition: service_healthy
+    # O proxy de /backend do `vite.config.ts` aponta para o serviço `api`, e não para
+    # 127.0.0.1, que dentro do contêiner é o próprio `web`.
     environment:
       API_PROXY_TARGET: http://api:8000
     ports:
       - "127.0.0.1:5173:5173"
 
+  # A coleta de /metrics, como em produção. Os alvos ficam em http://localhost:9090/targets.
   prometheus:
     build: ops/prometheus
     depends_on:
       - api
+    # O `entrypoint.sh` põe estes valores no `prometheus.yml` antes de iniciar.
     environment:
       API_HOST: api
       API_PORT: "8000"
@@ -90,6 +127,8 @@ services:
     volumes:
       - prometheus-data:/prometheus
 
+  # Os painéis e os alertas de ops/grafana, em http://localhost:3000. Sem
+  # `GF_SECURITY_ADMIN_PASSWORD`, vale o login padrão da imagem do Grafana.
   grafana:
     build: ops/grafana
     depends_on:

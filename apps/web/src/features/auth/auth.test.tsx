@@ -1,3 +1,18 @@
+/**
+ * Entrar, o retorno seguro e as guardas das rotas. NFR-14, seções 10.4, 13.3
+ * e 15.5 do SDD.
+ *
+ * `safeReturnTo` só aceita caminhos da própria origem, e o limite de login
+ * vira minutos. Na tela, o login mostra o erro de credenciais no 401 e o
+ * limite no 429, volta ao `returnTo` e ignora um `returnTo` externo. As
+ * guardas mostram a página 403 a um membro numa rota de admin, abrem a conta
+ * de um membro e, quando `GET /v1/me` falha, mostram o error boundary com o
+ * `request_id`. Hoje qualquer falha do login fora o 429, inclusive 500 e 503,
+ * também mostra o erro de credenciais; a Etapa 14.1 limita esse texto a 400 e
+ * 401. Projeto `dom` do Vitest: as rotas reais do `router.tsx` num
+ * `createMemoryRouter`, e o `fetch` trocado por `vi.fn` em cada teste. Não
+ * usa a API nem banco.
+ */
 import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import axe from "axe-core"
@@ -17,6 +32,7 @@ beforeAll(async () => {
   await import("@/app/routes/admin.tsx")
 }, 30_000)
 
+/** Perfil de `GET /v1/me` de um admin, sem documento legal novo a aceitar. */
 const admin = {
   id: "00000000-0000-0000-0000-000000000001",
   email: "admin@example.com",
@@ -28,8 +44,10 @@ const admin = {
   needs_legal_acceptance: false,
 }
 
+/** O mesmo perfil com o papel de membro. */
 const member = { ...admin, id: "00000000-0000-0000-0000-000000000002", role: "member" as const }
 
+/** Resposta JSON com o `status` dado, como a API devolve. */
 function json(body: unknown, status: number) {
   return new Response(JSON.stringify(body), {
     status,
@@ -37,6 +55,10 @@ function json(body: unknown, status: number) {
   })
 }
 
+/**
+ * Abre o app inteiro em `path`, com as rotas reais e os provedores. Devolve o
+ * roteador, para o teste conferir o caminho depois da navegação.
+ */
 function renderAt(path: string) {
   const router = createMemoryRouter(routes, { initialEntries: [path] })
   render(
@@ -209,6 +231,8 @@ describe("guardas", () => {
   })
 
   it("mostra o identificador quando o carregamento falha", async () => {
+    // O `fetch` lança o `ApiRequestError` direto: o `openapi-fetch` repassa a
+    // rejeição, e o error boundary da rota recebe o erro com o `request_id`.
     vi.stubGlobal(
       "fetch",
       vi.fn(async () => {

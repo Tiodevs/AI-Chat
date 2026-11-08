@@ -7,6 +7,25 @@ Create Date: 2026-10-27
 Os B-tree de messages, conversations, consent_records e data_subject_requests
 entram junto com essas tabelas. Seções 8.1 e 8.2 do SDD.
 
+Cria o corpus da seção 8.1:
+
+- `documents`: título, `slug` único, `status` (`active` ou `archived`) e `active_version`,
+  a versão que a busca usa. `created_by` aponta para `users` sem `ondelete`, então um
+  usuário que criou documento não pode ser apagado; a semente grava o admin mais antigo.
+- `document_versions`: uma linha por versão, única em `(document_id, version)`, com os bytes
+  originais, o checksum e o status da ingestão (`processing`, `ready` ou `failed`).
+- `chunks`: o texto, o `embedding vector(768)` e o `tsv`, coluna gerada e armazenada com o
+  `to_tsvector('portuguese', ...)` da seção 8.1.
+
+`documents.active_version` e `document_versions.document_id` apontam um para o outro, então a
+chave de `active_version` só entra depois das duas tabelas. Os índices HNSW, com distância de
+cosseno, e GIN são parciais (`WHERE active`): cobrem só os chunks que a busca pode devolver
+(seção 8.2).
+
+A dimensão e a expressão do `tsv` vêm do código atual (`app.models.vector` e
+`app.models.chunk`): um banco criado do zero recebe o valor de hoje. Mudar a dimensão pede
+uma revisão nova e um re-embedding completo (seção 8.3), não a edição da constante. O
+downgrade apaga as três tabelas, com a chave circular solta antes.
 """
 
 from collections.abc import Sequence
@@ -25,6 +44,8 @@ depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
+    """Cria `documents`, `document_versions` e `chunks`, com os índices da busca."""
+    # `active_version` nasce sem chave: a tabela de versões ainda não existe.
     op.create_table(
         "documents",
         sa.Column("id", sa.Uuid(), server_default=sa.text("gen_random_uuid()"), nullable=False),
@@ -89,12 +110,15 @@ def upgrade() -> None:
             name="document_versions_document_id_version_key",
         ),
     )
+    # B-tree da seção 8.2. A restrição única de `(document_id, version)` já começa pela mesma
+    # coluna.
     op.create_index(
         "document_versions_document_id_idx",
         "document_versions",
         ["document_id"],
         unique=False,
     )
+    # A chave circular entra agora, com as duas tabelas criadas.
     op.create_foreign_key(
         "documents_active_version_fkey",
         "documents",
@@ -110,12 +134,15 @@ def upgrade() -> None:
         sa.Column("heading", sa.Text(), nullable=True),
         sa.Column("content", sa.Text(), nullable=False),
         sa.Column("embedding", Vector(EMBEDDING_DIMENSIONS), nullable=False),
+        # `Computed(..., persisted=True)` vira `GENERATED ALWAYS AS (...) STORED`: o banco
+        # calcula o `tsv` a cada escrita, e o código nunca o grava.
         sa.Column(
             "tsv",
             TSVECTOR(),
             sa.Computed(CHUNK_TSV_EXPRESSION, persisted=True),
             nullable=False,
         ),
+        # `active` começa falso na ingestão e vira verdadeiro na publicação (seção 7.3).
         sa.Column("active", sa.Boolean(), nullable=False),
         sa.ForeignKeyConstraint(
             ["document_version_id"],
@@ -124,6 +151,8 @@ def upgrade() -> None:
         ),
         sa.PrimaryKeyConstraint("id", name="chunks_pkey"),
     )
+    # HNSW com `vector_cosine_ops`, a classe do operador `<=>` da busca (seção 8.3), e GIN no
+    # `tsv`. `postgresql_where` faz os dois índices parciais: só os chunks ativos (seção 8.2).
     op.create_index(
         "chunks_embedding_idx",
         "chunks",
@@ -144,7 +173,9 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    """Apaga as três tabelas do corpus. Os documentos e os vetores se perdem."""
     op.drop_table("chunks")
+    # A chave circular sai antes, senão `document_versions` não pode ser apagada.
     op.drop_constraint("documents_active_version_fkey", "documents", type_="foreignkey")
     op.drop_index("document_versions_document_id_idx", table_name="document_versions")
     op.drop_table("document_versions")

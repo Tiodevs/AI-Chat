@@ -1,8 +1,15 @@
-"""A API sem `GEMINI_API_KEY` degrada em vez de devolver 500. Seções 10.1, 17 e 22.1.
+"""A API sem `GEMINI_API_KEY` degrada em vez de devolver 500. Seções 7.1, 10.1, 17 e 22.1.
 
 O primeiro deploy na Railway sobe antes de a chave existir. O fluxo de diagnóstico do teste
 de fumaça não usa o modelo e precisa responder. Uma pergunta recebe a resposta fixa de
-indisponibilidade.
+indisponibilidade, com o desfecho `error`.
+
+A fixture `api` sobe a API com `APP_AI_ADAPTER=gemini` e a chave vazia, então as fábricas
+montam o `UnavailableChatProvider` e o `UnavailableEmbeddingProvider`, sem rede. O embedding
+falha com o `EmbeddingRequestError` do adaptador; a Etapa 13.2 leva esse erro para a porta.
+Reaproveita os helpers de `test_conversations.py` e `test_auth.py`. O primeiro teste não usa
+banco; os outros precisam de PostgreSQL com pgvector local (`migrated_database`), pulam sem
+ele e falham com `REQUIRE_INTEGRATION_DB=1`.
 """
 
 import asyncio
@@ -38,6 +45,7 @@ pytestmark = pytest.mark.integration
 
 @pytest.fixture
 def api(monkeypatch: pytest.MonkeyPatch, migrated_database: str) -> TestClient:
+    """API com `APP_AI_ADAPTER=gemini` e `GEMINI_API_KEY` vazia, como no primeiro deploy."""
     monkeypatch.setenv("DATABASE_URL", migrated_database)
     monkeypatch.setenv("RATE_LIMIT_HMAC_KEY", HMAC_KEY)
     monkeypatch.setenv("WEB_ORIGIN", ORIGIN)

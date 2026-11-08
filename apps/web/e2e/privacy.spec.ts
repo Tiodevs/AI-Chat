@@ -1,3 +1,12 @@
+/**
+ * J8 do lado do visitante e a página dos Termos, com a API simulada. FR-16 e
+ * NFR-14, seções 11.5, 11.11, 12 e 15.3 do SDD.
+ *
+ * Suíte simulada, projeto `mobile` (Pixel 5 com movimento reduzido). O
+ * `beforeEach` responde por `page.route` às versões legais e à criação do
+ * pedido de titular. O resto responde 401, como para quem não tem conta. Sem
+ * API e sem banco.
+ */
 import { expect, test } from "@playwright/test"
 
 import { pt } from "../src/i18n/pt.ts"
@@ -74,6 +83,8 @@ test("J8 uma pessoa sem conta pede a eliminação pelo canal", async ({ page }) 
     contact_email: "visitante@example.com",
     request_type: "deletion",
   })
+  // A mensagem traz o prazo formatado pela tela. O teste confere só o texto
+  // que vem antes de `{date}`.
   await expect(page.getByRole("status")).toContainText(
     pt.privacyRequest.sent.split("{date}")[0]
   )
@@ -85,6 +96,7 @@ test("os Termos abrem com a versão vigente", async ({ page }) => {
   await expect(
     page.getByRole("heading", { level: 1, name: pt.pages.terms })
   ).toBeVisible()
+  // A versão vem do `GET /v1/legal/versions` simulado (seção 11.11).
   await expect(page.getByText("Versão 2026-10-25.1")).toBeVisible()
   await expectNoSeriousViolations(page)
 })

@@ -1,7 +1,21 @@
+# Avaliações da IA no LangSmith, com o Gemini de verdade. Seção 21.2 do SDD.
+#
+# Sobe um PostgreSQL descartável, semeia o corpus com o embedding real, sincroniza
+# `evals/public_qa.jsonl` com o dataset `atrium-public-qa` e cria um experimento por versão de
+# prompt. Numa pull request, comenta o resumo com a linha de base de `main`. O resultado não
+# falha o job nem bloqueia o merge, porque um modelo ao vivo não é determinístico; uma queda de
+# `outcome_match` abaixo de 90% pede justificativa escrita na PR.
+#
+# É o único workflow que lê as chaves do Gemini e do LangSmith, e hoje elas valem no job
+# inteiro. A Etapa 11.3, débito técnico, deixa as chaves só no passo das avaliações e fixa as
+# actions por SHA.
 name: evals
 
 on:
+  # Disparo manual pela aba Actions.
   workflow_dispatch:
+  # Pull requests que mudam o que a avaliação mede: prompts, workflows de IA, corpus, casos ou
+  # este arquivo. A seção 21.2 cita só os três primeiros caminhos.
   pull_request:
     paths:
       - "apps/api/app/prompts/**"
@@ -9,6 +23,8 @@ on:
       - "content/corpus/**"
       - "evals/**"
       - ".github/workflows/evals.yml"
+  # O mesmo filtro na main. O experimento de um push na main leva `git_ref=main` e vira a linha
+  # de base das pull requests seguintes (`_baseline` em `app/scripts/run_evals.py`).
   push:
     branches:
       - main
@@ -19,6 +35,7 @@ on:
       - "evals/**"
       - ".github/workflows/evals.yml"
 
+# Ler o repositório e comentar na pull request com `gh pr comment`.
 permissions:
   contents: read
   pull-requests: write
@@ -28,6 +45,7 @@ jobs:
     name: eval
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    # Banco descartável para a semente e a busca, igual ao dos jobs do ci.yml.
     services:
       postgres:
         image: pgvector/pgvector:pg18
@@ -43,21 +61,29 @@ jobs:
           --health-timeout 5s
           --health-retries 5
     env:
+      # O `APP_ENV` da CI na tabela da seção 19.
       APP_ENV: test
+      # O adaptador de verdade: o objetivo aqui é medir o modelo, não os falsos.
       APP_AI_ADAPTER: gemini
       DATABASE_URL: postgresql://atrium:atrium@127.0.0.1:5432/atrium
+      # Segredos do repositório. Sem eles, o passo "Conferir chaves" para o job.
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       LANGSMITH_API_KEY: ${{ secrets.LANGSMITH_API_KEY }}
+      # Os rastros das avaliações vão para o projeto atrium-dev, no endpoint dos Estados Unidos
+      # (decisão D-2, seção 18.4).
       LANGSMITH_TRACING: "true"
       LANGSMITH_PROJECT: atrium-dev
       LANGSMITH_ENDPOINT: https://api.smith.langchain.com
+      # Vazio para uma chave já limitada a um workspace; uma chave de organização precisa dele.
       LANGSMITH_WORKSPACE_ID: ${{ secrets.LANGSMITH_WORKSPACE_ID }}
       LANGSMITH_TRACING_SAMPLING_RATE: "1.0"
+      # Valores de teste: o banco e o admin só existem durante o job.
       ADMIN_EMAIL: admin@example.com
       ADMIN_PASSWORD: atrium-eval-admin-password
       RATE_LIMIT_HMAC_KEY: eval-hmac-key
       PSEUDONYM_KEY: eval-pseudonym-key
       WEB_ORIGIN: http://localhost:4173
+      # O `run_evals` grava aqui o resumo em Markdown que os dois últimos passos publicam.
       EVAL_SUMMARY_PATH: ${{ github.workspace }}/eval-summary.md
     steps:
       - uses: actions/checkout@v7
@@ -65,6 +91,8 @@ jobs:
         with:
           python-version: "3.12"
           working-directory: apps/api
+      # Para logo, com uma mensagem clara, quando um segredo não chega ao job, como numa pull
+      # request vinda de um fork.
       - name: Conferir chaves
         run: |
           test -n "$GEMINI_API_KEY" || { echo "GEMINI_API_KEY ausente"; exit 1; }
@@ -75,19 +103,26 @@ jobs:
       - name: Migrar
         working-directory: apps/api
         run: uv run alembic upgrade head
+      # A semente embeda o corpus com o embedding do Gemini, então a busca da avaliação é a
+      # mesma da produção. Ela precisa de um admin, que vira o `created_by` dos documentos.
       - name: Admin e corpus
         working-directory: apps/api
         run: |
           uv run python -m app.scripts.bootstrap_admin
           uv run python -m app.scripts.seed
+      # Cria, atualiza e remove exemplos do dataset para ele ficar igual ao arquivo.
       - name: Sincronizar o dataset
         working-directory: apps/api
         run: uv run python -m app.scripts.sync_eval_dataset
+      # Roda cada caso pelo pipeline de perguntas, com os avaliadores da seção 21.2, e grava o
+      # resumo em EVAL_SUMMARY_PATH. Uma taxa abaixo do limiar não muda o código de saída.
       - name: Avaliar
         working-directory: apps/api
         run: uv run python -m app.scripts.run_evals
+      # O resumo também aparece na página da execução.
       - name: Publicar o resumo
         run: cat eval-summary.md >> "$GITHUB_STEP_SUMMARY"
+      # Só numa pull request; num push ou disparo manual não há onde comentar.
       - name: Comentar na pull request
         if: github.event_name == 'pull_request'
         env:

@@ -1,4 +1,12 @@
-"""Métricas lidas do banco: pedidos de titular e execuções da retenção. Seção 18.3 do SDD."""
+"""Métricas lidas do banco: pedidos de titular e execuções da retenção. Seção 18.3 do SDD.
+
+`_scenario` grava quatro pedidos, roda uma regra do `RetentionService` para gravar uma linha
+em `retention_runs` e chama `refresh_database_metrics`. O teste troca o `SNAPSHOT` por um novo
+nos dois módulos que guardam a referência: o `ops_metrics` importa o nome, e trocar só o de
+`app.core.metrics` não chegaria a ele. Destrutivo: apaga todos os `data_subject_requests` e
+`retention_runs` do banco antes de gravar, e os pedidos gravados ficam. Precisa de PostgreSQL
+com pgvector local (`migrated_database`); sem ele pula, e com `REQUIRE_INTEGRATION_DB=1` falha.
+"""
 
 import asyncio
 from datetime import UTC, datetime, timedelta
@@ -22,11 +30,14 @@ NOW = datetime.now(UTC).replace(microsecond=0)
 
 
 class FrozenClock:
+    """Relógio parado em `NOW`, o instante da importação sem microssegundos."""
+
     def now(self) -> datetime:
         return NOW
 
 
 def _request(status: str, due_in: timedelta) -> DataSubjectRequest:
+    """Pedido de titular com o status e o prazo `due_in` contado de `NOW`."""
     return DataSubjectRequest(
         user_id=None,
         contact_email="titular@example.com",
@@ -40,6 +51,10 @@ def _request(status: str, due_in: timedelta) -> DataSubjectRequest:
 
 
 async def _scenario(database_url: str) -> None:
+    """Apaga os pedidos e as execuções, grava quatro pedidos, roda uma regra e atualiza.
+
+    Dos três pedidos abertos, um está no prazo e dois atrasados; o quarto está fechado.
+    """
     async with open_session(database_url) as session, UnitOfWork(session):
         await session.execute(delete(DataSubjectRequest))
         await session.execute(delete(RetentionRun))

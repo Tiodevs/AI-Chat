@@ -1,3 +1,10 @@
+"""A unidade de trabalho confirma, desfaz e avisa quando a transação passa de 2 s. Seção 6.4.
+
+Testa `app/db/unit_of_work.py` com `_FakeSession` no lugar da `AsyncSession` do SQLAlchemy,
+então não usa banco nem rede. Para medir a duração sem esperar, os dois últimos testes trocam
+o `time.perf_counter` do módulo por uma sequência fixa de instantes.
+"""
+
 import asyncio
 import json
 from typing import cast
@@ -10,6 +17,8 @@ from app.db.unit_of_work import UnitOfWork
 
 
 class _FakeSession:
+    """Falso da `AsyncSession` que só marca `begin`, `commit`, `rollback` e `close`."""
+
     def __init__(self) -> None:
         self.began = False
         self.committed = False
@@ -30,6 +39,7 @@ class _FakeSession:
 
 
 def _log_events(capsys: pytest.CaptureFixture[str]) -> list[dict[str, object]]:
+    """Lê os eventos JSON que o `structlog` escreveu na stdout capturada."""
     captured = capsys.readouterr().out
     return [json.loads(line) for line in captured.splitlines() if line.startswith("{")]
 
@@ -67,6 +77,7 @@ def test_unit_of_work_warns_when_open_for_more_than_two_seconds(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     configure_logging("INFO")
+    # A entrada lê 0,0 e a saída lê 3,5: a transação "durou" 3,5 s sem o teste esperar.
     ticks = iter((0.0, 3.5))
     monkeypatch.setattr("app.db.unit_of_work.time.perf_counter", lambda: next(ticks))
     session = _FakeSession()

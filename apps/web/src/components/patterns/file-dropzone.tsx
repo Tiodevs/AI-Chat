@@ -1,3 +1,22 @@
+/**
+ * Área de envio de arquivo, com arrastar e soltar e o botão de escolher
+ * (seção 14.6).
+ *
+ * Aparece no envio de documento de `/admin/documents` e no sheet de
+ * substituir documento, com o aviso de tipo e tamanho antes do envio
+ * (seção 15.5). Só escolhe e mostra o arquivo: quem confere tipo e
+ * tamanho e faz o envio é a tela, que devolve o problema em `error`.
+ *
+ * Estados: vazia, arrastando (borda `--ring`), com arquivo (nome,
+ * tamanho e Remover), inválida (borda `--danger` e o erro com ícone) e
+ * desabilitada durante o envio.
+ *
+ * Acessibilidade: o `<input type="file">` fica em `sr-only`, fora da
+ * ordem de tabulação. Quem recebe o foco é o botão Escolher arquivo, que
+ * leva a dica e o erro no `aria-describedby`; o rótulo também abre o
+ * seletor. O erro tem `role="alert"`, e arrastar é só um atalho: tudo se
+ * faz pelo botão.
+ */
 import { CircleAlert, FileUp, X } from "lucide-react"
 import { useId, useRef, useState, type DragEvent } from "react"
 
@@ -5,6 +24,7 @@ import { Button } from "@/components/ui/button.tsx"
 import { pt } from "@/i18n/pt.ts"
 import { cn } from "@/lib/utils.ts"
 
+/** Tamanho em KB (mínimo 1) abaixo de 1 MB, e em MB com uma casa acima. */
 export function formatFileSize(bytes: number) {
   if (bytes < 1024 * 1024) {
     return `${Math.max(1, Math.round(bytes / 1024)).toLocaleString("pt-BR")} KB`
@@ -24,12 +44,15 @@ export function FileDropzone({
   id,
 }: {
   file: File | null
+  /** Recebe o arquivo escolhido ou solto, ou `null` ao remover. */
   onFileChange: (file: File | null) => void
+  /** Filtro do seletor do sistema, como `.md,.txt,.pdf`. */
   accept?: string
   error?: string | null
   disabled?: boolean
   label?: string
   hint?: string
+  /** Id do campo; sem ele, o `useId` gera um. */
   id?: string
 }) {
   const generated = useId()
@@ -40,6 +63,8 @@ export function FileDropzone({
   const [dragging, setDragging] = useState(false)
   const invalid = Boolean(error)
 
+  // Sem o `preventDefault` no `dragover`, o navegador não aceita o drop
+  // e abre o arquivo na aba.
   function onDragOver(event: DragEvent<HTMLDivElement>) {
     if (disabled) {
       return
@@ -48,6 +73,7 @@ export function FileDropzone({
     setDragging(true)
   }
 
+  // Fica só com o primeiro arquivo solto: o envio é de um por vez.
   function onDrop(event: DragEvent<HTMLDivElement>) {
     event.preventDefault()
     setDragging(false)
@@ -100,6 +126,8 @@ export function FileDropzone({
           className="sr-only"
           aria-invalid={invalid || undefined}
           aria-describedby={invalid ? `${hintId} ${errorId}` : hintId}
+          // Limpar o valor deixa escolher o mesmo arquivo de novo: sem
+          // isso, o navegador não dispara outro `change`.
           onChange={(event) => {
             onFileChange(event.target.files?.item(0) ?? null)
             event.target.value = ""
@@ -112,6 +140,8 @@ export function FileDropzone({
                 .replace("{name}", file.name)
                 .replace("{size}", formatFileSize(file.size))}
             </span>
+            {/* 32 px no desktop; no celular, o tamanho `icon` garante */}
+            {/* 44 px de altura e de largura mínimas (seção 15.8). */}
             <Button
               type="button"
               variant="ghost"
@@ -127,6 +157,7 @@ export function FileDropzone({
             </Button>
           </div>
         ) : null}
+        {/* O botão abre o seletor do sistema pelo `click()` do input. */}
         <Button
           type="button"
           variant="outline"

@@ -1,3 +1,19 @@
+/**
+ * Qualidade do admin, em `/admin/quality`: filtros, os desfechos e o
+ * feedback do período, a lista de conversas pseudonimizadas e o inspetor de
+ * uma conversa, com o link para o rastro no LangSmith.
+ *
+ * Camada: view (SDD 13.2). Recebe o `QualityModel` de `useQuality` pela
+ * rota `app/routes/admin-quality.tsx` e não chama a API. Usa as regras de
+ * `insights-model.ts`, o `formatDateTime` de `documents-model.ts`, o
+ * `DataTable`, o `PseudonymBadge`, o `SegmentedStatusCard` e o
+ * `RequestIdCopy` de `components/patterns` e o `Sheet` e o `Select` de
+ * `components/ui`.
+ *
+ * Privacidade: a tela só mostra pseudônimos. A identidade de um membro só
+ * aparece pela ação Revelar identidade, com motivo e auditoria (SDD 11.8).
+ * SDD 15.5 (Qualidade), 18.4 e 18.5 (rastro no LangSmith) e Jornada J7.
+ */
 import { ExternalLink } from "lucide-react"
 import { useState, type FormEvent } from "react"
 
@@ -49,8 +65,13 @@ import type { QualityModel, RevealResult } from "./useInsights.ts"
 
 const q = pt.quality
 const t = pt.insights
+// O valor de "todos" nos filtros. O `Select` do Radix não aceita item com
+// valor vazio, então `all` representa a falta de filtro e vira `null` no
+// estado.
 const anyValue = "all"
 
+// Traduz o tom do modelo para a variante do `Badge`. Neutro vira
+// `secondary`, a superfície sem cor.
 const badgeTone: Record<Tone, "success" | "warning" | "danger" | "info" | "secondary"> = {
   success: "success",
   warning: "warning",
@@ -59,6 +80,7 @@ const badgeTone: Record<Tone, "success" | "warning" | "danger" | "info" | "secon
   neutral: "secondary",
 }
 
+/** Badge do desfecho, com nome e cor. Sem desfecho, o texto "Sem dados". */
 function OutcomeTag({ outcome }: { outcome: string | null }) {
   if (!outcome) {
     return <span className="text-muted-foreground">{t.notAvailable}</span>
@@ -67,10 +89,18 @@ function OutcomeTag({ outcome }: { outcome: string | null }) {
   return <Badge variant={badgeTone[tone]}>{outcomeLabel(outcome)}</Badge>
 }
 
+/**
+ * Página da qualidade (SDD 15.5). Da lista ao rastro do LangSmith são dois
+ * cliques: Abrir conversa e o link do rastro no inspetor (Jornada J7).
+ */
 export function QualityScreen(model: QualityModel) {
   const data = model.quality
+  // O resumo da linha aberta dá o pseudônimo ao título do `Sheet` antes de
+  // a conversa chegar.
   const selected = data?.conversations.find((item) => item.id === model.openId) ?? null
 
+  // Colunas: pessoa (o cabeçalho da linha), última atividade, perguntas,
+  // último desfecho, feedback e a ação de abrir.
   const columns: DataTableColumn<ConversationSummary>[] = [
     {
       key: "subject",
@@ -101,6 +131,8 @@ export function QualityScreen(model: QualityModel) {
       key: "actions",
       header: q.table.actions,
       cell: (row) => (
+        // O nome acessível começa pelo texto visível e diz de quem é a
+        // conversa, para distinguir as linhas (SDD 15.8).
         <Button
           size="sm"
           variant="outline"
@@ -130,6 +162,8 @@ export function QualityScreen(model: QualityModel) {
         </p>
       ) : null}
 
+      {/* Desfechos e feedback do período, de todas as conversas, inclusive
+          as que não entram na lista por falta de consentimento (SDD 12). */}
       {data ? (
         <SegmentedStatusCard
           title={t.outcomesCard.title}
@@ -175,10 +209,17 @@ export function QualityScreen(model: QualityModel) {
   )
 }
 
+/**
+ * Filtros de período, desfecho e feedback (SDD 15.5). Cada mudança troca os
+ * filtros do modelo, e a lista é relida com a chave nova.
+ */
 function Filters({ model }: { model: QualityModel }) {
   const { filters, setFilters } = model
   return (
     <section aria-label={q.filters.title} className="flex flex-wrap items-end gap-4">
+      {/* O `ToggleGroup` não é um campo nativo: o rótulo é um `span` ligado
+          por `aria-labelledby`. Clicar no período já marcado manda `""`, e
+          o clique é ignorado. */}
       <div className="flex flex-col gap-2">
         <span className="text-label text-muted-foreground" id="quality-period">
           {t.period.label}
@@ -249,6 +290,15 @@ function Filters({ model }: { model: QualityModel }) {
   )
 }
 
+/**
+ * `Sheet` inspetor de uma conversa (SDD 15.5): as mensagens com o desfecho,
+ * as fontes, a versão do prompt, a latência, o `request_id` e o rastro no
+ * LangSmith. Numa conversa de membro, oferece Revelar identidade; numa de
+ * convidado, avisa que não há identidade.
+ *
+ * O pseudônimo vem da conversa carregada ou, antes dela, do resumo da
+ * linha, para o título não ficar vazio.
+ */
 function InspectorSheet({
   open,
   summary,
@@ -297,6 +347,8 @@ function InspectorSheet({
           ) : null}
           {inspection ? (
             <>
+              {/* Só um membro tem identidade a revelar. A API responderia
+                  409 numa conversa de convidado (SDD 12). */}
               {inspection.subject_kind === "member" ? (
                 <RevealForm conversationId={inspection.id} reveal={reveal} />
               ) : (
@@ -317,6 +369,13 @@ function InspectorSheet({
   )
 }
 
+/**
+ * Uma mensagem no inspetor. A resposta do assistente mostra o desfecho, a
+ * avaliação do visitante, as fontes e um rodapé com a versão do prompt, a
+ * latência, o `request_id` e o rastro (SDD 15.5 e 18.5). Sem `trace_url`,
+ * que depende de `LANGSMITH_RUN_URL_TEMPLATE` (SDD 18.4), aparece o id do
+ * rastro no lugar do link.
+ */
 function MessageItem({ message }: { message: InspectorMessage }) {
   const assistant = message.role === "assistant"
   return (
@@ -356,6 +415,8 @@ function MessageItem({ message }: { message: InspectorMessage }) {
             <span>{q.inspector.latency.replace("{ms}", String(message.latency_ms))}</span>
           ) : null}
           {message.request_id ? <RequestIdCopy requestId={message.request_id} /> : null}
+          {/* O rastro abre em outra aba. `noreferrer noopener` não passa o
+              endereço do Atrium nem o `window.opener` para o LangSmith. */}
           {message.trace_url ? (
             <a
               href={message.trace_url}
@@ -375,6 +436,15 @@ function MessageItem({ message }: { message: InspectorMessage }) {
   )
 }
 
+/**
+ * Revelar identidade (SDD 11.8 e 15.5), em três estados: o botão, o
+ * formulário com o motivo e o resultado com nome e e-mail.
+ *
+ * O motivo é conferido no navegador, de 10 a 500 caracteres, antes de
+ * chamar a API, que grava `identity.reveal` com ele. A identidade revelada
+ * fica só no estado deste componente: fechar o inspetor desmonta o
+ * formulário, e ela some da tela.
+ */
 function RevealForm({
   conversationId,
   reveal,
@@ -382,12 +452,15 @@ function RevealForm({
   conversationId: string
   reveal: QualityModel["reveal"]
 }) {
+  // Os `useState` ficam antes dos retornos antecipados abaixo: o React
+  // exige os mesmos hooks, na mesma ordem, em toda renderização.
   const [opened, setOpened] = useState(false)
   const [reason, setReason] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
   const [result, setResult] = useState<RevealResult | null>(null)
 
+  // Revelada: o `role="status"` anuncia nome e e-mail ao leitor de tela.
   if (result?.ok) {
     return (
       <p role="status" className="rounded-lg bg-muted px-3 py-2 text-body text-foreground-strong">
@@ -410,6 +483,10 @@ function RevealForm({
     )
   }
 
+  /**
+   * Confere o motivo, chama a API e guarda o resultado. Na falha, um erro do
+   * servidor no campo `reason` vence a mensagem geral.
+   */
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!reasonIsValid(reason)) {
@@ -438,6 +515,9 @@ function RevealForm({
       <p className="text-caption text-muted-foreground">{q.reveal.description}</p>
       <Field data-invalid={error ? true : undefined}>
         <FieldLabel htmlFor="reveal-reason">{q.reveal.reason}</FieldLabel>
+        {/* O `maxLength` conta o texto como digitado, e a API conta depois
+            de juntar os espaços: o limite do campo é um pouco mais estrito
+            que o do servidor. */}
         <Textarea
           id="reveal-reason"
           value={reason}
@@ -458,6 +538,8 @@ function RevealForm({
           {pending ? <Spinner aria-hidden="true" data-icon="inline-start" /> : null}
           {pending ? q.reveal.confirming : q.reveal.confirm}
         </Button>
+        {/* Cancelar fecha o formulário e limpa o erro. O motivo digitado
+            continua lá se o admin abrir o formulário de novo. */}
         <Button
           type="button"
           variant="ghost"

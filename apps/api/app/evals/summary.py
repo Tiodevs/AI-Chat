@@ -1,4 +1,11 @@
-"""Resumo do outcome_match nos casos que esperam resposta. Seção 5.3."""
+"""Resumo do outcome_match nos casos que esperam resposta. Seção 5.3.
+
+O resumo em Markdown que o `run_evals` imprime e grava em `EVAL_SUMMARY_PATH`; o `evals.yml`
+o publica no resumo do job e o comenta na pull request (seção 21.2). A taxa conta só os casos
+em que `answered` é o único desfecho aceito, contra o limiar de 90%. O resumo traz só o
+`outcome_match`; a Etapa 16.1 acrescenta `source_match` e `groundedness`. Quem usa: o script
+`run_evals` e `tests/unit/test_evaluators.py`.
+"""
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
@@ -9,6 +16,8 @@ from app.evals.evaluators import outcome_matches
 
 @dataclass(frozen=True, slots=True)
 class AnswerMatch:
+    """A taxa de `outcome_match` nos casos que esperam resposta, com os ids que falharam."""
+
     rate: float
     matched: int
     total: int
@@ -16,6 +25,11 @@ class AnswerMatch:
 
     @property
     def meets_threshold(self) -> bool:
+        """Diz se a taxa alcança os 90%.
+
+        A folga de 1e-9 evita que um arredondamento de ponto flutuante reprove uma taxa igual
+        ao limiar.
+        """
         return self.rate + 1e-9 >= ANSWER_MATCH_THRESHOLD
 
 
@@ -24,6 +38,10 @@ def answer_match(
     actual_outcomes: Mapping[str, str],
     texts: Mapping[str, str],
 ) -> AnswerMatch:
+    """A taxa de `outcome_match` nos casos com `expects_answer`.
+
+    Um caso sem saída conta como falha. Sem nenhum caso relevante, a taxa é 1.
+    """
     relevant = [case for case in cases if case.expects_answer]
     failed: list[str] = []
     matched = 0
@@ -52,6 +70,12 @@ def render_summary(
     experiment_url: str | None,
     baseline: str | None,
 ) -> str:
+    """O Markdown do resumo: taxa, limiar, experimento, linha de base e uma linha por caso.
+
+    `rows` traz `(id, esperado, obtido, outcome_match)` de todos os casos, não só dos que
+    entram na taxa. Abaixo do limiar, o texto lembra que o merge não é bloqueado, mas pede
+    justificativa escrita na pull request (seção 21.2).
+    """
     lines = [
         "## Avaliação atrium-public-qa",
         "",

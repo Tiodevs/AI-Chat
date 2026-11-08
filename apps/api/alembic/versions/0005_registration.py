@@ -4,6 +4,19 @@ Revision ID: 0005_registration
 Revises: 0004_conversations
 Create Date: 2026-10-28
 
+Cria o que o cadastro da seção 7.2 grava:
+
+- a restrição `users_visit_reason`, com a lista de motivos de `app.domain.fields` (seção 8.5);
+- `consent_records`: uma linha por concessão, com finalidade e origem restritas às listas de
+  `app.domain.registration`. Revogar grava `revoked_at`, e conceder de novo cria outra linha
+  (seção 8.1). Apagar o usuário apaga os consentimentos dele;
+- `registration_sessions`: o estado da máquina, os campos e a transcrição em `jsonb` e o hash
+  da senha, nunca a senha. O id vem do serviço, não do banco, e `user_id` só é preenchido na
+  conclusão.
+
+As listas das restrições vêm do código atual: um valor novo, como uma finalidade, pede uma
+revisão que troque a restrição nos bancos existentes. O downgrade apaga as duas tabelas e a
+restrição.
 """
 
 from collections.abc import Sequence
@@ -27,6 +40,8 @@ depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
+    """Restringe `users.visit_reason` e cria `consent_records` e `registration_sessions`."""
+    # A restrição entra numa tabela que já existe: o banco confere as linhas atuais.
     op.create_check_constraint("users_visit_reason", "users", VISIT_REASON_CHECK_SQL)
     op.create_table(
         "consent_records",
@@ -48,6 +63,8 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id", name="consent_records_pkey"),
     )
     op.create_index("consent_records_user_id_idx", "consent_records", ["user_id"], unique=False)
+    # Sem `server_default` no id: o serviço gera o UUID. A retenção apaga a linha pelo
+    # `expires_at` (seção 11.6).
     op.create_table(
         "registration_sessions",
         sa.Column("id", sa.Uuid(), nullable=False),
@@ -77,6 +94,7 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    """Apaga as duas tabelas, com os consentimentos, e tira a restrição de `visit_reason`."""
     op.drop_index("registration_sessions_user_id_idx", table_name="registration_sessions")
     op.drop_table("registration_sessions")
     op.drop_index("consent_records_user_id_idx", table_name="consent_records")

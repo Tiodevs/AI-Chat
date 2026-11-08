@@ -1,4 +1,17 @@
-"""HTTP do cadastro. A senha não entra no log nem na transcrição. Seções 7.2 e 12."""
+"""HTTP do cadastro. A senha não entra no log nem na transcrição. Seções 7.2 e 12.
+
+Camada de controle. As rotas recebem o `RegistrationService` de
+`app.core.container.get_registration_service`. O id da sessão de cadastro no caminho é a
+única credencial dela: as rotas não leem `atrium_session`, e quem tem o id continua o
+cadastro. A senha só passa por `/password` e pelo formulário (FR-7). O aceite e o formulário
+terminam na mesma conclusão do serviço e gravam o cookie `atrium_session` do membro novo.
+
+Erros comuns a todas as rotas da sessão: 404 para um id que não existe e 422 para uma sessão
+vencida ou abandonada, ou para um pedido fora do passo atual.
+
+A docstring de cada rota é a `description` da operação no OpenAPI (seção 6.6); a explicação
+a mais fica em comentários, para não mudar o contrato.
+"""
 
 from typing import Annotated, Any
 from uuid import UUID
@@ -27,6 +40,7 @@ from app.schemas.registration import (
 
 router = APIRouter()
 
+# Status de erro documentados no OpenAPI, todos com o envelope `ErrorResponse`.
 _ERRORS: dict[int | str, dict[str, Any]] = {
     401: {"model": ErrorResponse},
     403: {"model": ErrorResponse},
@@ -48,6 +62,8 @@ async def start_registration(
     service: Annotated[Any, Depends(get_registration_service)],
 ) -> RegistrationSessionResponse:
     """Começa um cadastro por chat e devolve a saudação."""
+    # Responde 201. A saudação é cópia fixa de `app/prompts/registration.py`, sem chamar o
+    # modelo (seção 12). Não conta no limite de taxa.
     return _session(await service.start())
 
 
@@ -76,6 +92,9 @@ async def send_registration_message(
     service: Annotated[Any, Depends(get_registration_service)],
 ) -> RegistrationSessionResponse:
     """Um turno do chat. A senha não passa por aqui."""
+    # Conta no balde de 20 por hora por IP (429 acima). Com o orçamento estourado ou o
+    # provedor fora, responde 503 (`degraded` ou `provider_unavailable`) sem gravar a mensagem
+    # na transcrição, e a tela oferece o formulário (seção 7.2).
     view = await service.message(
         session_id,
         body.text,
@@ -96,6 +115,8 @@ async def patch_registration_fields(
     service: Annotated[Any, Depends(get_registration_service)],
 ) -> RegistrationSessionResponse:
     """Edição direta no cartão de resumo, com as regras do formulário."""
+    # `model_fields_set` traz só os campos que vieram no corpo, mesmo os enviados como `null`,
+    # e deixa de fora os ausentes. Não chama o modelo e não conta no limite de taxa.
     edits = {name: getattr(body, name) for name in body.model_fields_set}
     return _session(await service.patch_fields(session_id, edits))
 
@@ -112,6 +133,9 @@ async def set_registration_password(
     service: Annotated[Any, Depends(get_registration_service)],
 ) -> RegistrationSessionResponse:
     """Grava só o hash da senha e avança para a revisão."""
+    # Conta no balde de 20 por hora por IP. Uma senha fora de 12 a 72 caracteres volta em
+    # `field_errors` com 200, sem avançar. O argon2 roda no loop de eventos; a Etapa 13.1 o
+    # leva para uma thread.
     view = await service.set_password(session_id, body.password, client_ip=_ip(request))
     return _session(view)
 
@@ -127,6 +151,7 @@ async def review_registration(
     service: Annotated[Any, Depends(get_registration_service)],
 ) -> RegistrationSessionResponse:
     """Confirma o resumo ou volta para corrigir um campo."""
+    # Fora do passo de revisão, 422.
     return _session(await service.review(session_id, accept=body.accept))
 
 
@@ -143,6 +168,10 @@ async def accept_registration(
     service: Annotated[Any, Depends(get_registration_service)],
 ) -> ProfileResponse:
     """Registra os aceites, cria o membro e define o cookie."""
+    # Sem os Termos na versão vigente ou sem a maioridade, 422 sem gravar usuário; e-mail já
+    # usado, 409. As conversas da chave de convidado (`atrium_guest`) passam para o membro. A
+    # chave de idempotência é o id da sessão: repetir o aceite de uma sessão concluída devolve
+    # o mesmo membro com um cookie novo (seção 7.2).
     result = await service.accept(
         session_id,
         _acceptance(body),
@@ -164,6 +193,9 @@ async def submit_registration_form(
     service: Annotated[Any, Depends(get_registration_service)],
 ) -> ProfileResponse:
     """Formulário completo. session_id é opcional. Usa a mesma conclusão do chat."""
+    # Conta no balde de 20 por hora por IP. E-mail já usado responde 409 com
+    # `field_errors.email`. Com o `session_id` de um cadastro já concluído, devolve o mesmo
+    # membro com um cookie novo, como o aceite repetido.
     result = await service.submit_form(
         _form(body),
         user_agent=request.headers.get("user-agent", ""),
@@ -174,6 +206,10 @@ async def submit_registration_form(
 
 
 def _session(view: Any) -> RegistrationSessionResponse:
+    """Converte a visão da sessão do serviço no schema da seção 12.
+
+    Os itens da transcrição só têm papel, texto e data: não existe campo de senha (FR-7).
+    """
     return RegistrationSessionResponse(
         id=view.id,
         status=view.status,
@@ -197,6 +233,7 @@ def _session(view: Any) -> RegistrationSessionResponse:
 
 
 def _profile(result: Any, response: Response) -> ProfileResponse:
+    """Grava o cookie `atrium_session` da sessão nova e devolve o perfil de `GET /v1/me`."""
     apply_session_cookie(response, result.cookie)
     profile = result.profile
     return ProfileResponse(
@@ -212,6 +249,7 @@ def _profile(result: Any, response: Response) -> ProfileResponse:
 
 
 def _acceptance(body: AcceptanceRequest) -> Acceptance:
+    """Converte o corpo do aceite no `Acceptance` do domínio, que confere os aceites."""
     return Acceptance(
         accept_terms=body.accept_terms,
         document_version=body.document_version,
@@ -222,6 +260,7 @@ def _acceptance(body: AcceptanceRequest) -> Acceptance:
 
 
 def _form(body: FormRequest) -> Any:
+    """Converte o corpo do formulário no `FormInput` do serviço, importado só aqui."""
     from app.services.registration import FormInput
 
     return FormInput(
@@ -241,6 +280,7 @@ def _form(body: FormRequest) -> Any:
 
 
 def _ip(request: Request) -> str:
+    """IP do cliente para os limites de taxa (`app.core.client_ip`)."""
     return client_ip(
         request.headers.get("x-forwarded-for"),
         None if request.client is None else request.client.host,
