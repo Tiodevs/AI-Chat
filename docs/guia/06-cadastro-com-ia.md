@@ -146,6 +146,8 @@ O [README da feature](../../apps/web/src/features/registration/README.md) mostra
 
 O serviço trava a linha da sessão ao gravar, mas compara só o status: uma mensagem e uma edição do cartão ao mesmo tempo podem apagar uma à outra. A [Etapa 13.3](../plano-de-acao.md#etapa-133--cadastro-sem-perda-de-atualização) acrescenta uma coluna de versão e responde 409 quando ela mudou.
 
+A idempotência do aceite tem um efeito que a seção 7.2 não trata: o id de uma sessão concluída funciona como credencial. Um aceite repetido (`_accept_locked`) e um formulário com esse `session_id` (`submit_form`, que ignora o resto dos campos) abrem uma sessão de autenticação nova da conta, sem senha. Uma sessão concluída nunca vence em `session_is_expired`, então o id vale até a retenção apagar a linha, na primeira execução diária do `retention-job` depois do `expires_at`, que vem 24 horas após o início. Até o aceite, o id fica no `sessionStorage`, e vai na URL quando a tela oferece o formulário (`?session=`). O plano ainda não tem etapa para isso.
+
 ## Para praticar
 
 1. Com `APP_AI_ADAPTER=demo`, faça um cadastro pelo chat e responda "pular" no telefone. Veja o passo mudar no cartão.
