@@ -395,8 +395,8 @@ A função pura `redact_identifiers`, em `domain/redaction.py`, roda na mensagem
 | 1 | E-mail | O mesmo padrão do redator de logs (seção 18.1) | `[e-mail removido]` |
 | 2 | CPF | 11 dígitos, com ou sem pontos e hífen, com os dígitos verificadores válidos | `[CPF removido]` |
 | 3 | Cartão de pagamento | 13 a 19 dígitos, com ou sem espaços e hífens, que passam no algoritmo de Luhn | `[cartão removido]` |
-| 4 | Telefone | 7 a 15 dígitos, com `+`, `(`, `)`, hífen ou espaço entre eles, que não formam uma data como `10-11-2026` | `[telefone removido]` |
-| 5 | Outro número longo | 6 ou mais dígitos seguidos, como um prontuário ou o cartão do SUS | `[número removido]` |
+| 4 | Telefone | Um bloco de 7 a 15 dígitos com pelo menos um `+`, `(`, `)`, hífen ou espaço entre eles, que não começa com uma data como `10-11-2026`. O bloco vai até o primeiro caractere que não é dígito nem separador. | `[telefone removido]` |
+| 5 | Outro número longo | 6 ou mais dígitos seguidos, ou um bloco com mais de 15 dígitos, como um prontuário, o cartão do SUS ou um telefone sem separador | `[número removido]` |
 
 Data, hora, valor em reais e número de quarto continuam no texto. O visitante recebe de volta a mensagem como foi gravada, então vê o que saiu. A métrica `atrium_handoff_redactions` conta cada tipo, sem o valor.
 
