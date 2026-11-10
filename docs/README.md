@@ -60,7 +60,7 @@ A especificação (SDD) é a fonte das regras. Quando o código e ela divergem, 
 | [sdd/experiencia.md](sdd/experiencia.md) | 13 a 16 | Frontend, design system, telas, acessibilidade e movimento |
 | [sdd/observabilidade.md](sdd/observabilidade.md) | 17 e 18 | Portas dos provedores, logs, rastros, métricas e LangSmith |
 | [sdd/entrega.md](sdd/entrega.md) | 19 a 25 | Ambientes, testes, CI/CD, ordem de construção, ADRs e riscos |
-| [sdd/atendimento-humano.md](sdd/atendimento-humano.md) | 29 | Proposta em revisão: atendimento por uma pessoa da equipe, com o canal em tempo real, a segurança e a LGPD |
+| [sdd/atendimento-humano.md](sdd/atendimento-humano.md) | 29 | Proposta em revisão: atendimento por uma pessoa da equipe, com o canal em tempo real, a segurança e a LGPD. A [versão visual](sdd/atendimento-humano.html) tem os diagramas, as decisões para marcar e as etapas da Fase 17; abra o arquivo no navegador. |
 | [adr/](adr/) | 24 | Os 16 registros de decisão, um por arquivo, com contexto, decisão, consequências e alternativas. O 015 e o 016 estão em proposta. |
 
 ## Guia do código: como

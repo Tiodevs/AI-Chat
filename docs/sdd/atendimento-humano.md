@@ -1,6 +1,6 @@
 # Atendimento humano
 
-Parte da [especificação do Atrium](../sdd.md). A numeração das seções é a do documento completo.
+Parte da [especificação do Atrium](../sdd.md). A numeração das seções é a do documento completo. A versão para ler no navegador, com os diagramas e as etapas da Fase 17, é [atendimento-humano.html](atendimento-humano.html). Se as duas divergirem, vale este arquivo.
 
 ## 29. Atendimento humano
 
