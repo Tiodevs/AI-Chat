@@ -68,6 +68,8 @@ Algumas etapas precisam de contas e chaves que só você pode criar. A IA para e
 | Cinco participantes por persona para o teste de usabilidade | Etapa 9.2 | Você |
 | Webhook do Discord em `DISCORD_WEBHOOK_URL`, gravado antes do deploy que troca o contato, porque sem ele o Grafana não sobe | Já, para os alertas da seção 18.3 | Discord e Railway, serviço `grafana` de `production` |
 | Segredo `EDGE_SECRET`, um valor por ambiente, o mesmo na Vercel e no serviço `api` da Railway: na Vercel (Preview e Production) antes do merge da 12.5a, na Railway depois do deploy dela e antes da 12.5b | Etapa 12.5 | Vercel e Railway |
+| Uma conta de membro para cada pessoa que vai atender, criada por ela mesma pelo formulário, e o e-mail do admin que concede o papel | Etapa 17.2 (teste manual) | O próprio Atrium, em cada ambiente |
+| `HANDOFF_ENABLED=true` no serviço `api` | Etapa 17.7 em development e Etapa 17.8 em production | Railway |
 
 ## 3. Etapas
 
@@ -1312,6 +1314,248 @@ Depois da 14.3, a Etapa 9.2 é retomada, para o teste de usabilidade rodar com a
 
 **Como testar.** Simule uma fumaça falhando em development e confira o rollback e a issue.
 
+---
+
+### Fase 17 — Atendimento humano (SDD 23, passo 12)
+
+A Fase 17 implementa a seção 29 do SDD, hoje em proposta: quando a IA não ajuda, o visitante chama uma pessoa da equipe, que continua a conversa num console. A Etapa 17.0 aprova a especificação antes de qualquer código. A Etapa 15.1 vem antes da 17.4, porque o atendimento põe uma pessoa lendo a conversa do membro. `HANDOFF_ENABLED` liga na máquina local para os testes de cada etapa, em development na 17.7, com o console pronto, e em production só depois da 17.8.
+
+#### Etapa 17.0 — Revisão da especificação do atendimento humano
+
+**Objetivo.** Fechar a seção 29 antes da primeira linha de código, como a Etapa 0.1 fez com o SDD.
+
+**Seções.** 5.1, 5.2, 26, 28, 29, ADR-015 e ADR-016.
+
+**Entregas.**
+- Você confirma ou altera as decisões D-5 a D-9.
+- A IA atualiza a seção 29 e os dois ADRs com as decisões, troca o status da seção para aprovada e registra a revisão na seção 28.
+- Ponteiros para a seção 29 nas seções 8.1, 10, 11, 12, 15.3, 15.4 e 18.3, para quem lê uma delas achar o atendimento.
+
+**Critérios de aceite.**
+- CA-1. A seção 26 não tem decisão do atendimento em aberto.
+- CA-2. A seção 29, o ADR-015 e o ADR-016 mostram a decisão final, sem "Proposta".
+- CA-3. A seção 28 registra a aprovação.
+
+**Como testar.** Leia a seção 29, o ADR-015 e o ADR-016, e confira no diff que só mudou o que você decidiu.
+
+#### Etapa 17.1 — Domínio do atendimento
+
+**Objetivo.** As regras puras do atendimento, testadas sem banco, sem rede e sem modelo.
+
+**Seções.** 6.2, 7.1 (histórico), 29.4, 29.5, 29.9.7, 29.9.9 e 29.14.
+
+**Entregas.**
+- `domain/handoff.py`: estados, transições, motivos de encerramento, `handoff_offer`, regras da fila, capacidade, bloqueio por abuso e as constantes da seção 29.14.
+- `domain/redaction.py` com `redact_identifiers`, que usa o catálogo de telefones de `domain/phones.py`.
+- A janela do histórico recebendo só mensagens da conversa com a IA, com o teste que prova que uma mensagem com `handoff_id` nunca entra nela.
+- `RetentionRule.HANDOFF_CONTENT`, com o corte de 90 dias.
+- `.claude/rules/atendimento.md`, carregada ao tocar os arquivos do atendimento, com as regras das seções 29.8 e 29.9 para agentes de código.
+
+**Critérios de aceite.**
+- CA-1. Cada transição fora do diagrama da seção 29.5 levanta `Conflict` (teste de unidade).
+- CA-2. `handoff_offer` segue a tabela da seção 29.4, e `refused` nunca oferece (FR-19).
+- CA-3. `redact_identifiers` passa nos casos da seção 29.13, inclusive os que devem ficar no texto (FR-25).
+- CA-4. Nenhuma mensagem do atendimento entra no histórico do modelo (FR-21).
+- CA-5. O teste de arquitetura continua verde (NFR-1).
+
+**Como testar.** `uv run pytest tests/unit -k "handoff or redaction or history or retention"` em `apps/api`.
+
+#### Etapa 17.2 — Dados, papel de atendente e sessão da equipe
+
+**Objetivo.** As tabelas, o papel `attendant`, o script que o concede e o compromisso de confidencialidade.
+
+**Seções.** 8.1, 10.3, 10.5, 29.3, 29.7 e 29.8 (papéis e sessão).
+
+**Entregas.**
+- Migração com `handoffs`, as colunas novas de `messages`, o papel `attendant` em `users`, `attendant_presence` e `attendant_acknowledgements`, com downgrade.
+- Modelos e `HandoffRepository`, com o `pg_notify` dentro da transação.
+- `python -m app.scripts.attendants grant|revoke <email> --by <email do admin>`, com `attendant.grant` e `attendant.revoke`.
+- Dependência `require_attendant`, que roda antes de o corpo ser lido.
+- Sessão de 12 horas para `attendant` e `admin`, se a D-8 for aprovada.
+- `GET /v1/attendance/me` e `POST /v1/attendance/acknowledgement`, com `ATTENDANT_TERMS_VERSION`.
+- OpenAPI e tipos gerados de novo.
+
+**Critérios de aceite.**
+- CA-1. A migração passa no upgrade e no downgrade.
+- CA-2. O script só promove `member`, recusa admin e grava os eventos de auditoria.
+- CA-3. `attendant` recebe 403 em `/v1/admin/*`, e `member` recebe 403 em `/v1/attendance/*` (seção 29.3).
+- CA-4. A sessão da equipe vence em 12 horas, e o cookie tem o mesmo prazo.
+- CA-5. Sem o aceite vigente, `GET /v1/attendance/me` devolve `acknowledged` falso.
+
+**Como testar.**
+1. Crie uma conta pelo formulário e rode `uv run python -m app.scripts.attendants grant <email> --by <email do admin>`.
+2. Entre com a conta e confira o prazo do cookie `atrium_session` nas ferramentas do navegador.
+3. Abra `/admin` com a conta: aparece a página 403.
+4. `psql`: confira `role = attendant` e o evento `attendant.grant`.
+
+#### Etapa 17.3 — Canal em tempo real
+
+**Objetivo.** Avisar e entregar eventos com retomada, sem WebSocket.
+
+**Seções.** 6.2, 6.4, 7.1 (manutenção), 18.3, 29.6, ADR-015 e ADR-016.
+
+**Entregas.**
+- Porta `RealtimeBroker`, o adaptador `PostgresNotifyBroker`, com a conexão do `LISTEN` fora do pool e a reconexão com espera crescente, e o `InMemoryBroker` dos testes.
+- O ouvinte aberto e fechado no `lifespan`, como o `AiRuntime` (seção 6.2).
+- `core/sse.py` com o campo `id:`, o evento `reconnect` aos 10 minutos e o tique de 15 segundos que confere a autorização e lê o `seq`.
+- Limites de fluxos por conversa, por atendente e por processo.
+- Métricas `atrium_sse_streams` e `atrium_realtime_listener_up`.
+
+**Critérios de aceite.**
+- CA-1. Um rollback não entrega aviso, e a carga tem só `handoff_id`, `seq` e `kind` (integração com o PostgreSQL da CI, NFR-18).
+- CA-2. Reconectar com `Last-Event-ID` entrega o que tem `seq` maior, sem repetir (FR-23, NFR-19).
+- CA-3. O fluxo fecha aos 10 minutos com `reconnect`, com relógio falso (NFR-19).
+- CA-4. Uma sessão revogada fecha o fluxo em até um tique (NFR-18).
+- CA-5. Com o ouvinte derrubado, a mensagem chega pelo tique, e o ouvinte volta.
+
+**Como testar.** `uv run pytest tests/integration -k realtime` em `apps/api`.
+
+#### Etapa 17.4 — API do visitante
+
+**Objetivo.** Pedir, conversar, encerrar e acompanhar o atendimento pelo lado do visitante.
+
+**Seções.** 7.1 (409 durante o atendimento e histórico), 10.4, 22.3 (fumaça), 29.4, 29.5, 29.8, 29.9.7 e 29.10 (rotas do visitante).
+
+**Pré-requisito.** Etapa 15.1 aprovada.
+
+**Entregas.**
+- `GET /v1/handoff/availability` e as rotas de `/v1/conversations/{id}/handoff`: pedido, leitura, `messages`, `end` e `events`.
+- `POST /v1/conversations/{id}/messages` com 409 `handoff_active` durante o atendimento, e `GET /v1/conversations/{id}` com `handoffs`, `handoff_id` e `redaction`.
+- Remoção de identificadores antes de gravar.
+- Os baldes de pedido e de mensagem do visitante na seção 10.4.
+- A varredura do `lifespan`: fila vencida, visitante ausente, atendimento parado e serviço desligado.
+- A fumaça confere `GET /backend/v1/handoff/availability` com `no-store`.
+- `uv run python -m app.scripts.attendance_dev present <email>`, que mantém a presença de um atendente por 10 minutos, só em `local` e `test`, para testar antes do console. Como os scripts das Etapas 3.3 e 4.1, ele entra na seção 6.3 do SDD.
+- OpenAPI e tipos.
+
+**Critérios de aceite.**
+- CA-1. O pedido fora da tabela da seção 29.4 responde 409 `handoff_not_offered` (FR-19).
+- CA-2. Durante o atendimento, a pergunta à IA responde 409, e o `FakeChatProvider` não recebe chamada (FR-21).
+- CA-3. A mensagem gravada já tem os marcadores da seção 29.9.7 (FR-25).
+- CA-4. Um segundo pedido na mesma conversa devolve o mesmo atendimento, e outra conversa do mesmo sujeito recebe 409 `handoff_active`.
+- CA-5. O visitante sai da fila e encerra o atendimento quando quer (FR-24).
+- CA-6. Os limites respondem 429 com `retry_after_seconds` (NFR-20).
+- CA-7. A varredura encerra e devolve como a seção 29.5, sem duplicar com duas tarefas ao mesmo tempo.
+- CA-8. Em development, um fluxo aberto por 12 minutos pela Vercel recebe o `reconnect` aos 10 e retoma sem perda. O resultado fica na PR (seção 29.15).
+
+**Como testar.**
+1. Com `HANDOFF_ENABLED=true`, rode `uv run python -m app.scripts.attendance_dev present <email do atendente>`.
+2. Pergunte algo que não está no corpus e peça o atendimento com `curl`.
+3. Em outro terminal, abra o fluxo com `curl -N` e veja o `ready`.
+4. Envie uma mensagem com um CPF inventado, de dígitos válidos, e veja o marcador no fluxo.
+5. Pergunte à IA na mesma conversa e veja o 409.
+
+#### Etapa 17.5 — API da equipe
+
+**Objetivo.** Presença, fila, assumir, responder, remover, devolver e encerrar, e a leitura de encerrados pelo admin.
+
+**Seções.** 8.1 (auditoria), 10.4, 29.3, 29.5, 29.6 (fluxo do console), 29.8, 29.9.4 e 29.10 (rotas da equipe e do admin).
+
+**Entregas.**
+- `PUT /v1/attendance/presence`, `GET /v1/attendance/queue`, `GET /v1/attendance/events` e as rotas de `/v1/attendance/handoffs/{id}`: `take`, leitura, `messages` com o modelo `medical_emergency`, `release`, `close` e `redact`.
+- `GET /v1/admin/handoffs` e `POST /v1/admin/handoffs/{id}/view`.
+- Auditoria de cada ação, sem conteúdo nem e-mail.
+- Devolução à fila por ausência, capacidade de 3 e bloqueio por abuso.
+- O balde de mensagens da equipe na seção 10.4.
+- Métricas, spans e logs da seção 29.12.
+
+**Critérios de aceite.**
+- CA-1. Dois atendentes assumem ao mesmo tempo, e um recebe 409 `handoff_taken` (FR-22).
+- CA-2. A fila e o evento `queue` não têm conteúdo nem dado do perfil (FR-22, seção 29.9.4).
+- CA-3. O atendente B recebe 404 no atendimento de A, e o fluxo de B não recebe as mensagens de A (NFR-18).
+- CA-4. Remover apaga o texto na mesma transação, grava só a categoria e avisa o visitante (FR-25).
+- CA-5. Ler um encerrado exige motivo e grava `handoff.view` (FR-26).
+- CA-6. A equipe só encerra com um motivo da lista (FR-24).
+- CA-7. O atendimento de quem fica 2 minutos sem sinal volta para a fila.
+
+**Como testar.**
+1. Abra o fluxo do console de um atendente com `curl -N` e peça um atendimento como visitante.
+2. Assuma com `curl` e responda. Veja a mensagem chegar no fluxo do visitante.
+3. Tente assumir o mesmo atendimento com outro atendente e veja o 409.
+4. Remova uma mensagem e confira o marcador em `messages` e a categoria em `audit_events`.
+5. Encerre e leia o atendimento como admin, sem motivo e com motivo.
+
+#### Etapa 17.6 — Telas do visitante
+
+**Objetivo.** A jornada J9 no navegador.
+
+**Seções.** 15.5 (Conversa), 15.6, 15.8, 16.3 e 29.11 (visitante).
+
+**Entregas.**
+- `HandoffOffer`, `HandoffDialog`, `HandoffStatusBar` e `AttendantMessage`, com histórias no Storybook.
+- O modo de atendimento na conversa: compositor, aviso, posição na fila e divisor de encerramento.
+- `src/lib/sse.ts` com o campo `id:`, o `Last-Event-ID` e a reconexão depois de `reconnect` e de uma queda.
+- Os textos da seção 29.9.5 em `pt.ts`.
+- A regra `react/no-danger` do ESLint nas pastas do atendimento.
+- Playwright com J9, com axe, nas respostas simuladas.
+
+**Critérios de aceite.**
+- CA-1. A oferta aparece só nos desfechos da seção 29.4 e com o status `open` (FR-19).
+- CA-2. O diálogo mostra o texto da seção 29.9.5 e só chama a API depois de Chamar a equipe (FR-20).
+- CA-3. A reconexão não duplica nem perde mensagens (FR-23).
+- CA-4. Um link na mensagem da equipe aparece como texto (seção 29.8).
+- CA-5. J9 passa no Playwright com axe, com e sem movimento reduzido (DP-8).
+
+**Como testar.**
+1. Pergunte algo fora do corpus e clique em Falar com uma pessoa.
+2. Leia o diálogo, chame a equipe e veja a posição na fila.
+3. Responda como atendente pelo `curl` da Etapa 17.5 e veja a mensagem chegar.
+4. Desligue a rede por alguns segundos nas ferramentas do navegador e confira que nada se perde.
+
+#### Etapa 17.7 — Console da equipe e encerrados do admin
+
+**Objetivo.** As jornadas J10 e J11 no navegador.
+
+**Seções.** 13.3, 14.6, 15.4, 15.8 e 29.11 (equipe e admin).
+
+**Entregas.**
+- `/attendance`, `/attendance/commitment` e `/admin/attendance`.
+- `PresenceToggle`, `QueueList`, `HandoffThread` e `RedactDialog`, com histórias no Storybook.
+- O grupo Atendimento na navegação e a contagem no título da aba, sem conteúdo.
+- Playwright com J10 e J11, com axe. Na suíte ao vivo, J9 e J10 com dois contextos do navegador.
+- `HANDOFF_ENABLED=true` em development.
+
+**Critérios de aceite.**
+- CA-1. A fila não mostra conteúdo, e o título da aba só tem a contagem (seção 29.9.4).
+- CA-2. Sem o aceite vigente, Assumir leva ao compromisso (seção 29.3).
+- CA-3. J10 e J11 passam no Playwright com axe (DP-8).
+- CA-4. J9 e J10 passam na suíte ao vivo, com visitante e atendente ao mesmo tempo.
+- CA-5. O console funciona só com o teclado (NFR-14).
+
+**Como testar.**
+1. Abra duas janelas: uma anônima como visitante e outra com a conta de atendente em `/attendance`.
+2. Marque Disponível, peça o atendimento como visitante, assuma, responda e encerre.
+3. Como admin, abra o atendimento em `/admin/attendance` com um motivo e confira `handoff.view`.
+
+#### Etapa 17.8 — Privacidade, operação e publicação
+
+**Objetivo.** Documentos de privacidade, retenção e operação antes de ligar o serviço em production.
+
+**Seções.** 11.3, 11.5, 11.6, 11.11, 18.3, 29.9 e 29.12.
+
+**Entregas.**
+- Aviso de Privacidade e Termos de Uso com o atendimento, e a `LEGAL_DOCUMENT_VERSION` nova.
+- `docs/privacy/ropa.md`, `ripd.md`, `lia.md` e `incident-playbook.md` com as linhas e os riscos da seção 29.9.
+- A regra `handoff_content` no `retention-job`, e a regra de conversas sem apagar conversa com atendimento ativo.
+- A exportação da conta com os atendimentos.
+- O painel "Atrium, atendimento" e os três alertas da seção 29.12 em `ops/grafana/`.
+- A parte nova do guia, `docs/guia/15-atendimento-humano.md`, os READMEs de pasta e o resumo em `docs/engenharia/README.md`.
+- As linhas que a seção 29 marca para outras seções passam para as tabelas das seções 8.1, 10.4, 11.3, 11.6, 15.3, 15.4, 16.3, 18.2 e 18.3, e a seção 29 passa a citar essas tabelas, para cada regra ficar escrita num lugar só.
+- `HANDOFF_ENABLED=true` em production, depois da sua aprovação.
+
+**Critérios de aceite.**
+- CA-1. A retenção apaga só o texto dos atendimentos encerrados há mais de 90 dias (linha da seção 29.13).
+- CA-2. A exportação traz os atendimentos, sem o id de quem atendeu.
+- CA-3. Os quatro documentos de privacidade e o Aviso batem com a seção 29.9.
+- CA-4. Os alertas existem no Grafana, com o contato da seção 18.3.
+- CA-5. Em production, J9 e J10 funcionam com uma pessoa de verdade no console e dados fictícios.
+
+**Como testar.**
+1. Leia o Aviso novo e aceite de novo como membro.
+2. Crie no banco de development um atendimento encerrado há 91 dias, rode `uv run python -m app.scripts.retention` e confira o marcador.
+3. Exporte os dados de um membro que teve atendimento.
+4. Depois do deploy aprovado, faça J9 e J10 em production.
+
 ## 4. Status das etapas
 
 A IA atualiza esta tabela em cada PR.
@@ -1369,6 +1613,15 @@ A IA atualiza esta tabela em cada PR.
 | 16.1 | Avaliações que medem de verdade | Pendente |
 | 16.2 | Lint mais rigoroso | Pendente |
 | 16.3 | Produção que se recupera | Pendente |
+| 17.0 | Revisão da especificação do atendimento humano | Pendente |
+| 17.1 | Domínio do atendimento | Pendente |
+| 17.2 | Dados, papel de atendente e sessão da equipe | Pendente |
+| 17.3 | Canal em tempo real | Pendente |
+| 17.4 | API do visitante | Pendente |
+| 17.5 | API da equipe | Pendente |
+| 17.6 | Telas do visitante | Pendente |
+| 17.7 | Console da equipe e encerrados do admin | Pendente |
+| 17.8 | Privacidade, operação e publicação | Pendente |
 
 Valores possíveis: Pendente, Em andamento, Em revisão, Ajustes pedidos, Aprovada, Débito técnico. Débito técnico é uma etapa adiada de propósito, com o risco escrito na seção 6.
 
@@ -1412,8 +1665,20 @@ Cada requisito da seção 5 tem pelo menos uma etapa responsável. Uma etapa pos
 | NFR-14 | 1.3 a 7.3, fechado em 9.1, revisto em 14.3 |
 | NFR-15 | 1.3, fechado em 9.1 |
 | NFR-16 | 2.2 |
+| FR-19 | 17.1, 17.4, 17.6 |
+| FR-20 | 17.6 |
+| FR-21 | 17.1, 17.4 |
+| FR-22 | 17.5, 17.7 |
+| FR-23 | 17.3, 17.6 |
+| FR-24 | 17.4, 17.5 |
+| FR-25 | 17.1, 17.4, 17.5 |
+| FR-26 | 17.5, 17.7 |
+| NFR-17 | 17.3 |
+| NFR-18 | 17.3, 17.5 |
+| NFR-19 | 17.3, 17.4 |
+| NFR-20 | 17.3, 17.4, 17.5 |
 
-As jornadas da seção 15.3 ficam assim: J1 e J2 na 4.3, J3 e J4 na 5.2, J5 na 6.1, J6 na 7.1, J7 na 7.2 e J8 em 6.2 e 7.3.
+As jornadas da seção 15.3 ficam assim: J1 e J2 na 4.3, J3 e J4 na 5.2, J5 na 6.1, J6 na 7.1, J7 na 7.2 e J8 em 6.2 e 7.3. As jornadas do atendimento, da seção 29.11, ficam assim: J9 na 17.6, e J10 e J11 na 17.7.
 
 ## 6. Débitos técnicos
 
