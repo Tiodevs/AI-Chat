@@ -3,7 +3,8 @@
 Camada de controle. Três rotas: `POST /v1/auth/login`, `POST /v1/auth/logout` e
 `GET /v1/me`. Cada uma cria um `AuthService` com a configuração e o relógio do pedido, sem
 passar pela raiz de composição, e o importa dentro da função, para o import da API não
-carregar o SQLAlchemy. O cookie `atrium_session` é gravado e apagado por `app.core.cookies`.
+carregar o SQLAlchemy. O cookie `atrium_session` é gravado e apagado por `app.core.cookies`,
+que também apaga o `atrium_guest` no login e no logout (Etapa 15.1).
 A identidade vem só do cookie: o cabeçalho `Authorization` não identifica usuário (seção
 10.3). As outras rotas de `/v1/me` ficam em `account.py`.
 
@@ -20,7 +21,7 @@ from app.adapters.password_hasher import get_password_hasher
 from app.core.client_ip import client_ip
 from app.core.config import Settings
 from app.core.container import get_clock, get_settings
-from app.core.cookies import apply_session_cookie, clear_session_cookie
+from app.core.cookies import apply_session_cookie, clear_guest_cookie, clear_session_cookie
 from app.domain.auth import SESSION_COOKIE_NAME, session_cookie_is_secure
 from app.domain.profile import Profile
 from app.ports.clock import Clock
@@ -76,6 +77,9 @@ async def login(
         ),
     )
     apply_session_cookie(response, result.cookie)
+    # A chave de convidado sai no login (Etapa 15.1): as conversas dela não passam para a
+    # conta, e a chave não deve abrir nada depois que a pessoa entrou.
+    clear_guest_cookie(response, secure=session_cookie_is_secure(settings.app_env))
     return _profile_response(result.profile)
 
 
@@ -93,8 +97,8 @@ async def logout(
 ) -> Response:
     """Revoga a sessão e apaga o cookie."""
     # Responde 204. Sem cookie, ou com uma sessão já revogada, o serviço levanta
-    # `Unauthenticated` (401), e o cookie fica no navegador. Só o `atrium_session` sai; a
-    # Etapa 15.1 passa a apagar também o `atrium_guest`.
+    # `Unauthenticated` (401), e o cookie fica no navegador. Saem o `atrium_session` e o
+    # `atrium_guest` (Etapa 15.1).
     from app.services.auth import AuthService
 
     await AuthService(
@@ -106,7 +110,9 @@ async def logout(
     ).logout(request.cookies.get(SESSION_COOKIE_NAME))
     # A rota devolve a própria `Response`, então o `Set-Cookie` que apaga o cookie vai nela.
     body = Response(status_code=204)
-    clear_session_cookie(body, secure=session_cookie_is_secure(settings.app_env))
+    secure = session_cookie_is_secure(settings.app_env)
+    clear_session_cookie(body, secure=secure)
+    clear_guest_cookie(body, secure=secure)
     return body
 
 

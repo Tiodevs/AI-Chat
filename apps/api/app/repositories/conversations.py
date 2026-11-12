@@ -141,8 +141,9 @@ class ConversationRepository:
     async def attach_to_user(self, *, guest_key_id: UUID, user_id: UUID) -> None:
         """A conversa de convidado passa a ser do membro. Seção 7.2.
 
-        Só muda conversas da chave que ainda não têm membro. O `guest_key_id` continua
-        preenchido, e por isso a chave de convidado ainda abre a conversa; a Etapa 15.1 corrige.
+        Só muda conversas da chave que ainda não têm membro. O `guest_key_id` vira nulo no
+        mesmo `UPDATE`, então a chave de convidado deixa de abrir a conversa (Etapa 15.1). A
+        restrição `conversations_owner` continua satisfeita, porque o `user_id` entra junto.
         """
         await self._session.execute(
             update(Conversation)
@@ -150,7 +151,7 @@ class ConversationRepository:
                 Conversation.guest_key_id == guest_key_id,
                 Conversation.user_id.is_(None),
             )
-            .values(user_id=user_id)
+            .values(user_id=user_id, guest_key_id=None)
         )
 
     async def get_conversation(self, conversation_id: UUID) -> ConversationRecord | None:

@@ -29,8 +29,8 @@ import { meQuery } from "./useSession.ts"
  *
  * O 429 mostra o limite em minutos (seção 10.4). Os outros erros mostram
  * a mensagem de credenciais (seção 15.5), e a falha de rede, o texto
- * genérico. O cookie `atrium_guest` continua; a Etapa 15.1 passa a apagá-lo
- * no login.
+ * genérico. A resposta do login também apaga o cookie `atrium_guest`
+ * (Etapa 15.1).
  */
 export function useSignIn() {
   const navigate = useNavigate()

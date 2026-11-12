@@ -10,11 +10,10 @@ reaproveita `CONVERSATION_NOT_FOUND`. A tela mostra a `message` do envelope de e
 DUPLICATE_MESSAGE = "Esta mensagem já foi enviada."
 # 409 do segundo feedback na mesma resposta: o feedback vale uma vez (seção 12).
 DUPLICATE_FEEDBACK = "Esta resposta já foi avaliada."
-# 404 de conversa ou mensagem inexistente.
+# 404 de conversa ou mensagem inexistente, e também de quem não é o dono: a resposta é a
+# mesma, para não revelar que o id existe (Etapa 15.1, seção 29.8).
 CONVERSATION_NOT_FOUND = "Não encontrei esta conversa."
 MESSAGE_NOT_FOUND = "Não encontrei esta mensagem."
-# 403 de quem não é dono da conversa.
-NOT_OWNER = "Você não tem acesso a esta conversa."
 # 429 das perguntas e do fluxo de diagnóstico (seção 10.4).
 RATE_LIMITED = "Muitas perguntas em pouco tempo. Espere um pouco e tente de novo."
 DIAGNOSTICS_RATE_LIMITED = "Muitas verificações em pouco tempo. Espere um pouco e tente de novo."

@@ -44,11 +44,11 @@ from app.models.message import Message
 from app.models.rate_limit_window import RateLimitWindow
 from app.models.token_usage_day import TokenUsageDay
 from app.prompts.conversations import (
+    CONVERSATION_NOT_FOUND,
     DIAGNOSTICS_RATE_LIMITED,
     DUPLICATE_FEEDBACK,
     DUPLICATE_MESSAGE,
     FEEDBACK_NOT_ASSISTANT,
-    NOT_OWNER,
     RATE_LIMITED,
 )
 from app.prompts.qa import ABSTENTION, MEDICAL_ADVICE
@@ -396,12 +396,13 @@ def test_only_the_owner_reads_the_conversation(
         asyncio.run(_delete_guest(migrated_database, secret))
         asyncio.run(_delete_guest(migrated_database, other_secret))
         asyncio.run(_delete_email(migrated_database, email))
-    assert denied.status_code == 403
-    assert denied.json()["error"]["message"] == NOT_OWNER
+    # Quem não é dono recebe o mesmo 404 de uma conversa inexistente (Etapa 15.1).
+    assert denied.status_code == 404
+    assert denied.json()["error"]["message"] == CONVERSATION_NOT_FOUND
     assert missing.status_code == 401
     assert allowed.status_code == 200
-    assert member.status_code == 403
-    assert member.json()["error"]["message"] == NOT_OWNER
+    assert member.status_code == 404
+    assert member.json()["error"]["message"] == CONVERSATION_NOT_FOUND
     assert guest_list.status_code == 401
 
 

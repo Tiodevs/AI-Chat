@@ -1606,7 +1606,7 @@ A IA atualiza esta tabela em cada PR.
 | 14.1 | Erros honestos | Pendente |
 | 14.2 | Pergunta preservada | Pendente |
 | 14.3 | Foco, rolagem e leitor de tela | Pendente |
-| 15.1 | Conversa do membro só para o membro | Pendente |
+| 15.1 | Conversa do membro só para o membro | Em revisão |
 | 15.2 | Menos superfície exposta | Pendente |
 | 15.3 | Prompt e rastros mais seguros | Pendente |
 | 15.4 | Riscos aceitos por escrito | Pendente |

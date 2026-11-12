@@ -335,7 +335,7 @@ A conclusão, usada tanto pelo endpoint de aceite quanto pelo endpoint do formul
 2. Descartar `visitor_type` e `visit_reason` se a personalização não foi consentida.
 3. Inserir o usuário com `role = member` e os registros de consentimento numa transação.
 4. Abrir uma sessão de autenticação e definir o cookie.
-5. Anexar as conversas de convidado que compartilham a chave de convidado atual.
+5. Anexar as conversas de convidado que compartilham a chave de convidado atual. O `guest_key_id` delas vira nulo, e a chave deixa de abri-las.
 6. Marcar a sessão de cadastro como `completed` e apagar a transcrição dela.
 
 A chave de idempotência do aceite é o id da sessão de cadastro. Um aceite repetido devolve a mesma resposta de sucesso e não cria um segundo usuário.

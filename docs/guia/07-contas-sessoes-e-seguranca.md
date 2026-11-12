@@ -70,7 +70,7 @@ O `GET /v1/me` devolve o perfil da sessão, com `needs_legal_acceptance` quando 
 
 Perguntar não exige conta (FR-1). Na primeira conversa, `ConversationService.create` cria uma linha em `guest_keys` e devolve o cookie `atrium_guest`, que vale 30 dias. Ele funciona como a sessão: o cookie guarda um segredo, e o banco guarda o hash.
 
-Quem é dono de uma conversa é decidido por `owns_conversation`: um membro pelo `user_id`, um convidado pela chave. Quando o convidado conclui o cadastro, as conversas da chave dele passam para a conta nova (parte 6). Hoje a conversa anexada continua aceitando a chave de convidado e o cookie sobrevive ao logout; a [Etapa 15.1](../plano-de-acao.md#etapa-151--conversa-do-membro-só-para-o-membro) fecha isso.
+Quem é dono de uma conversa é decidido por `owns_conversation`: um membro pelo `user_id`, um convidado pela chave. Quando o convidado conclui o cadastro, as conversas da chave dele passam para a conta nova (parte 6). Desde a [Etapa 15.1](../plano-de-acao.md#etapa-151--conversa-do-membro-só-para-o-membro), o `guest_key_id` da conversa anexada vira nulo, a chave de convidado só abre conversa sem membro, o cookie `atrium_guest` sai no login, no fim do cadastro e no logout, e quem não é dono recebe o mesmo 404 de uma conversa inexistente.
 
 ## 4. O que a API confere em cada pedido
 

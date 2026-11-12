@@ -28,9 +28,8 @@ import { meQuery } from "./useSession.ts"
  * 5. Volta para `/` com `replace`, que troca a entrada atual do histórico:
  *    o Voltar do navegador não retorna à página onde a pessoa saiu.
  *
- * Se a API falhar, a sessão continua e `error` avisa (seção 14.6). O
- * cookie `atrium_guest` continua no navegador; a Etapa 15.1 passa a
- * apagá-lo na saída.
+ * Se a API falhar, a sessão continua e `error` avisa (seção 14.6). A
+ * resposta da saída também apaga o cookie `atrium_guest` (Etapa 15.1).
  */
 export function useSignOut() {
   const navigate = useNavigate()

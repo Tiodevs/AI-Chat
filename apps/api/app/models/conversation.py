@@ -17,10 +17,11 @@ from app.models.base import Base
 class Conversation(Base):
     """Uma conversa de um membro ou de um convidado.
 
-    O dono é `user_id`, `guest_key_id` ou os dois. A conversa de convidado ganha o `user_id`
-    quando a pessoa conclui o cadastro (seção 7.2), e o `guest_key_id` continua lá; a Etapa
-    15.1 impede que a chave de convidado siga abrindo essa conversa. A tabela não guarda a
-    última atividade: ela é a mensagem mais nova, ou `created_at` sem mensagens.
+    O dono é `user_id` ou `guest_key_id`. A conversa de convidado ganha o `user_id` quando a
+    pessoa conclui o cadastro (seção 7.2), e o `guest_key_id` vira nulo no mesmo `UPDATE`
+    (Etapa 15.1). Conversas anexadas antes disso ainda têm os dois, e a regra de dono recusa
+    a chave nelas. A tabela não guarda a última atividade: ela é a mensagem mais nova, ou
+    `created_at` sem mensagens.
 
     Retenção (seção 11.6): conversa de membro, 12 meses depois da última atividade; de
     convidado, 30 dias. Em cascata, a de membro some com a conta, e a de convidado, com a

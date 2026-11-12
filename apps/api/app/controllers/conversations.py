@@ -131,8 +131,8 @@ async def get_conversation(
     service: Annotated[Any, Depends(get_conversation_service)],
 ) -> ConversationResponse:
     """Devolve a conversa do dono, com mensagens e citações."""
-    # Conversa inexistente responde 404, e cookie que não é do dono, 403. É a rota que a visão
-    # consulta quando o fluxo não entrega o primeiro evento (seção 7.1).
+    # Conversa inexistente e cookie que não é do dono respondem o mesmo 404 (Etapa 15.1). É a
+    # rota que a visão consulta quando o fluxo não entrega o primeiro evento (seção 7.1).
     conversation, messages = await service.get(
         conversation_id,
         session_secret=request.cookies.get(SESSION_COOKIE_NAME),
@@ -237,7 +237,7 @@ async def create_feedback(
     service: Annotated[Any, Depends(get_conversation_service)],
 ) -> FeedbackResponse:
     """Marca uma resposta do assistente como útil ou não útil, uma vez."""
-    # Responde 201. Mensagem inexistente responde 404; conversa de outro dono, 403; mensagem do
+    # Responde 201. Mensagem inexistente ou de conversa de outro dono responde 404; mensagem do
     # visitante, 422; segunda nota na mesma mensagem, 409. Quando a resposta tem rastro, o
     # envio ao LangSmith (`user_helpful`) vai para uma tarefa de fundo, que o Starlette roda
     # depois de enviar a resposta; uma falha nela só gera log (seção 18.4).
