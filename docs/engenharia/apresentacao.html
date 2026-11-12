@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Engenharia do Atrium</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<meta name="description" content="Arquitetura, hospedagem, CI/CD, observabilidade e processo do Atrium, o assistente de visitantes do Harborlight General Hospital.">
+<meta name="description" content="Arquitetura, atendimento humano, hospedagem, CI/CD, observabilidade e processo do Atrium, o assistente de visitantes do Harborlight General Hospital.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap">
@@ -200,6 +200,7 @@ td b{color:var(--fg);font-weight:500}
 .rm-total{display:flex;gap:3px;height:12px;margin:0 0 32px;border-radius:999px;overflow:hidden}
 .rm-total span{display:block;min-width:0}
 .bg-ok{background:var(--success)}
+.bg-rev{background:var(--info)}
 .bg-debt{background:var(--warning)}
 .bg-todo{background:var(--border-strong)}
 .phases{list-style:none;margin:0;padding:0}
@@ -210,6 +211,7 @@ td b{color:var(--fg);font-weight:500}
 .stages{display:flex;flex-wrap:wrap;gap:4px;justify-content:flex-end}
 .st{font:500 11px/1 var(--font-mono);padding:5px 6px;border-radius:5px;border:1px solid var(--border-strong);color:var(--subtle);font-variant-numeric:tabular-nums}
 .st.ok{color:var(--success);border-color:color-mix(in oklab, var(--success) 40%, transparent);background:color-mix(in oklab, var(--success) 12%, transparent)}
+.st.rev{color:var(--info);border-color:color-mix(in oklab, var(--info) 40%, transparent);background:color-mix(in oklab, var(--info) 12%, transparent)}
 .st.debt{color:var(--warning);border-color:color-mix(in oklab, var(--warning) 40%, transparent);background:color-mix(in oklab, var(--warning) 12%, transparent)}
 
 /* Números */
@@ -243,6 +245,7 @@ html.presenting .pctl{display:flex;position:fixed;right:calc(16px + env(safe-are
       <a href="#ambientes">Ambientes</a>
       <a href="#api">API</a>
       <a href="#pergunta">Pergunta</a>
+      <a href="#atendimento">Atendimento</a>
       <a href="#seguranca">Segurança</a>
       <a href="#ci">CI</a>
       <a href="#cd">CD</a>
@@ -265,7 +268,7 @@ html.presenting .pctl{display:flex;position:fixed;right:calc(16px + env(safe-are
   <div class="wrap">
     <p class="eyebrow">Atrium · assistente de visitantes do Harborlight General Hospital</p>
     <h1 id="t-inicio">Engenharia do Atrium</h1>
-    <p class="lede">Como o assistente é construído, onde cada peça roda e como uma mudança vai do pull request até a produção. Os números foram levantados no repositório e na infraestrutura publicada.</p>
+    <p class="lede">Como o assistente é construído, onde cada peça roda, como uma pessoa da equipe assume a conversa quando a IA não ajuda e como uma mudança vai do pull request até a produção. Os números foram levantados no repositório e na infraestrutura publicada.</p>
     <div class="cover-actions">
       <button class="btn" type="button" data-present>
         <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 2.5v11l10-5.5z" fill="currentColor"/></svg>
@@ -277,9 +280,10 @@ html.presenting .pctl{display:flex;position:fixed;right:calc(16px + env(safe-are
       <div><dt>Frontend</dt><dd>Vercel<span>SPA React na borda global</span></dd></div>
       <div><dt>API e dados</dt><dd>Railway<span>us-east4, Virgínia (EUA)</span></dd></div>
       <div><dt>Modelo</dt><dd>Google Gemini<span>chat e embedding atrás de portas</span></dd></div>
+      <div><dt>Atendimento humano</dt><dd>SSE e <code>LISTEN/NOTIFY</code><span>sem serviço novo, em revisão</span></dd></div>
       <div><dt>Entrega</dt><dd>GitHub Actions<span>aprovação humana antes de production</span></dd></div>
     </dl>
-    <p class="meta">Levantado em 8 de novembro de 2026 · <code>main</code> em <code>984fefc</code> · especificação 1.20 · hospital, pessoas e telefones fictícios</p>
+    <p class="meta">Levantado em 12 de novembro de 2026 · branch <code>feat/atendimento-humano</code> em <code>97ff5c7</code>, à frente da <code>main</code> em <code>c1426a5</code> · especificação 1.26 · hospital, pessoas e telefones fictícios</p>
   </div>
 </section>
 
@@ -291,7 +295,7 @@ html.presenting .pctl{display:flex;position:fixed;right:calc(16px + env(safe-are
     <p class="lede">O navegador fala só com a Vercel. Ela serve a SPA e leva <code>/backend/*</code> para a API na Railway, que guarda tudo no Postgres e chama o Gemini. O GitHub Actions é o único caminho para publicar.</p>
     <figure class="diagram">
       <div class="canvas">
-        <svg class="dg" viewBox="0 0 1280 780" style="--minw:1040px" role="img" aria-label="Mapa do Atrium. O desenvolvimento abre pull requests no GitHub, o ci.yml testa e o deploy.yml publica na Vercel e na Railway. O navegador do visitante e do admin chama a Vercel, que serve a SPA React e encaminha /backend para a API FastAPI na Railway com o segredo da borda. A API usa o Postgres com pgvector e chama o Gemini, e manda rastros mascarados ao LangSmith. O Prometheus coleta as métricas da API, o Grafana consulta o Prometheus e envia alertas ao Discord, e o retention-job apaga dados vencidos todo dia.">
+        <svg class="dg" viewBox="0 0 1280 780" style="--minw:1040px" role="img" aria-label="Mapa do Atrium. O desenvolvimento abre pull requests no GitHub, o ci.yml testa e o deploy.yml publica na Vercel e na Railway. O navegador do visitante, da equipe de atendimento e do admin chama a Vercel, que serve a SPA React e encaminha /backend para a API FastAPI na Railway com o segredo da borda. A API usa o Postgres com pgvector e chama o Gemini, e manda rastros mascarados ao LangSmith. O Prometheus coleta as métricas da API, o Grafana consulta o Prometheus e envia alertas ao Discord, e o retention-job apaga dados vencidos todo dia.">
           <defs>
             <marker id="mp-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah" d="M0 0L10 5L0 10z"/></marker>
             <marker id="mp-o" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah obs" d="M0 0L10 5L0 10z"/></marker>
@@ -321,7 +325,7 @@ html.presenting .pctl{display:flex;position:fixed;right:calc(16px + env(safe-are
           <text class="s" x="38" y="144">+ revisão humana</text>
           <rect class="box" x="24" y="340" width="148" height="120" rx="8"/>
           <text class="t" x="38" y="366">Navegador</text>
-          <text class="s" x="38" y="384">visitante e admin</text>
+          <text class="s" x="38" y="384">visitante, equipe e admin</text>
           <text class="s" x="38" y="400">celular ou desktop</text>
           <text class="m" x="38" y="430">atrium_session</text>
           <text class="s" x="38" y="446">cookie HttpOnly</text>
@@ -439,7 +443,7 @@ html.presenting .pctl{display:flex;position:fixed;right:calc(16px + env(safe-are
         <li><svg viewBox="0 0 36 10" aria-hidden="true"><path class="l-obs" d="M1 5H35"/></svg>observabilidade</li>
         <li><svg viewBox="0 0 36 10" aria-hidden="true"><path class="l-ship" d="M1 5H35"/></svg>entrega pelo GitHub Actions</li>
       </ul>
-      <figcaption>A API na Railway é pública, mas responde 403 a <code>/v1</code> sem o cabeçalho <code>x-atrium-edge</code>, que só o rewrite da Vercel põe. As chaves do Gemini e do LangSmith existem só no processo da API, e o navegador nunca as recebe.</figcaption>
+      <figcaption>A API na Railway é pública, mas responde 403 a <code>/v1</code> sem o cabeçalho <code>x-atrium-edge</code>, que só o rewrite da Vercel põe. As chaves do Gemini e do LangSmith existem só no processo da API, e o navegador nunca as recebe. O <a href="#atendimento">atendimento humano</a> usa as mesmas peças: o console da equipe é uma rota da SPA, e o tempo real passa pelo mesmo rewrite e pelo mesmo Postgres.</figcaption>
     </figure>
   </div>
 </section>
@@ -499,6 +503,7 @@ html.presenting .pctl{display:flex;position:fixed;right:calc(16px + env(safe-are
           <tr><th scope="row">Adaptador de IA</th><td><code>gemini</code>, <code>fake</code> ou <code>demo</code></td><td><code>fake</code> nos testes, <code>demo</code> na e2e</td><td><code>gemini</code></td><td><code>gemini</code>, projeto com faturamento</td></tr>
           <tr><th scope="row">LangSmith</th><td>Opcional</td><td>Desligado</td><td><code>atrium-dev</code></td><td><code>atrium-prod</code></td></tr>
           <tr><th scope="row">Teto de tokens por dia</th><td class="num">0 ou positivo</td><td class="num">0</td><td class="num">500.000</td><td class="num">2.000.000</td></tr>
+          <tr><th scope="row">Atendimento humano</th><td>Ligado no Docker Compose, com contas de teste. Desligado no <code>.env</code> de exemplo</td><td>Ligado só dentro dos testes da API</td><td><span class="tag">desligado</span> até a branch ser publicada</td><td><span class="tag">desligado</span> até a Etapa 17.8</td></tr>
           <tr><th scope="row">Métricas</th><td><code>/metrics</code> ou o Prometheus do Compose</td><td>Nenhuma</td><td>Nenhuma</td><td>Prometheus e Grafana</td></tr>
           <tr><th scope="row">Como publica</th><td>Não publica</td><td>Não publica</td><td><span class="tag info">automático</span> depois da CI verde na <code>main</code></td><td><span class="tag warn">aprovação</span> no GitHub Environment</td></tr>
         </tbody>
@@ -592,7 +597,7 @@ html.presenting .pctl{display:flex;position:fixed;right:calc(16px + env(safe-are
       <div class="panel">
         <h3>Padrões de projeto</h3>
         <ul class="chips">
-          <li class="chip">Service Layer</li><li class="chip">Domain Model puro</li><li class="chip">Ports and Adapters</li><li class="chip">Strategy por <code>APP_AI_ADAPTER</code></li><li class="chip">Repository</li><li class="chip">Unit of Work</li><li class="chip">Composition Root</li><li class="chip">State Machine do cadastro</li><li class="chip">Pipeline com guardas</li><li class="chip">Circuit Breaker</li><li class="chip">Idempotency Key</li><li class="chip">Expand and Contract</li>
+          <li class="chip">Service Layer</li><li class="chip">Domain Model puro</li><li class="chip">Ports and Adapters</li><li class="chip">Strategy por <code>APP_AI_ADAPTER</code></li><li class="chip">Repository</li><li class="chip">Unit of Work</li><li class="chip">Composition Root</li><li class="chip">State Machine do cadastro e do atendimento</li><li class="chip">Pipeline com guardas</li><li class="chip">Circuit Breaker</li><li class="chip">Idempotency Key</li><li class="chip">Expand and Contract</li><li class="chip">Pub/Sub por <code>LISTEN/NOTIFY</code></li>
         </ul>
       </div>
       <div class="panel">
@@ -707,6 +712,160 @@ html.presenting .pctl{display:flex;position:fixed;right:calc(16px + env(safe-are
         </ul>
       </div>
     </div>
+    <p class="note" style="margin-top:24px">Quando a resposta não ajuda (<code>abstained</code>, <code>grounding_failed</code>, <code>off_topic</code>, <code>degraded</code>, <code>error</code> ou uma nota não útil), a conversa oferece <a href="#atendimento">falar com uma pessoa da equipe</a>. A recusa médica nunca oferece: ela continua com a orientação de emergência.</p>
+  </div>
+</section>
+
+<!-- Atendimento humano -->
+<section class="slide" id="atendimento" aria-labelledby="t-atd">
+  <div class="wrap">
+    <p class="eyebrow">Atendimento humano · SDD 29</p>
+    <h2 id="t-atd">Quando a IA não ajuda, uma pessoa continua a conversa</h2>
+    <p class="lede">O visitante chama a equipe do Harborlight na mesma tela, e quem atende responde por um console próprio. O tempo real usa SSE e <code>POST</code> pelo rewrite que já existe, e o Postgres avisa os fluxos. Nenhum serviço novo, e o texto do atendimento nunca chega ao modelo.</p>
+    <div class="rm-head" style="margin-bottom:28px">
+      <span class="tag info">Etapas 17.0 a 17.7 em revisão</span>
+      <span class="tag">Etapa 17.8 pendente</span>
+      <span class="tag warn">HANDOFF_ENABLED desligado em production</span>
+    </div>
+    <div class="stack-gap">
+      <figure class="diagram">
+        <div class="canvas">
+          <svg class="dg" viewBox="0 0 1084 336" style="--minw:900px" role="img" aria-label="Canal do atendimento. O navegador do visitante, na conversa, e o navegador da equipe, no console, falam por POST e SSE com o rewrite da Vercel, que encaminha para a API com o segredo da borda. A API grava cada mensagem no Postgres e avisa com NOTIFY na mesma transação. O Postgres devolve o aviso por LISTEN, só com ids, e cada fluxo SSE lê do banco com a própria autorização. O Gemini e o LangSmith nunca recebem o texto do atendimento.">
+            <defs>
+              <marker id="at-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah" d="M0 0L10 5L0 10z"/></marker>
+              <marker id="at-o" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah obs" d="M0 0L10 5L0 10z"/></marker>
+            </defs>
+            <!-- Pessoas -->
+            <rect class="box" x="24" y="48" width="176" height="80" rx="8"/>
+            <text class="t" x="38" y="74">Visitante</text>
+            <text class="s" x="38" y="92">conversa <tspan class="mono">/ask/:id</tspan></text>
+            <text class="s" x="38" y="108">convidado ou membro</text>
+            <rect class="box" x="24" y="232" width="176" height="80" rx="8"/>
+            <text class="t" x="38" y="258">Equipe</text>
+            <text class="s" x="38" y="276">console <tspan class="mono">/attendance</tspan></text>
+            <text class="s" x="38" y="292"><tspan class="mono">attendant</tspan> ou <tspan class="mono">admin</tspan></text>
+            <!-- Vercel -->
+            <rect class="box" x="268" y="128" width="168" height="104" rx="8"/>
+            <text class="t" x="282" y="152">Rewrite <tspan class="mono">/backend/*</tspan></text>
+            <text class="s" x="282" y="172">mesma origem</text>
+            <text class="s" x="282" y="188">cookie e <tspan class="mono">Origin</tspan> valem</text>
+            <text class="s" x="282" y="204">põe <tspan class="mono fgc">x-atrium-edge</tspan></text>
+            <text class="s" x="282" y="220">sem WebSocket</text>
+            <!-- API -->
+            <rect class="box hl" x="540" y="48" width="216" height="264" rx="8"/>
+            <text class="t" x="554" y="74"><tspan class="mono">api</tspan> · FastAPI</text>
+            <text class="s fgc" x="554" y="100">Escrita por POST</text>
+            <text class="s" x="554" y="116">trava a linha, soma o <tspan class="mono">seq</tspan>,</text>
+            <text class="s" x="554" y="132">grava e avisa numa transação</text>
+            <text class="s fgc" x="554" y="160">Leitura por SSE</text>
+            <text class="s" x="554" y="176">a cada 15 s confere dono,</text>
+            <text class="s" x="554" y="192">papel e atribuição</text>
+            <text class="s" x="554" y="208">fecha aos 10 min, com <tspan class="mono">reconnect</tspan></text>
+            <text class="s fgc" x="554" y="236">Domínio puro</text>
+            <text class="s" x="554" y="252">máquina de estados e oferta</text>
+            <text class="s" x="554" y="268">identificadores removidos</text>
+            <text class="s" x="554" y="296">porta <tspan class="mono fgc">RealtimeBroker</tspan></text>
+            <!-- Postgres -->
+            <rect class="box" x="860" y="48" width="200" height="112" rx="8"/>
+            <text class="t" x="874" y="74">Postgres</text>
+            <text class="m" x="874" y="92">handoffs · messages</text>
+            <text class="s" x="874" y="110">presença e aceite da equipe</text>
+            <text class="s" x="874" y="126">auditoria de cada ação</text>
+            <text class="s" x="874" y="142">fonte da verdade</text>
+            <!-- Fora do caminho -->
+            <rect class="box dash" x="860" y="216" width="200" height="96" rx="8"/>
+            <text class="t" x="874" y="242">Gemini e LangSmith</text>
+            <text class="m bad" x="874" y="260">nenhuma chamada</text>
+            <text class="s" x="874" y="278">não recebem o atendimento,</text>
+            <text class="s" x="874" y="294">nem como histórico</text>
+            <!-- Setas -->
+            <path class="edge" d="M200 88H234V160H267" marker-end="url(#at-a)"/>
+            <text class="lbl" x="234" y="78" text-anchor="middle">POST e SSE</text>
+            <path class="edge" d="M200 272H234V200H267" marker-end="url(#at-a)"/>
+            <text class="lbl" x="234" y="292" text-anchor="middle">POST e SSE</text>
+            <path class="edge" d="M436 180H539" marker-end="url(#at-a)"/>
+            <text class="lbl" x="488" y="172" text-anchor="middle">HTTPS + segredo</text>
+            <path class="edge" d="M756 84H859" marker-end="url(#at-a)"/>
+            <text class="lbl" x="808" y="76" text-anchor="middle">grava + <tspan class="mono">NOTIFY</tspan></text>
+            <path class="edge obs" d="M860 132H757" marker-end="url(#at-o)"/>
+            <text class="lbl" x="808" y="124" text-anchor="middle"><tspan class="mono">LISTEN</tspan> · só ids</text>
+          </svg>
+        </div>
+        <p class="swipe">Arraste o diagrama para o lado para ver tudo.</p>
+        <figcaption>O servidor fala por SSE e o navegador fala por <code>POST</code>, então o cookie de mesma origem, a conferência de <code>Origin</code>, o segredo da borda e a CSP continuam como estão (ADR-015). A carga do <code>pg_notify</code> leva só <code>handoff_id</code>, <code>seq</code> e <code>kind</code>, sai depois do commit e nunca é a fonte do que o fluxo envia: cada fluxo lê do banco com a própria autorização (ADR-016).</figcaption>
+      </figure>
+      <figure class="diagram">
+        <div class="canvas">
+          <svg class="dg" viewBox="0 0 1084 216" style="--minw:900px" role="img" aria-label="Estados do atendimento. O visitante confirma o pedido e o atendimento entra em queued, na fila. Um atendente assume e o estado passa a assigned. O atendente pode devolver à fila, e dois minutos sem sinal do console também devolvem. De assigned, o atendente ou o visitante encerram, ou trinta minutos sem mensagem encerram, e o estado passa a closed. Da fila, o atendimento também vai a closed quando o visitante cancela, a espera vence ou o visitante sai.">
+            <defs>
+              <marker id="st-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah" d="M0 0L10 5L0 10z"/></marker>
+              <marker id="st-s" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah soft" d="M0 0L10 5L0 10z"/></marker>
+            </defs>
+            <rect class="box" x="24" y="76" width="150" height="64" rx="32"/>
+            <text class="t" x="99" y="104" text-anchor="middle">Pedido</text>
+            <text class="s" x="99" y="121" text-anchor="middle">visitante confirma</text>
+            <rect class="box" x="250" y="68" width="200" height="80" rx="8"/>
+            <text class="t mono" x="264" y="92">queued</text>
+            <text class="s" x="264" y="110">na fila, sem conteúdo à vista</text>
+            <text class="s" x="264" y="126">até 20 · vence em 15 min</text>
+            <rect class="box hl" x="560" y="68" width="200" height="80" rx="8"/>
+            <text class="t mono" x="574" y="92">assigned</text>
+            <text class="s" x="574" y="110">uma pessoa assumiu e lê</text>
+            <text class="s" x="574" y="126">até 3 por atendente</text>
+            <rect class="box okb" x="870" y="68" width="190" height="80" rx="8"/>
+            <text class="t mono" x="884" y="92">closed</text>
+            <text class="s" x="884" y="110">motivo de lista fechada</text>
+            <text class="s" x="884" y="126">a IA volta a responder</text>
+            <path class="edge" d="M174 108H249" marker-end="url(#st-a)"/>
+            <path class="edge" d="M450 96H559" marker-end="url(#st-a)"/>
+            <text class="lbl" x="505" y="88" text-anchor="middle">assume</text>
+            <path class="edge" d="M760 108H869" marker-end="url(#st-a)"/>
+            <text class="lbl" x="815" y="100" text-anchor="middle">encerra</text>
+            <path class="edge soft" d="M660 148V180H350V149" marker-end="url(#st-s)"/>
+            <text class="lbl" x="505" y="200" text-anchor="middle">devolve à fila, ou 2 min sem sinal do console</text>
+            <path class="edge soft" d="M350 68V36H965V67" marker-end="url(#st-s)"/>
+            <text class="lbl" x="657" y="28" text-anchor="middle">visitante cancela, espera vencida ou visitante ausente</text>
+          </svg>
+        </div>
+        <p class="swipe">Arraste o diagrama para o lado para ver tudo.</p>
+        <figcaption>A máquina de estados é Python puro em <code>domain/handoff.py</code>, como a do cadastro. Assumir é um <code>UPDATE</code> condicional: de dois atendentes ao mesmo tempo, um recebe 200 e o outro 409 <code>handoff_taken</code>. Uma varredura a cada 30 s encerra a fila vencida e o atendimento parado há 30 min. Durante o atendimento, uma pergunta à IA responde 409 sem chamar o modelo.</figcaption>
+      </figure>
+    </div>
+    <div class="grid g2" style="margin-top:28px">
+      <div class="panel">
+        <h3>Quando a oferta aparece</h3>
+        <ul class="chips" style="margin-bottom:14px">
+          <li class="chip mono">abstained</li><li class="chip mono">grounding_failed</li><li class="chip mono">off_topic</li><li class="chip mono">degraded</li><li class="chip mono">error</li><li class="chip">nota não útil</li>
+        </ul>
+        <p>A regra é a função pura <code>handoff_offer</code>, e o servidor a confere de novo no pedido. Nunca numa recusa médica. O botão só aparece com a equipe presente nos últimos 45 s e menos de 20 pessoas na fila. Sem equipe, a conversa mostra o telefone da mesa.</p>
+      </div>
+      <div class="panel">
+        <h3>O que a equipe vê</h3>
+        <ul class="list">
+          <li><b>Na fila:</b> um rótulo vindo do HMAC do id do atendimento, a espera e o motivo da oferta. Nunca o conteúdo.</li>
+          <li><b>Depois de assumir:</b> a conversa atual, para uma pessoa por vez.</li>
+          <li><b>Nunca:</b> nome, e-mail, telefone, tipo de visitante, outras conversas ou IP.</li>
+          <li><b>Encerrado:</b> só o admin, com motivo escrito, gravado em <code>handoff.view</code>.</li>
+        </ul>
+      </div>
+      <div class="panel">
+        <h3>Retomada sem perder mensagem</h3>
+        <ul class="events" aria-label="Eventos do fluxo do visitante">
+          <li>ready</li><li class="sep" aria-hidden="true">→</li><li>message</li><li class="sep" aria-hidden="true">→</li><li>status</li><li class="sep" aria-hidden="true">→</li><li>reconnect</li>
+        </ul>
+        <p style="margin-top:14px">Cada mensagem tem um <code>seq</code> por atendimento. O navegador reconecta com <code>Last-Event-ID</code> e recebe só o que veio depois. O tique de 15 s também relê o banco, então um aviso perdido atrasa no máximo um tique.</p>
+      </div>
+      <div class="panel">
+        <h3>Privacidade e segurança</h3>
+        <ul class="list">
+          <li>E-mail, CPF, cartão, telefone e número longo saem da mensagem do visitante antes de gravar.</li>
+          <li>A equipe remove o conteúdo sensível, e o texto some 90 dias depois do encerramento.</li>
+          <li>Quem não é dono, ou não assumiu, recebe 404, igual a um id inexistente.</li>
+          <li>O papel <code>attendant</code> só muda por script, e a sessão da equipe dura 12 horas.</li>
+          <li>Cada ação da equipe grava a auditoria na mesma transação, sem conteúdo.</li>
+        </ul>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -745,6 +904,7 @@ html.presenting .pctl{display:flex;position:fixed;right:calc(16px + env(safe-are
           <li><code>Cache-Control: no-store</code> em toda resposta</li>
           <li>Limites de taxa por e-mail, IP, convidado e usuário</li>
           <li>Senha fora da IA, com argon2id</li>
+          <li>No atendimento, 404 para quem não é dono ou não assumiu</li>
         </ul>
       </div>
       <div class="hop">
@@ -756,6 +916,7 @@ html.presenting .pctl{display:flex;position:fixed;right:calc(16px + env(safe-are
           <li>Citações e telefones conferidos no domínio</li>
           <li>Prompts com <code>PROMPT_VERSION</code> e teste de hash</li>
           <li>Rastro só com metadados onde pode haver saúde</li>
+          <li>Texto do atendimento humano fora do modelo e do rastro</li>
         </ul>
       </div>
     </div>
@@ -1069,7 +1230,7 @@ html.presenting .pctl{display:flex;position:fixed;right:calc(16px + env(safe-are
         </svg>
       </div>
       <p class="swipe">Arraste o diagrama para o lado para ver tudo.</p>
-      <figcaption>O span de IA guarda o <code>langsmith.run_id</code> e o rastro do LangSmith guarda o <code>trace_id</code>, para pular de um para o outro. Logs e atributos de span nunca levam corpo de mensagem, e-mail, telefone, IP cru ou segredo.</figcaption>
+      <figcaption>O span de IA guarda o <code>langsmith.run_id</code> e o rastro do LangSmith guarda o <code>trace_id</code>, para pular de um para o outro. Logs e atributos de span nunca levam corpo de mensagem, e-mail, telefone, IP cru ou segredo. Do atendimento humano, o LangSmith não recebe nada.</figcaption>
     </figure>
     <div class="panel" style="margin-top:28px">
       <h3>Alertas que chegam ao Discord</h3>
@@ -1083,6 +1244,7 @@ html.presenting .pctl{display:flex;position:fixed;right:calc(16px + env(safe-are
         <li class="chip"><b>titular</b>pedido atrasado</li>
         <li class="chip"><b>retenção</b>parada por 26 h</li>
       </ul>
+      <p style="margin-top:16px">O atendimento humano já expõe as próprias métricas, como <code>atrium_handoff_queue</code>, <code>atrium_handoff_wait_seconds</code>, <code>atrium_sse_streams</code> e <code>atrium_realtime_listener_up</code>, sem rótulo de pessoa. O painel "Atrium, atendimento" e os alertas Fila sem equipe, Espera longa e Canal parado entram na Etapa 17.8.</p>
     </div>
   </div>
 </section>
@@ -1164,12 +1326,12 @@ html.presenting .pctl{display:flex;position:fixed;right:calc(16px + env(safe-are
           <li class="chip"><b>DP-8</b>tokens, movimento reduzido e axe</li>
           <li class="chip"><b>DP-9</b>critério ligado ao teste</li>
         </ul>
-        <p style="margin-top:16px">As regras de camadas, design system e GSAP ficam em <code>.claude/rules</code>, e a skill <code>definicao-de-pronto</code> é carregada ao implementar ou revisar uma etapa.</p>
+        <p style="margin-top:16px">As regras de camadas, design system, GSAP e atendimento humano ficam em <code>.claude/rules</code>, e a skill <code>definicao-de-pronto</code> é carregada ao implementar ou revisar uma etapa.</p>
       </div>
       <div class="panel">
-        <h3>14 decisões registradas</h3>
+        <h3>16 decisões registradas</h3>
         <ul class="list" style="columns:2;column-gap:28px">
-          <li>SPA com rewrite</li><li>Postgres com pgvector</li><li>Cadastro como máquina de estados</li><li>Gemini atrás de portas</li><li>OpenTelemetry e LangSmith</li><li>Políticas de rastro</li><li>Prompts versionados</li><li>Entrega pelo GitHub Actions</li><li>Prometheus e Grafana</li><li>shadcn/ui sobre Radix</li><li>GSAP</li><li>Uma réplica da API</li><li>Railway configurada pela API</li><li>Adaptador <code>demo</code> na e2e</li>
+          <li>SPA com rewrite</li><li>Postgres com pgvector</li><li>Cadastro como máquina de estados</li><li>Gemini atrás de portas</li><li>OpenTelemetry e LangSmith</li><li>Políticas de rastro</li><li>Prompts versionados</li><li>Entrega pelo GitHub Actions</li><li>Prometheus e Grafana</li><li>shadcn/ui sobre Radix</li><li>GSAP</li><li>Uma réplica da API</li><li>Railway configurada pela API</li><li>Adaptador <code>demo</code> na e2e</li><li>Atendimento por SSE</li><li><code>LISTEN/NOTIFY</code></li>
         </ul>
       </div>
     </div>
@@ -1180,15 +1342,16 @@ html.presenting .pctl{display:flex;position:fixed;right:calc(16px + env(safe-are
 <section class="slide" id="plano" aria-labelledby="t-plano">
   <div class="wrap">
     <p class="eyebrow">Plano de ação</p>
-    <h2 id="t-plano">32 de 51 etapas aprovadas</h2>
-    <p class="lede">A versão 1 está publicada. As fases 11 a 16 saíram da auditoria de 7 de novembro, e as próximas são a resiliência da API, a experiência do visitante, a privacidade e a qualidade de IA.</p>
+    <h2 id="t-plano">32 de 60 etapas aprovadas, 9 em revisão</h2>
+    <p class="lede">A versão 1 está publicada. As fases 11 a 16 saíram da auditoria de 7 de novembro. A Fase 17, o atendimento humano, foi implementada até a Etapa 17.7 e espera a revisão. Falta a 17.8, com privacidade, operação e publicação.</p>
     <div class="rm-head">
       <span class="tag ok">32 aprovadas</span>
+      <span class="tag info">9 em revisão</span>
       <span class="tag warn">3 débitos técnicos</span>
       <span class="tag">16 pendentes</span>
     </div>
-    <div class="rm-total" role="img" aria-label="32 etapas aprovadas, 3 adiadas como débito técnico e 16 pendentes, de 51">
-      <span class="bg-ok" style="flex:32"></span><span class="bg-debt" style="flex:3"></span><span class="bg-todo" style="flex:16"></span>
+    <div class="rm-total" role="img" aria-label="32 etapas aprovadas, 9 em revisão, 3 adiadas como débito técnico e 16 pendentes, de 60">
+      <span class="bg-ok" style="flex:32"></span><span class="bg-rev" style="flex:9"></span><span class="bg-debt" style="flex:3"></span><span class="bg-todo" style="flex:16"></span>
     </div>
     <ol class="phases">
       <li class="phase"><span class="n">0</span><span class="name">Preparação</span><span class="stages"><span class="st ok" title="0.1 · Revisão final da especificação">0.1</span><span class="sr-only">aprovada</span></span></li>
@@ -1206,8 +1369,9 @@ html.presenting .pctl{display:flex;position:fixed;right:calc(16px + env(safe-are
       <li class="phase"><span class="n">12</span><span class="name">Custo e disponibilidade do LLM</span><span class="stages"><span class="st ok" title="12.1 · Orçamento obrigatório">12.1</span><span class="st ok" title="12.2 · Todo token entra no orçamento">12.2</span><span class="st ok" title="12.3 · Histórico com janela">12.3</span><span class="st ok" title="12.4 · Provedores, breaker e banco com vida de processo">12.4</span><span class="st ok" title="12.5 · API acessível só pela Vercel">12.5</span><span class="sr-only">5 aprovadas</span></span></li>
       <li class="phase"><span class="n">13</span><span class="name">Correção e resiliência da API</span><span class="stages"><span class="st" title="13.1 · Loop de eventos livre">13.1</span><span class="st" title="13.2 · Embedding resiliente atrás da porta">13.2</span><span class="st" title="13.3 · Cadastro sem perda de atualização">13.3</span><span class="st" title="13.4 · SDD e código alinhados">13.4</span><span class="st" title="13.5 · Banco e manutenção">13.5</span><span class="sr-only">5 pendentes</span></span></li>
       <li class="phase"><span class="n">14</span><span class="name">Experiência do visitante</span><span class="stages"><span class="st" title="14.1 · Erros honestos">14.1</span><span class="st" title="14.2 · Pergunta preservada">14.2</span><span class="st" title="14.3 · Foco, rolagem e leitor de tela">14.3</span><span class="sr-only">3 pendentes</span></span></li>
-      <li class="phase"><span class="n">15</span><span class="name">Privacidade e superfície de ataque</span><span class="stages"><span class="st" title="15.1 · Conversa do membro só para o membro">15.1</span><span class="st" title="15.2 · Menos superfície exposta">15.2</span><span class="st" title="15.3 · Prompt e rastros mais seguros">15.3</span><span class="st" title="15.4 · Riscos aceitos por escrito">15.4</span><span class="sr-only">4 pendentes</span></span></li>
+      <li class="phase"><span class="n">15</span><span class="name">Privacidade e superfície de ataque</span><span class="stages"><span class="st rev" title="15.1 · Conversa do membro só para o membro (em revisão)">15.1</span><span class="st" title="15.2 · Menos superfície exposta">15.2</span><span class="st" title="15.3 · Prompt e rastros mais seguros">15.3</span><span class="st" title="15.4 · Riscos aceitos por escrito">15.4</span><span class="sr-only">1 em revisão e 3 pendentes</span></span></li>
       <li class="phase"><span class="n">16</span><span class="name">Qualidade de IA e operação</span><span class="stages"><span class="st" title="16.1 · Avaliações que medem de verdade">16.1</span><span class="st" title="16.2 · Lint mais rigoroso">16.2</span><span class="st" title="16.3 · Produção que se recupera">16.3</span><span class="sr-only">3 pendentes</span></span></li>
+      <li class="phase"><span class="n">17</span><span class="name">Atendimento humano</span><span class="stages"><span class="st rev" title="17.0 · Revisão da especificação do atendimento humano (em revisão)">17.0</span><span class="st rev" title="17.1 · Domínio do atendimento (em revisão)">17.1</span><span class="st rev" title="17.2 · Dados, papel de atendente e sessão da equipe (em revisão)">17.2</span><span class="st rev" title="17.3 · Canal em tempo real (em revisão)">17.3</span><span class="st rev" title="17.4 · API do visitante (em revisão)">17.4</span><span class="st rev" title="17.5 · API da equipe (em revisão)">17.5</span><span class="st rev" title="17.6 · Telas do visitante (em revisão)">17.6</span><span class="st rev" title="17.7 · Console da equipe e encerrados do admin (em revisão)">17.7</span><span class="st" title="17.8 · Privacidade, operação e publicação (pendente)">17.8</span><span class="sr-only">8 em revisão e 1 pendente</span></span></li>
     </ol>
   </div>
 </section>
@@ -1217,16 +1381,16 @@ html.presenting .pctl{display:flex;position:fixed;right:calc(16px + env(safe-are
   <div class="wrap">
     <p class="eyebrow">Qualidade e stack</p>
     <h2 id="t-num">Testes, documentação e tecnologia</h2>
-    <p class="lede">Contagem feita no código em 8 de novembro de 2026. Nenhum teste automático chama o Gemini ou o LangSmith.</p>
+    <p class="lede">Contagem feita no código em 12 de novembro de 2026, na branch do atendimento humano. Nenhum teste automático chama o Gemini ou o LangSmith. As jornadas do atendimento no Playwright ainda não existem e ficaram para a revisão.</p>
     <dl class="stats">
-      <div class="stat"><dt class="sr-only">Pytest</dt><dd style="margin:0"><b>372</b><span>funções <code>test_</code> na API, em 59 arquivos</span></dd></div>
-      <div class="stat"><dt class="sr-only">Vitest</dt><dd style="margin:0"><b>129</b><span>testes Vitest no frontend, em 18 arquivos</span></dd></div>
+      <div class="stat"><dt class="sr-only">Pytest</dt><dd style="margin:0"><b>424</b><span>funções <code>test_</code> na API, em 63 arquivos</span></dd></div>
+      <div class="stat"><dt class="sr-only">Vitest</dt><dd style="margin:0"><b>146</b><span>testes Vitest no frontend, em 20 arquivos</span></dd></div>
       <div class="stat"><dt class="sr-only">Playwright</dt><dd style="margin:0"><b>10</b><span>arquivos Playwright: 6 com a API simulada e 4 com a real</span></dd></div>
-      <div class="stat"><dt class="sr-only">Storybook</dt><dd style="margin:0"><b>54</b><span>histórias no Storybook</span></dd></div>
-      <div class="stat"><dt class="sr-only">Migrações</dt><dd style="margin:0"><b>9</b><span>migrações Alembic, em expand and contract</span></dd></div>
+      <div class="stat"><dt class="sr-only">Storybook</dt><dd style="margin:0"><b>62</b><span>arquivos de histórias no Storybook</span></dd></div>
+      <div class="stat"><dt class="sr-only">Migrações</dt><dd style="margin:0"><b>10</b><span>migrações Alembic, em expand and contract</span></dd></div>
       <div class="stat"><dt class="sr-only">Avaliação</dt><dd style="margin:0"><b>11</b><span>casos no conjunto de avaliação do LangSmith</span></dd></div>
       <div class="stat"><dt class="sr-only">Corpus</dt><dd style="margin:0"><b>12</b><span>documentos no corpus fictício do hospital</span></dd></div>
-      <div class="stat"><dt class="sr-only">ADRs</dt><dd style="margin:0"><b>14</b><span>registros de decisão de arquitetura</span></dd></div>
+      <div class="stat"><dt class="sr-only">ADRs</dt><dd style="margin:0"><b>16</b><span>registros de decisão de arquitetura</span></dd></div>
     </dl>
     <div class="table-wrap">
       <table>
@@ -1236,6 +1400,7 @@ html.presenting .pctl{display:flex;position:fixed;right:calc(16px + env(safe-are
           <tr><th scope="row">API</th><td>Python 3.12, FastAPI, Pydantic, SQLAlchemy 2 assíncrono com asyncpg e Alembic</td></tr>
           <tr><th scope="row">IA</th><td>LangChain nas perguntas, LangGraph no cadastro e Gemini atrás de portas próprias</td></tr>
           <tr><th scope="row">Dados</th><td>PostgreSQL 18 com pgvector, busca híbrida vetorial e por texto completo</td></tr>
+          <tr><th scope="row">Tempo real</th><td>Server-Sent Events e <code>POST</code> pelo rewrite, com <code>LISTEN/NOTIFY</code> do PostgreSQL entre os processos</td></tr>
           <tr><th scope="row">Testes</th><td>Pytest, Vitest, Testing Library, Playwright, axe e Storybook</td></tr>
           <tr><th scope="row">Observabilidade</th><td>structlog, OpenTelemetry, Prometheus, Grafana e LangSmith</td></tr>
           <tr><th scope="row">Entrega</th><td>GitHub Actions, CLI da Railway 5.71 e CLI da Vercel 65.2</td></tr>
@@ -1249,13 +1414,13 @@ html.presenting .pctl{display:flex;position:fixed;right:calc(16px + env(safe-are
 
 <footer class="foot">
   <div class="wrap">
-    <p>Fontes: a especificação em <code>docs/sdd.md</code> e <code>docs/sdd/</code> (seções 6 a 8, 10, 13 e 17 a 24), os workflows em <code>.github/workflows</code>, <code>apps/web/vercel.ts</code>, <code>apps/api/Dockerfile</code>, <code>ops/</code>, o plano de ação e a configuração da Railway e da Vercel conferida em 8 de novembro de 2026. A versão em Markdown, com os diagramas em Mermaid, fica em <code>docs/engenharia/README.md</code>.</p>
+    <p>Fontes: a especificação em <code>docs/sdd.md</code> e <code>docs/sdd/</code> (seções 6 a 8, 10, 13, 17 a 24 e 29), os ADRs 015 e 016, os workflows em <code>.github/workflows</code>, <code>apps/web/vercel.ts</code>, <code>apps/api/Dockerfile</code>, <code>ops/</code>, o plano de ação e a configuração da Railway e da Vercel conferida em 8 de novembro de 2026. O atendimento humano foi levantado em 12 de novembro de 2026, na branch <code>feat/atendimento-humano</code>. A versão em Markdown, com os diagramas em Mermaid, fica em <code>docs/engenharia/README.md</code> e recebe o resumo do atendimento na Etapa 17.8.</p>
   </div>
 </footer>
 
 <div class="pctl" role="toolbar" aria-label="Apresentação">
   <button type="button" data-prev aria-label="Tela anterior">←</button>
-  <output id="pcount" aria-live="polite">1 / 13</output>
+  <output id="pcount" aria-live="polite">1 / 14</output>
   <button type="button" data-next aria-label="Próxima tela">→</button>
   <button type="button" data-stop>Sair</button>
 </div>
