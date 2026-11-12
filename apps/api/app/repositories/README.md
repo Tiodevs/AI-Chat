@@ -23,6 +23,7 @@ Consultas, inclusive busca vetorial e de texto completo, sem construção de pro
 | [`retrieval.py`](retrieval.py) | As duas consultas da busca híbrida: vizinhos por cosseno e texto completo com o piso de similaridade | `RetrievalService` |
 | [`token_usage.py`](token_usage.py) | Lê o contador diário de tokens e soma nele por upsert | `PostgresTokenBudget` |
 | [`users.py`](users.py) | Contas: busca por e-mail e por id, `touch` do login, perfil, contagem por papel, criação e exclusão | `AuthService`, `RegistrationService`, `AccountService` e `BootstrapAdminService` |
+| [`handoffs.py`](handoffs.py) | `HandoffRepository`: atendimentos, mensagens com `seq`, presença, aceite, fila, varredura e o `pg_notify` na transação de cada gravação | `HandoffService`, `AttendanceService`, `HandoffSweeper`, `AttendantRoleService`, `ConversationService` e `OpsMetricsRepository` |
 
 ## Como ler
 

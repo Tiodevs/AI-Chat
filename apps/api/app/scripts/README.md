@@ -16,6 +16,8 @@ Os comandos de operação e de desenvolvimento da API, um por arquivo, listados 
 | [`sync_eval_dataset.py`](sync_eval_dataset.py) | Sincroniza `evals/public_qa.jsonl` com o dataset `atrium-public-qa`. | O `evals.yml` e quem muda os casos. |
 | [`run_evals.py`](run_evals.py) | Roda o experimento no LangSmith e escreve o resumo da pull request. | O `evals.yml` e quem muda prompts, workflows ou corpus. |
 | [`README.md`](README.md) | Este mapa. | Quem estuda a pasta. |
+| [`attendants.py`](attendants.py) | Concede (`grant`) e revoga (`revoke`) o papel `attendant`, com o `--by` do admin. | Quem opera, com `railway run` (seção 29.3). |
+| [`attendance_dev.py`](attendance_dev.py) | Só em `local` e `test`: `seed` cria as contas de teste do atendimento, e `present` mantém uma pessoa da equipe presente por 10 minutos. | `docker compose` e quem desenvolve. |
 
 ### Os comandos
 

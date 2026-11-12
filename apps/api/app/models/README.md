@@ -6,7 +6,7 @@ Entidades SQLAlchemy, uma tabela por arquivo e sem tratador de pedido: a camada 
 
 | Arquivo | O que faz | Quem usa |
 |---|---|---|
-| [`__init__.py`](__init__.py) | Importa todas as entidades, o que registra as 16 tabelas em `Base.metadata` | `alembic/env.py`, `tests/integration/test_database.py` e quem importa `from app.models import ...` |
+| [`__init__.py`](__init__.py) | Importa todas as entidades, o que registra as 19 tabelas em `Base.metadata` | `alembic/env.py`, `tests/integration/test_database.py` e quem importa `from app.models import ...` |
 | [`base.py`](base.py) | `Base` declarativa e a convenção de nomes das restrições, igual aos nomes padrão do PostgreSQL | Todos os modelos |
 | [`vector.py`](vector.py) | Tipo `Vector`, que só desenha o DDL `vector(n)`, e `EMBEDDING_DIMENSIONS = 768` | `chunk.py`, a migração `0002_corpus` e os adaptadores de embedding |
 | [`user.py`](user.py) | `users`: contas de membro e de admin, com as listas fechadas em `CHECK` | `UserRepository`, `RetentionRepository` e os serviços de autenticação, conta e cadastro |
@@ -25,6 +25,9 @@ Entidades SQLAlchemy, uma tabela por arquivo e sem tratador de pedido: a camada 
 | [`retention_run.py`](retention_run.py) | `retention_runs`: o resultado de cada regra do `retention-job` | `RetentionRepository` e `OpsMetricsRepository` |
 | [`token_usage_day.py`](token_usage_day.py) | `token_usage_days`: tokens gastos por dia UTC | `TokenUsageRepository` e, por SQL, `InsightsRepository` |
 | [`rate_limit_window.py`](rate_limit_window.py) | `rate_limit_windows`: contador por balde e janela fixa | `RateLimitRepository` e `RetentionRepository` |
+| [`handoff.py`](handoff.py) | `Handoff`, o atendimento humano: status, motivo da oferta, quem assumiu, motivo do encerramento, os instantes da fila e o `last_seq` da retomada, com o índice único parcial de um ativo por conversa | `repositories/handoffs.py`, `repositories/retention.py`, a migração `0010` |
+| [`attendant_presence.py`](attendant_presence.py) | `AttendantPresence`, uma linha por pessoa da equipe com `available` ou `away` e o último sinal do console | `repositories/handoffs.py`, a migração `0010` |
+| [`attendant_acknowledgement.py`](attendant_acknowledgement.py) | `AttendantAcknowledgement`, o aceite de cada versão do compromisso de confidencialidade | `repositories/handoffs.py`, a migração `0010` |
 
 "Por SQL" quer dizer que o repositório escreve o SQL à mão com `text(...)` e cita a tabela pelo nome, sem importar a classe.
 
@@ -47,7 +50,7 @@ Cada classe tem uma docstring com o papel da tabela e a regra de retenção, e c
 
 ### Diagrama das tabelas
 
-Conferido contra os modelos e as migrações `0001` a `0009`. Linha cheia é chave estrangeira; a linha pontilhada de `audit_events` é uma referência sem chave estrangeira.
+Conferido contra os modelos e as migrações `0001` a `0010`. Linha cheia é chave estrangeira; a linha pontilhada de `audit_events` é uma referência sem chave estrangeira.
 
 ```mermaid
 erDiagram
@@ -236,6 +239,7 @@ A exclusão vem do `DELETE /v1/me`, da regra de contas inativas ou da remoção 
 | `0007_data_subject_requests` | `data_subject_requests` |
 | `0008_retention_runs` | `retention_runs` |
 | `0009_message_request_id` | A coluna `messages.request_id` |
+| `0010_handoffs` | As tabelas do atendimento humano, o papel `attendant` e as colunas do atendimento em `messages` |
 
 Onde o código ainda difere da seção 8.2: a seção pede um B-tree em `data_subject_requests.status`, e o banco tem um em `due_at`. Faltam índices em `conversations.guest_key_id` e `auth_sessions.user_id`, e `messages_conversation_id_idx` repete o índice da restrição única de `messages`; a [Etapa 13.5](../../../../docs/plano-de-acao.md#etapa-135--banco-e-manutenção) cuida dos três. A [Etapa 13.3](../../../../docs/plano-de-acao.md#etapa-133--cadastro-sem-perda-de-atualização) acrescenta `registration_sessions.version`.
 

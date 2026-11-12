@@ -28,6 +28,7 @@ Cada revisão aponta para a anterior em `down_revision`, e o id é legível, no 
 | [`0007_data_subject_requests`](versions/0007_data_subject_requests.py) | `data_subject_requests`, com `user_id` que vira nulo na exclusão da conta e índice em `due_at`. | Apaga a tabela e os pedidos. |
 | [`0008_retention_runs`](versions/0008_retention_runs.py) | `retention_runs`, as execuções do `retention-job` que o `/metrics` lê, com índice em `ran_at`. | Apaga a tabela. |
 | [`0009_message_request_id`](versions/0009_message_request_id.py) | Coluna anulável `messages.request_id`, para o inspetor de qualidade. | Apaga a coluna. |
+| [`0010_handoffs`](versions/0010_handoffs.py) | Atendimento humano: `handoffs`, `attendant_presence` e `attendant_acknowledgements`, o papel `attendant` em `users` e as colunas `handoff_id`, `seq`, `author_user_id`, `redaction` e `redacted_at` em `messages`. | Apaga as tabelas e as colunas e volta as restrições de papel. |
 
 A docstring de cada revisão explica o porquê de cada tabela, restrição e índice.
 
@@ -59,7 +60,7 @@ uv run alembic upgrade head --sql      # só escreve o SQL, sem conectar
 ## Testes
 
 - [`tests/integration/conftest.py`](../tests/integration/conftest.py): a fixture `migrated_database` roda `upgrade head` duas vezes no banco local, e a segunda não faz nada.
-- [`tests/integration/test_database.py`](../tests/integration/test_database.py): confere colunas, restrições e a revisão `0009_message_request_id` no topo, e refaz `downgrade 0001_initial` seguido de `upgrade head`.
+- [`tests/integration/test_database.py`](../tests/integration/test_database.py): confere colunas, restrições e a revisão `0010_handoffs` no topo, e refaz `downgrade 0001_initial` seguido de `upgrade head`.
 - A CI roda os dois contra o contêiner `pgvector/pgvector:pg18` ([seção 21.1](../../../docs/sdd/entrega.md#211-ci-padrão)).
 
 ## Leia também
