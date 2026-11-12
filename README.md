@@ -133,6 +133,7 @@ A partir daqui, a parte técnica. Cada documento responde uma pergunta, em profu
 
 | Documento | Responde |
 |---|---|
+| [Landing page](docs/landing/README.md) | O que é o Atrium, em uma página animada para quem chega de fora |
 | [Engenharia do Atrium](docs/engenharia/README.md) | Como o projeto é construído, em uma página para apresentar, com uma versão em HTML para projetar |
 | [Especificação (SDD)](docs/sdd.md) e [ADRs](docs/adr/) | O que o sistema faz e por quê |
 | [Guia do código](docs/guia/README.md) | Como o código faz, arquivo por arquivo, numa trilha de estudo em 14 partes |

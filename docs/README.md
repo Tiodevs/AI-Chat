@@ -29,6 +29,7 @@ flowchart TD
 | Você quer | Leia |
 |---|---|
 | Saber o que é o Atrium e ver as telas | [README da raiz](../README.md) |
+| Apresentar o projeto a quem chega de fora | [Landing page](landing/README.md) |
 | Ter o panorama da engenharia ou apresentar o projeto | [Engenharia do Atrium](engenharia/README.md) |
 | Rodar o projeto na sua máquina | [Guia, parte 2](guia/02-rodar-e-explorar.md) |
 | Entender o código do começo ao fim | [Trilha de estudo do guia](guia/README.md) |
