@@ -363,12 +363,21 @@ td b{color:var(--fg);font-weight:500}
 .bg-rev{background:var(--info)}
 .bg-debt{background:var(--warning)}
 .bg-todo{background:var(--border-strong)}
-.phases{list-style:none;margin:0;padding:0}
-@media (min-width: 960px){.phases{columns:2;column-gap:48px}}
-.phase{break-inside:avoid;display:grid;grid-template-columns:2.4em minmax(0, 1fr) auto;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--border)}
-.phase .n{font:500 12px var(--font-mono);color:var(--subtle);font-variant-numeric:tabular-nums}
-.phase .name{color:var(--fg);font-size:14px;line-height:1.35}
-.stages{display:flex;flex-wrap:wrap;gap:4px;justify-content:flex-end}
+.plan{display:grid;gap:28px 40px;grid-template-columns:minmax(0,1fr);align-items:start}
+@media (min-width: 1000px){.plan{grid-template-columns:minmax(0, 1.15fr) minmax(0, 1fr)}}
+.plan > div > h3{display:flex;align-items:baseline;gap:10px;margin:0 0 14px;font-size:19px;letter-spacing:-.01em}
+.plan h3 small{font:500 12px var(--font-mono);color:var(--subtle)}
+.pg{margin:0 0 12px;border:1px solid var(--border);border-radius:12px;background:var(--surface);overflow:hidden}
+.pg-h{display:flex;align-items:baseline;gap:10px;padding:10px 16px;background:var(--card);border-bottom:1px solid var(--border);font-size:13.5px}
+.pg-h .n,.pg-h .c{flex:none;font:500 11.5px var(--font-mono);color:var(--subtle);white-space:nowrap}
+.pg-h b{flex:1;min-width:0;font-weight:600;color:var(--fg-strong)}
+.et{list-style:none;margin:0;padding:0}
+.et li{display:grid;grid-template-columns:3.3em minmax(0, 1fr);gap:10px;align-items:baseline;padding:9px 16px;border-bottom:1px solid var(--border);font-size:14px;line-height:1.4}
+.et li:last-child{border-bottom:0}
+.et .st{justify-self:start}
+.et b{font-weight:500;color:var(--fg)}
+.et p{margin:3px 0 0;font-size:13px;line-height:1.5;color:var(--muted)}
+.et .tag{margin-left:6px;vertical-align:1px}
 .st{font:500 11px/1 var(--font-mono);padding:5px 6px;border-radius:5px;border:1px solid var(--border-strong);color:var(--subtle);font-variant-numeric:tabular-nums}
 .st.ok{color:var(--success);border-color:color-mix(in oklab, var(--success) 40%, transparent);background:color-mix(in oklab, var(--success) 12%, transparent)}
 .st.rev{color:var(--info);border-color:color-mix(in oklab, var(--info) 40%, transparent);background:color-mix(in oklab, var(--info) 12%, transparent)}
@@ -538,10 +547,10 @@ tbody tr:hover{background:color-mix(in srgb, var(--card) 55%, transparent)}
       <a class="proj hero-in" style="--d:.8s" href="#hospedagem" data-area="infra"><span class="top"><span class="svc b-web"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#lg-vercel"/></svg></span><span class="k">Frontend</span></span><b>Vercel</b><span>SPA React na borda global</span></a>
       <a class="proj hero-in" style="--d:.87s" href="#api" data-area="app"><span class="top"><span class="svc b-rail"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#lg-railway"/></svg></span><span class="k">API e dados</span></span><b>Railway</b><span>us-east4, Virgínia (EUA)</span></a>
       <a class="proj hero-in" style="--d:.94s" href="#pergunta" data-area="app"><span class="top"><span class="svc b-gem"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#lg-googlegemini"/></svg></span><span class="k">Modelo</span></span><b>Google Gemini</b><span>chat e embedding atrás de portas</span></a>
-      <a class="proj hero-in" style="--d:1.01s" href="#atendimento" data-area="atd"><span class="top"><span class="svc b-atd"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#lg-headset"/></svg></span><span class="k">Atendimento humano</span></span><b>SSE e <code>LISTEN/NOTIFY</code></b><span>sem serviço novo, em revisão</span></a>
+      <a class="proj hero-in" style="--d:1.01s" href="#atendimento" data-area="atd"><span class="top"><span class="svc b-atd"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#lg-headset"/></svg></span><span class="k">Atendimento humano</span></span><b>SSE e <code>LISTEN/NOTIFY</code></b><span>em production, ainda desligado</span></a>
       <a class="proj hero-in" style="--d:1.08s" href="#cd" data-area="cd"><span class="top"><span class="svc b-cd"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#lg-githubactions"/></svg></span><span class="k">Entrega</span></span><b>GitHub Actions</b><span>aprovação humana antes de production</span></a>
     </div>
-    <p class="meta hero-in" style="--d:1.2s">Levantado em 12 de novembro de 2026 · branch <code>feat/atendimento-humano</code> em <code>97ff5c7</code>, à frente da <code>main</code> em <code>c1426a5</code> · especificação 1.26 · hospital, pessoas e telefones fictícios</p>
+    <p class="meta hero-in" style="--d:1.2s">Levantado em 12 de novembro de 2026 · <code>main</code> em <code>0be9f63</code>, com o atendimento humano da PR 45 · especificação 1.26 · hospital, pessoas e telefones fictícios</p>
   </div>
 </section>
 
@@ -823,7 +832,7 @@ tbody tr:hover{background:color-mix(in srgb, var(--card) 55%, transparent)}
           <tr><th scope="row">Adaptador de IA</th><td><code>gemini</code>, <code>fake</code> ou <code>demo</code></td><td><code>fake</code> nos testes, <code>demo</code> na e2e</td><td><code>gemini</code></td><td><code>gemini</code>, projeto com faturamento</td></tr>
           <tr><th scope="row">LangSmith</th><td>Opcional</td><td>Desligado</td><td><code>atrium-dev</code></td><td><code>atrium-prod</code></td></tr>
           <tr><th scope="row">Teto de tokens por dia</th><td class="num">0 ou positivo</td><td class="num">0</td><td class="num">500.000</td><td class="num">2.000.000</td></tr>
-          <tr><th scope="row">Atendimento humano</th><td>Ligado no Docker Compose, com contas de teste. Desligado no <code>.env</code> de exemplo</td><td>Ligado só dentro dos testes da API</td><td><span class="tag">desligado</span> até a branch ser publicada</td><td><span class="tag">desligado</span> até a Etapa 17.8</td></tr>
+          <tr><th scope="row">Atendimento humano</th><td>Ligado no Docker Compose, com contas de teste. Desligado no <code>.env</code> de exemplo</td><td>Ligado só dentro dos testes da API</td><td>Código publicado. <span class="tag">desligado</span> ligar ficou de fora da Etapa 17.7</td><td>Código publicado em 12 de novembro. <span class="tag">desligado</span> até a Etapa 17.8</td></tr>
           <tr><th scope="row">Métricas</th><td><code>/metrics</code> ou o Prometheus do Compose</td><td>Nenhuma</td><td>Nenhuma</td><td>Prometheus e Grafana</td></tr>
           <tr><th scope="row">Como publica</th><td>Não publica</td><td>Não publica</td><td><span class="tag info">automático</span> depois da CI verde na <code>main</code></td><td><span class="tag warn">aprovação</span> no GitHub Environment</td></tr>
         </tbody>
@@ -1043,7 +1052,7 @@ tbody tr:hover{background:color-mix(in srgb, var(--card) 55%, transparent)}
     <h2 id="t-atd">Quando a IA não ajuda, uma pessoa continua a conversa</h2>
     <p class="lede">O visitante chama a equipe do Harborlight na mesma tela, e quem atende responde por um console próprio. O tempo real usa SSE e <code>POST</code> pelo rewrite que já existe, e o Postgres avisa os fluxos. Nenhum serviço novo, e o texto do atendimento nunca chega ao modelo.</p>
     <div class="rm-head" style="margin-bottom:28px">
-      <span class="tag info">Etapas 17.0 a 17.7 em revisão</span>
+      <span class="tag ok">Etapas 17.0 a 17.7 aprovadas, em production</span>
       <span class="tag">Etapa 17.8 pendente</span>
       <span class="tag warn">HANDOFF_ENABLED desligado em production</span>
     </div>
@@ -1179,7 +1188,7 @@ tbody tr:hover{background:color-mix(in srgb, var(--card) 55%, transparent)}
         <h3>Privacidade e segurança</h3>
         <ul class="list">
           <li>E-mail, CPF, cartão, telefone e número longo saem da mensagem do visitante antes de gravar.</li>
-          <li>A equipe remove o conteúdo sensível, e o texto some 90 dias depois do encerramento.</li>
+          <li>A equipe remove o conteúdo sensível, e o texto some 90 dias depois do encerramento, quando a regra de retenção da Etapa 17.8 entrar.</li>
           <li>Quem não é dono, ou não assumiu, recebe 404, igual a um id inexistente.</li>
           <li>O papel <code>attendant</code> só muda por script, e a sessão da equipe dura 12 horas.</li>
           <li>Cada ação da equipe grava a auditoria na mesma transação, sem conteúdo.</li>
@@ -1662,37 +1671,206 @@ tbody tr:hover{background:color-mix(in srgb, var(--card) 55%, transparent)}
 <section class="slide" id="plano" data-area="proc" aria-labelledby="t-plano">
   <div class="wrap">
     <p class="eyebrow">Plano de ação</p>
-    <h2 id="t-plano">32 de 60 etapas aprovadas, 9 em revisão</h2>
-    <p class="lede">A versão 1 está publicada. As fases 11 a 16 saíram da auditoria de 7 de novembro. A Fase 17, o atendimento humano, foi implementada até a Etapa 17.7 e espera a revisão. Falta a 17.8, com privacidade, operação e publicação.</p>
+    <h2 id="t-plano">41 de 60 etapas aprovadas, 19 ainda por fazer</h2>
+    <p class="lede">A versão 1 está publicada. O atendimento humano entrou na <code>main</code> e em production em 12 de novembro, ainda desligado: a Etapa 17.8 é a que liga. Também faltam as fases 13 a 16, que saíram da auditoria de 7 de novembro, e o teste de usabilidade.</p>
     <div class="rm-head">
-      <span class="tag ok">32 aprovadas</span>
-      <span class="tag info">9 em revisão</span>
-      <span class="tag warn">3 débitos técnicos</span>
+      <span class="tag ok">41 aprovadas</span>
       <span class="tag">16 pendentes</span>
+      <span class="tag warn">3 débitos técnicos</span>
     </div>
-    <div class="rm-total" role="img" aria-label="32 etapas aprovadas, 9 em revisão, 3 adiadas como débito técnico e 16 pendentes, de 60">
-      <span class="bg-ok" style="flex:32"></span><span class="bg-rev" style="flex:9"></span><span class="bg-debt" style="flex:3"></span><span class="bg-todo" style="flex:16"></span>
+    <div class="rm-total" role="img" aria-label="41 etapas aprovadas, 16 pendentes e 3 adiadas como débito técnico, de 60">
+      <span class="bg-ok" style="flex:41"></span><span class="bg-todo" style="flex:16"></span><span class="bg-debt" style="flex:3"></span>
     </div>
-    <ol class="phases">
-      <li class="phase"><span class="n">0</span><span class="name">Preparação</span><span class="stages"><span class="st ok" title="0.1 · Revisão final da especificação">0.1</span><span class="sr-only">aprovada</span></span></li>
-      <li class="phase"><span class="n">1</span><span class="name">Fundação</span><span class="stages"><span class="st ok" title="1.1 · Esqueleto do repositório e governança">1.1</span><span class="st ok" title="1.2 · API mínima">1.2</span><span class="st ok" title="1.3 · Shell do frontend e design system base">1.3</span><span class="st ok" title="1.4 · CI sem banco">1.4</span><span class="sr-only">4 aprovadas</span></span></li>
-      <li class="phase"><span class="n">2</span><span class="name">Banco, autenticação e segurança</span><span class="stages"><span class="st ok" title="2.1 · Banco, migrações, unidade de trabalho e prontidão">2.1</span><span class="st ok" title="2.2 · Autenticação, sessão e proteções HTTP">2.2</span><span class="sr-only">2 aprovadas</span></span></li>
-      <li class="phase"><span class="n">3</span><span class="name">Corpus</span><span class="stages"><span class="st ok" title="3.1 · Corpus fictício e modelo de documentos">3.1</span><span class="st ok" title="3.2 · Embedding, ingestão e semente">3.2</span><span class="st ok" title="3.3 · Busca híbrida">3.3</span><span class="sr-only">3 aprovadas</span></span></li>
-      <li class="phase"><span class="n">4</span><span class="name">Perguntas</span><span class="stages"><span class="st ok" title="4.1 · Pipeline de perguntas, sem HTTP">4.1</span><span class="st ok" title="4.2 · API de conversas com SSE">4.2</span><span class="st ok" title="4.3 · Telas de início e conversa">4.3</span><span class="st ok" title="4.4 · LangSmith e linha de base de avaliação">4.4</span><span class="sr-only">4 aprovadas</span></span></li>
-      <li class="phase"><span class="n">5</span><span class="name">Cadastro e consentimentos</span><span class="stages"><span class="st ok" title="5.1 · Domínio e API do cadastro">5.1</span><span class="st ok" title="5.2 · Telas do cadastro">5.2</span><span class="sr-only">2 aprovadas</span></span></li>
-      <li class="phase"><span class="n">6</span><span class="name">Direitos do titular e retenção</span><span class="stages"><span class="st ok" title="6.1 · Página da conta">6.1</span><span class="st ok" title="6.2 · Canal do titular, retenção e documentos de privacidade">6.2</span><span class="sr-only">2 aprovadas</span></span></li>
-      <li class="phase"><span class="n">7</span><span class="name">Admin</span><span class="stages"><span class="st ok" title="7.1 · Gestão de documentos">7.1</span><span class="st ok" title="7.2 · Visão geral e qualidade">7.2</span><span class="st ok" title="7.3 · Fila de pedidos de titular">7.3</span><span class="sr-only">3 aprovadas</span></span></li>
-      <li class="phase"><span class="n">8</span><span class="name">Observabilidade completa</span><span class="stages"><span class="st ok" title="8.1 · Rastros de sistema e métricas">8.1</span><span class="st ok" title="8.2 · Painéis, alertas e fila de anotação">8.2</span><span class="sr-only">2 aprovadas</span></span></li>
-      <li class="phase"><span class="n">9</span><span class="name">Acabamento de experiência</span><span class="stages"><span class="st ok" title="9.1 · Acessibilidade, movimento e desempenho">9.1</span><span class="st" title="9.2 · Teste de usabilidade (pendente)">9.2</span><span class="sr-only">1 aprovada e 1 pendente</span></span></li>
-      <li class="phase"><span class="n">10</span><span class="name">Publicação</span><span class="stages"><span class="st ok" title="10.1 · Pipeline de deploy e ambiente de development">10.1</span><span class="st ok" title="10.2 · Produção e rollback">10.2</span><span class="sr-only">2 aprovadas</span></span></li>
-      <li class="phase"><span class="n">11</span><span class="name">Rede de proteção da entrega</span><span class="stages"><span class="st ok" title="11.1 · CI que não passa vazia">11.1</span><span class="st debt" title="11.2 · Rollback e pré-deploy conferidos (débito técnico)">11.2</span><span class="st debt" title="11.3 · CI endurecida e dependências vigiadas (débito técnico)">11.3</span><span class="st debt" title="11.4 · Cobertura medida (débito técnico)">11.4</span><span class="sr-only">1 aprovada e 3 débitos técnicos</span></span></li>
-      <li class="phase"><span class="n">12</span><span class="name">Custo e disponibilidade do LLM</span><span class="stages"><span class="st ok" title="12.1 · Orçamento obrigatório">12.1</span><span class="st ok" title="12.2 · Todo token entra no orçamento">12.2</span><span class="st ok" title="12.3 · Histórico com janela">12.3</span><span class="st ok" title="12.4 · Provedores, breaker e banco com vida de processo">12.4</span><span class="st ok" title="12.5 · API acessível só pela Vercel">12.5</span><span class="sr-only">5 aprovadas</span></span></li>
-      <li class="phase"><span class="n">13</span><span class="name">Correção e resiliência da API</span><span class="stages"><span class="st" title="13.1 · Loop de eventos livre">13.1</span><span class="st" title="13.2 · Embedding resiliente atrás da porta">13.2</span><span class="st" title="13.3 · Cadastro sem perda de atualização">13.3</span><span class="st" title="13.4 · SDD e código alinhados">13.4</span><span class="st" title="13.5 · Banco e manutenção">13.5</span><span class="sr-only">5 pendentes</span></span></li>
-      <li class="phase"><span class="n">14</span><span class="name">Experiência do visitante</span><span class="stages"><span class="st" title="14.1 · Erros honestos">14.1</span><span class="st" title="14.2 · Pergunta preservada">14.2</span><span class="st" title="14.3 · Foco, rolagem e leitor de tela">14.3</span><span class="sr-only">3 pendentes</span></span></li>
-      <li class="phase"><span class="n">15</span><span class="name">Privacidade e superfície de ataque</span><span class="stages"><span class="st rev" title="15.1 · Conversa do membro só para o membro (em revisão)">15.1</span><span class="st" title="15.2 · Menos superfície exposta">15.2</span><span class="st" title="15.3 · Prompt e rastros mais seguros">15.3</span><span class="st" title="15.4 · Riscos aceitos por escrito">15.4</span><span class="sr-only">1 em revisão e 3 pendentes</span></span></li>
-      <li class="phase"><span class="n">16</span><span class="name">Qualidade de IA e operação</span><span class="stages"><span class="st" title="16.1 · Avaliações que medem de verdade">16.1</span><span class="st" title="16.2 · Lint mais rigoroso">16.2</span><span class="st" title="16.3 · Produção que se recupera">16.3</span><span class="sr-only">3 pendentes</span></span></li>
-      <li class="phase"><span class="n">17</span><span class="name">Atendimento humano</span><span class="stages"><span class="st rev" title="17.0 · Revisão da especificação do atendimento humano (em revisão)">17.0</span><span class="st rev" title="17.1 · Domínio do atendimento (em revisão)">17.1</span><span class="st rev" title="17.2 · Dados, papel de atendente e sessão da equipe (em revisão)">17.2</span><span class="st rev" title="17.3 · Canal em tempo real (em revisão)">17.3</span><span class="st rev" title="17.4 · API do visitante (em revisão)">17.4</span><span class="st rev" title="17.5 · API da equipe (em revisão)">17.5</span><span class="st rev" title="17.6 · Telas do visitante (em revisão)">17.6</span><span class="st rev" title="17.7 · Console da equipe e encerrados do admin (em revisão)">17.7</span><span class="st" title="17.8 · Privacidade, operação e publicação (pendente)">17.8</span><span class="sr-only">8 em revisão e 1 pendente</span></span></li>
-    </ol>
+    <div class="plan">
+      <div>
+        <h3>O que falta <small>19 etapas</small></h3>
+        <div class="pg">
+          <div class="pg-h"><span class="n">Fase 9</span><b>Acabamento de experiência</b><span class="c">falta 1 de 2</span></div>
+          <ul class="et">
+            <li><span class="st">9.2</span><div><b>Teste de usabilidade</b><p>Validar J1 a J5 com pessoas, conforme a seção 15.9.</p></div></li>
+          </ul>
+        </div>
+        <div class="pg">
+          <div class="pg-h"><span class="n">Fase 11</span><b>Rede de proteção da entrega</b><span class="c">falta 3 de 4</span></div>
+          <ul class="et">
+            <li><span class="st debt">11.2</span><div><b>Rollback e pré-deploy conferidos</b> <span class="tag warn">débito técnico</span><p>Fazer o roteiro de rollback achar as migrações e o pipeline conferir o pré-deploy da Railway.</p></div></li>
+            <li><span class="st debt">11.3</span><div><b>CI endurecida e dependências vigiadas</b> <span class="tag warn">débito técnico</span><p>Dar aos workflows só a permissão necessária, fixar as actions e atualizar as dependências sem depender de lembrar.</p></div></li>
+            <li><span class="st debt">11.4</span><div><b>Cobertura medida</b> <span class="tag warn">débito técnico</span><p>Medir a cobertura e impedir que ela caia sem ninguém ver.</p></div></li>
+          </ul>
+        </div>
+        <div class="pg">
+          <div class="pg-h"><span class="n">Fase 13</span><b>Correção e resiliência da API</b><span class="c">falta 5 de 5</span></div>
+          <ul class="et">
+            <li><span class="st">13.1</span><div><b>Loop de eventos livre</b><p>Tirar do loop de eventos o trabalho de CPU que trava os fluxos da réplica.</p></div></li>
+            <li><span class="st">13.2</span><div><b>Embedding resiliente atrás da porta</b><p>Fazer o embedding falhar do mesmo jeito que o chat: erro da porta, nova tentativa e breaker.</p></div></li>
+            <li><span class="st">13.3</span><div><b>Cadastro sem perda de atualização</b><p>Impedir que duas gravações no mesmo cadastro apaguem uma à outra.</p></div></li>
+            <li><span class="st">13.4</span><div><b>SDD e código alinhados</b><p>Ter uma regra só para a desconexão do fluxo e decidir o <code>visitor_type</code>.</p></div></li>
+            <li><span class="st">13.5</span><div><b>Banco e manutenção</b><p>Ajustar índices, destravar versões presas, medir a similaridade antes do piso e remover código sem uso.</p></div></li>
+          </ul>
+        </div>
+        <div class="pg">
+          <div class="pg-h"><span class="n">Fase 14</span><b>Experiência do visitante</b><span class="c">falta 3 de 3</span></div>
+          <ul class="et">
+            <li><span class="st">14.1</span><div><b>Erros honestos</b><p>Fazer cada erro dizer o que aconteceu e apontar o próximo passo, em português.</p></div></li>
+            <li><span class="st">14.2</span><div><b>Pergunta preservada</b><p>Não perder o que a pessoa digitou e não sujar a conversa ao tentar de novo.</p></div></li>
+            <li><span class="st">14.3</span><div><b>Foco, rolagem e leitor de tela</b><p>Deixar a conversa acompanhável por teclado, leitor de tela e celular.</p></div></li>
+          </ul>
+        </div>
+        <div class="pg">
+          <div class="pg-h"><span class="n">Fase 15</span><b>Privacidade e superfície de ataque</b><span class="c">falta 3 de 4</span></div>
+          <ul class="et">
+            <li><span class="st">15.2</span><div><b>Menos superfície exposta</b><p>Desligar o que produção não precisa e endurecer o que fica no ar.</p></div></li>
+            <li><span class="st">15.3</span><div><b>Prompt e rastros mais seguros</b><p>Impedir que um documento feche o bloco de contexto e reduzir o risco de nomes saírem do país nos rastros.</p></div></li>
+            <li><span class="st">15.4</span><div><b>Riscos aceitos por escrito</b><p>Registrar o que não se corrige na versão 1, com o motivo.</p></div></li>
+          </ul>
+        </div>
+        <div class="pg">
+          <div class="pg-h"><span class="n">Fase 16</span><b>Qualidade de IA e operação</b><span class="c">falta 3 de 3</span></div>
+          <ul class="et">
+            <li><span class="st">16.1</span><div><b>Avaliações que medem de verdade</b><p>Ter amostra suficiente para separar regressão de ruído, sem bloquear o merge (seção 25).</p></div></li>
+            <li><span class="st">16.2</span><div><b>Lint mais rigoroso</b><p>Pegar automaticamente erros que a revisão deixa passar.</p></div></li>
+            <li><span class="st">16.3</span><div><b>Produção que se recupera</b><p>Voltar o frontend sozinho quando a fumaça de produção falha, e avisar quem opera.</p></div></li>
+          </ul>
+        </div>
+        <div class="pg">
+          <div class="pg-h"><span class="n">Fase 17</span><b>Atendimento humano</b><span class="c">falta 1 de 9</span></div>
+          <ul class="et">
+            <li><span class="st">17.8</span><div><b>Privacidade, operação e publicação</b><p>Documentos de privacidade, retenção e operação antes de ligar o serviço em production.</p></div></li>
+          </ul>
+        </div>
+        <div class="panel">
+          <h3>Pontas soltas da Fase 17</h3>
+          <p>As Etapas 17.0 a 17.7 foram entregues em sequência, e o plano registra o que ficou de fora delas:</p>
+          <ul class="list">
+            <li>A medida de um fluxo de 12 minutos pela Vercel em development (17.3).</li>
+            <li>O CA-8 da 17.4 e a linha da fumaça para <code>GET /backend/v1/handoff/availability</code>.</li>
+            <li>As jornadas J9, J10 e J11 no Playwright, com axe, e a suíte ao vivo com dois contextos (17.6 e 17.7).</li>
+            <li><code>HANDOFF_ENABLED=true</code> em development (17.7).</li>
+            <li>O som opcional dos avisos do console (17.7).</li>
+          </ul>
+        </div>
+      </div>
+      <div>
+        <h3>O que já foi feito <small>41 etapas</small></h3>
+        <div class="pg">
+          <div class="pg-h"><span class="n">Fase 0</span><b>Preparação</b><span class="c">1 de 1</span></div>
+          <ul class="et">
+            <li><span class="st ok">0.1</span><div><b>Revisão final da especificação</b></div></li>
+          </ul>
+        </div>
+        <div class="pg">
+          <div class="pg-h"><span class="n">Fase 1</span><b>Fundação</b><span class="c">4 de 4</span></div>
+          <ul class="et">
+            <li><span class="st ok">1.1</span><div><b>Esqueleto do repositório e governança</b></div></li>
+            <li><span class="st ok">1.2</span><div><b>API mínima</b></div></li>
+            <li><span class="st ok">1.3</span><div><b>Shell do frontend e design system base</b></div></li>
+            <li><span class="st ok">1.4</span><div><b>CI sem banco</b></div></li>
+          </ul>
+        </div>
+        <div class="pg">
+          <div class="pg-h"><span class="n">Fase 2</span><b>Banco, autenticação e segurança</b><span class="c">2 de 2</span></div>
+          <ul class="et">
+            <li><span class="st ok">2.1</span><div><b>Banco, migrações, unidade de trabalho e prontidão</b></div></li>
+            <li><span class="st ok">2.2</span><div><b>Autenticação, sessão e proteções HTTP</b></div></li>
+          </ul>
+        </div>
+        <div class="pg">
+          <div class="pg-h"><span class="n">Fase 3</span><b>Corpus</b><span class="c">3 de 3</span></div>
+          <ul class="et">
+            <li><span class="st ok">3.1</span><div><b>Corpus fictício e modelo de documentos</b></div></li>
+            <li><span class="st ok">3.2</span><div><b>Embedding, ingestão e semente</b></div></li>
+            <li><span class="st ok">3.3</span><div><b>Busca híbrida</b></div></li>
+          </ul>
+        </div>
+        <div class="pg">
+          <div class="pg-h"><span class="n">Fase 4</span><b>Perguntas</b><span class="c">4 de 4</span></div>
+          <ul class="et">
+            <li><span class="st ok">4.1</span><div><b>Pipeline de perguntas, sem HTTP</b></div></li>
+            <li><span class="st ok">4.2</span><div><b>API de conversas com SSE</b></div></li>
+            <li><span class="st ok">4.3</span><div><b>Telas de início e conversa</b></div></li>
+            <li><span class="st ok">4.4</span><div><b>LangSmith e linha de base de avaliação</b></div></li>
+          </ul>
+        </div>
+        <div class="pg">
+          <div class="pg-h"><span class="n">Fase 5</span><b>Cadastro e consentimentos</b><span class="c">2 de 2</span></div>
+          <ul class="et">
+            <li><span class="st ok">5.1</span><div><b>Domínio e API do cadastro</b></div></li>
+            <li><span class="st ok">5.2</span><div><b>Telas do cadastro</b></div></li>
+          </ul>
+        </div>
+        <div class="pg">
+          <div class="pg-h"><span class="n">Fase 6</span><b>Direitos do titular e retenção</b><span class="c">2 de 2</span></div>
+          <ul class="et">
+            <li><span class="st ok">6.1</span><div><b>Página da conta</b></div></li>
+            <li><span class="st ok">6.2</span><div><b>Canal do titular, retenção e documentos de privacidade</b></div></li>
+          </ul>
+        </div>
+        <div class="pg">
+          <div class="pg-h"><span class="n">Fase 7</span><b>Admin</b><span class="c">3 de 3</span></div>
+          <ul class="et">
+            <li><span class="st ok">7.1</span><div><b>Gestão de documentos</b></div></li>
+            <li><span class="st ok">7.2</span><div><b>Visão geral e qualidade</b></div></li>
+            <li><span class="st ok">7.3</span><div><b>Fila de pedidos de titular</b></div></li>
+          </ul>
+        </div>
+        <div class="pg">
+          <div class="pg-h"><span class="n">Fase 8</span><b>Observabilidade completa</b><span class="c">2 de 2</span></div>
+          <ul class="et">
+            <li><span class="st ok">8.1</span><div><b>Rastros de sistema e métricas</b></div></li>
+            <li><span class="st ok">8.2</span><div><b>Painéis, alertas e fila de anotação</b></div></li>
+          </ul>
+        </div>
+        <div class="pg">
+          <div class="pg-h"><span class="n">Fase 9</span><b>Acabamento de experiência</b><span class="c">1 de 2</span></div>
+          <ul class="et">
+            <li><span class="st ok">9.1</span><div><b>Acessibilidade, movimento e desempenho</b></div></li>
+          </ul>
+        </div>
+        <div class="pg">
+          <div class="pg-h"><span class="n">Fase 10</span><b>Publicação</b><span class="c">2 de 2</span></div>
+          <ul class="et">
+            <li><span class="st ok">10.1</span><div><b>Pipeline de deploy e ambiente de development</b></div></li>
+            <li><span class="st ok">10.2</span><div><b>Produção e rollback</b></div></li>
+          </ul>
+        </div>
+        <div class="pg">
+          <div class="pg-h"><span class="n">Fase 11</span><b>Rede de proteção da entrega</b><span class="c">1 de 4</span></div>
+          <ul class="et">
+            <li><span class="st ok">11.1</span><div><b>CI que não passa vazia</b></div></li>
+          </ul>
+        </div>
+        <div class="pg">
+          <div class="pg-h"><span class="n">Fase 12</span><b>Custo e disponibilidade do LLM</b><span class="c">5 de 5</span></div>
+          <ul class="et">
+            <li><span class="st ok">12.1</span><div><b>Orçamento obrigatório</b></div></li>
+            <li><span class="st ok">12.2</span><div><b>Todo token entra no orçamento</b></div></li>
+            <li><span class="st ok">12.3</span><div><b>Histórico com janela</b></div></li>
+            <li><span class="st ok">12.4</span><div><b>Provedores, breaker e banco com vida de processo</b></div></li>
+            <li><span class="st ok">12.5</span><div><b>API acessível só pela Vercel</b></div></li>
+          </ul>
+        </div>
+        <div class="pg">
+          <div class="pg-h"><span class="n">Fase 15</span><b>Privacidade e superfície de ataque</b><span class="c">1 de 4</span></div>
+          <ul class="et">
+            <li><span class="st ok">15.1</span><div><b>Conversa do membro só para o membro</b></div></li>
+          </ul>
+        </div>
+        <div class="pg">
+          <div class="pg-h"><span class="n">Fase 17</span><b>Atendimento humano</b><span class="c">8 de 9</span></div>
+          <ul class="et">
+            <li><span class="st ok">17.0</span><div><b>Revisão da especificação do atendimento humano</b></div></li>
+            <li><span class="st ok">17.1</span><div><b>Domínio do atendimento</b></div></li>
+            <li><span class="st ok">17.2</span><div><b>Dados, papel de atendente e sessão da equipe</b></div></li>
+            <li><span class="st ok">17.3</span><div><b>Canal em tempo real</b></div></li>
+            <li><span class="st ok">17.4</span><div><b>API do visitante</b></div></li>
+            <li><span class="st ok">17.5</span><div><b>API da equipe</b></div></li>
+            <li><span class="st ok">17.6</span><div><b>Telas do visitante</b></div></li>
+            <li><span class="st ok">17.7</span><div><b>Console da equipe e encerrados do admin</b></div></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <p class="note" style="margin-top:24px">A fonte é a tabela de status de <code>docs/plano-de-acao.md</code>, que também traz as entregas, os critérios de aceite e o roteiro de teste de cada etapa. Um débito técnico é uma etapa adiada de propósito, com o risco escrito na seção 6 do plano.</p>
   </div>
 </section>
 
@@ -1701,7 +1879,7 @@ tbody tr:hover{background:color-mix(in srgb, var(--card) 55%, transparent)}
   <div class="wrap">
     <p class="eyebrow">Qualidade e stack</p>
     <h2 id="t-num">Testes, documentação e tecnologia</h2>
-    <p class="lede">Contagem feita no código em 12 de novembro de 2026, na branch do atendimento humano. Nenhum teste automático chama o Gemini ou o LangSmith. As jornadas do atendimento no Playwright ainda não existem e ficaram para a revisão.</p>
+    <p class="lede">Contagem feita no código em 12 de novembro de 2026, na <code>main</code>. Nenhum teste automático chama o Gemini ou o LangSmith. As jornadas do atendimento no Playwright ainda não existem.</p>
     <dl class="stats">
       <div class="stat"><dt class="sr-only">Pytest</dt><dd style="margin:0"><b>424</b><span>funções <code>test_</code> na API, em 63 arquivos</span></dd></div>
       <div class="stat"><dt class="sr-only">Vitest</dt><dd style="margin:0"><b>146</b><span>testes Vitest no frontend, em 20 arquivos</span></dd></div>
@@ -1734,7 +1912,7 @@ tbody tr:hover{background:color-mix(in srgb, var(--card) 55%, transparent)}
 
 <footer class="foot">
   <div class="wrap">
-    <p>Fontes: a especificação em <code>docs/sdd.md</code> e <code>docs/sdd/</code> (seções 6 a 8, 10, 13, 17 a 24 e 29), os ADRs 015 e 016, os workflows em <code>.github/workflows</code>, <code>apps/web/vercel.ts</code>, <code>apps/api/Dockerfile</code>, <code>ops/</code>, o plano de ação e a configuração da Railway e da Vercel conferida em 8 de novembro de 2026. O atendimento humano foi levantado em 12 de novembro de 2026, na branch <code>feat/atendimento-humano</code>. A versão em Markdown, com os diagramas em Mermaid, fica em <code>docs/engenharia/README.md</code> e recebe o resumo do atendimento na Etapa 17.8.</p>
+    <p>Fontes: a especificação em <code>docs/sdd.md</code> e <code>docs/sdd/</code> (seções 6 a 8, 10, 13, 17 a 24 e 29), os ADRs 015 e 016, os workflows em <code>.github/workflows</code>, <code>apps/web/vercel.ts</code>, <code>apps/api/Dockerfile</code>, <code>ops/</code>, o plano de ação e a configuração da Railway e da Vercel conferida em 8 de novembro de 2026. O atendimento humano foi levantado em 12 de novembro de 2026 e entrou em production no mesmo dia, pela PR 45, com <code>HANDOFF_ENABLED</code> desligado. A versão em Markdown, com os diagramas em Mermaid, fica em <code>docs/engenharia/README.md</code> e recebe o resumo do atendimento na Etapa 17.8.</p>
   </div>
 </footer>
 
@@ -1828,7 +2006,7 @@ tbody tr:hover{background:color-mix(in srgb, var(--card) 55%, transparent)}
     try {
       var targets = [];
       each(document.querySelectorAll(".slide:not(.cover) > .wrap, .foot > .wrap"), function (w) {
-        each(w.querySelectorAll(".eyebrow, h2, h3, .lede, .note, .diagram, .table-wrap, .stats, .panel, .hop, .rm-head, .rm-total, .phases, .foot p"), function (el) {
+        each(w.querySelectorAll(".eyebrow, h2, h3, .lede, .note, .diagram, .table-wrap, .stats, .panel, .hop, .rm-head, .rm-total, .plan h3, .pg, .foot p"), function (el) {
           if (el.parentElement.closest("[data-rv]")) return;
           el.setAttribute("data-rv", "");
           targets.push(el);
