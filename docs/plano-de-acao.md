@@ -1614,21 +1614,21 @@ A IA atualiza esta tabela em cada PR.
 | 14.1 | Erros honestos | Pendente |
 | 14.2 | Pergunta preservada | Pendente |
 | 14.3 | Foco, rolagem e leitor de tela | Pendente |
-| 15.1 | Conversa do membro só para o membro | Em revisão |
+| 15.1 | Conversa do membro só para o membro | Aprovada |
 | 15.2 | Menos superfície exposta | Pendente |
 | 15.3 | Prompt e rastros mais seguros | Pendente |
 | 15.4 | Riscos aceitos por escrito | Pendente |
 | 16.1 | Avaliações que medem de verdade | Pendente |
 | 16.2 | Lint mais rigoroso | Pendente |
 | 16.3 | Produção que se recupera | Pendente |
-| 17.0 | Revisão da especificação do atendimento humano | Em revisão |
-| 17.1 | Domínio do atendimento | Em revisão |
-| 17.2 | Dados, papel de atendente e sessão da equipe | Em revisão |
-| 17.3 | Canal em tempo real | Em revisão |
-| 17.4 | API do visitante | Em revisão |
-| 17.5 | API da equipe | Em revisão |
-| 17.6 | Telas do visitante | Em revisão |
-| 17.7 | Console da equipe e encerrados do admin | Em revisão |
+| 17.0 | Revisão da especificação do atendimento humano | Aprovada |
+| 17.1 | Domínio do atendimento | Aprovada |
+| 17.2 | Dados, papel de atendente e sessão da equipe | Aprovada |
+| 17.3 | Canal em tempo real | Aprovada |
+| 17.4 | API do visitante | Aprovada |
+| 17.5 | API da equipe | Aprovada |
+| 17.6 | Telas do visitante | Aprovada |
+| 17.7 | Console da equipe e encerrados do admin | Aprovada |
 | 17.8 | Privacidade, operação e publicação | Pendente |
 
 Valores possíveis: Pendente, Em andamento, Em revisão, Ajustes pedidos, Aprovada, Débito técnico. Débito técnico é uma etapa adiada de propósito, com o risco escrito na seção 6.
