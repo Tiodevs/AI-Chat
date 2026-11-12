@@ -8,22 +8,24 @@
 <meta name="color-scheme" content="dark">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&family=Instrument+Serif:ital@1&display=swap">
 <style>
 /*
  * Landing page do Atrium. Uma página só, sem build: abre direto no navegador
  * ou no GitHub Pages. O README desta pasta explica como servir e o que
  * atualizar quando o projeto mudar.
  *
- * Identidade: os tokens da seção 14.2 do SDD (neutros, tema escuro, cor só
- * com significado) e as fontes Geist e Geist Mono, como o produto.
- * Movimento: GSAP com os tokens da seção 16.2 (durações, curvas e stagger),
- * só em transform e opacity, e desligado com prefers-reduced-motion.
+ * Identidade: os neutros da seção 14.2 do SDD e as fontes Geist e Geist
+ * Mono, como o produto. A página acrescenta duas coisas que o produto não
+ * tem: uma cor de destaque (--accent, a "luz do farol") e a Instrument
+ * Serif em itálico nas palavras de ênfase dos títulos.
+ * Movimento: GSAP, só em transform e opacity, desligado com
+ * prefers-reduced-motion.
  */
 :root{
   --shell:#0a0a0a;
   --background:#101010;
-  --card:#171717;
+  --card:#141414;
   --muted:#1c1c1c;
   --popover:#262626;
   --border:#222222;
@@ -32,15 +34,16 @@
   --foreground-strong:#ffffff;
   --muted-foreground:#a3a3a3;
   --subtle-foreground:#8f8f8f;
-  --primary:#fafafa;
-  --primary-foreground:#0a0a0a;
   --success:#10b981;
   --danger:#f87171;
   --warning:#fbbf24;
-  --info:#60a5fa;
-  --radius:8px;
+  /* A cor de destaque. Troque aqui para mudar a página inteira. */
+  --accent:#c8ff4d;
+  --accent-foreground:#0a0a0a;
+  --accent-soft:color-mix(in srgb, var(--accent) 14%, transparent);
   --font-sans:"Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-mono:"Geist Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --font-serif:"Instrument Serif", "Iowan Old Style", Georgia, serif;
   --gutter:max(16px, env(safe-area-inset-left, 0px));
   color-scheme:dark;
 }
@@ -49,206 +52,295 @@
 html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
 @media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}}
 body{margin:0;background:var(--shell);color:var(--foreground);font-family:var(--font-sans);font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;overflow-x:hidden}
+/* Grão sobre a página inteira, para o preto não ficar chapado. */
+body::after{content:"";position:fixed;inset:0;z-index:60;pointer-events:none;opacity:.07;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .8 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
 img,svg{max-width:100%;display:block}
 a{color:var(--foreground-strong);text-decoration:underline;text-decoration-color:var(--border-strong);text-underline-offset:3px}
-a:hover{text-decoration-color:var(--muted-foreground)}
-:focus-visible{outline:2px solid var(--foreground-strong);outline-offset:3px;border-radius:6px}
+a:hover{text-decoration-color:var(--accent)}
+::selection{background:var(--accent);color:var(--accent-foreground)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:8px}
 h1,h2,h3,p{margin:0}
 h1,h2,h3{color:var(--foreground-strong);text-wrap:balance}
+em{font-family:var(--font-serif);font-style:italic;font-weight:400;letter-spacing:-.015em;color:var(--accent)}
 code{font-family:var(--font-mono);font-size:.88em}
-.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
-.wrap{max-width:1180px;margin-inline:auto;padding-inline:var(--gutter)}
+.wrap{max-width:1280px;margin-inline:auto;padding-inline:var(--gutter)}
+@media (min-width: 720px){:root{--gutter:32px}}
 
-/* Botões, no desenho dos botões do produto */
-.btn{appearance:none;display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:40px;padding:0 16px;border-radius:var(--radius);border:1px solid var(--border-strong);background:transparent;color:var(--foreground-strong);font:500 14px/1 var(--font-sans);text-decoration:none;cursor:pointer;white-space:nowrap;transition:background-color .12s, border-color .12s}
-.btn:hover{background:var(--muted)}
-.btn svg{width:16px;height:16px;flex:none}
-.btn-primary{background:var(--primary);border-color:var(--primary);color:var(--primary-foreground)}
-.btn-primary:hover{background:var(--foreground);border-color:var(--foreground)}
-.btn-lg{min-height:46px;padding:0 20px;font-size:15px}
+/* Barra de progresso da rolagem */
+.progress{position:fixed;inset:0 0 auto;height:2px;z-index:70;background:var(--accent);transform:scaleX(0);transform-origin:left}
 
-/* Topo */
-.topbar{position:sticky;top:0;z-index:20;background:color-mix(in srgb, var(--shell) 86%, transparent);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border-bottom:1px solid var(--border)}
-.topbar .wrap{display:flex;align-items:center;gap:20px;min-height:60px}
-.brand{display:inline-flex;align-items:center;gap:10px;font-weight:600;font-size:15px;color:var(--foreground-strong);text-decoration:none}
-.logo{display:grid;place-items:center;width:28px;height:28px;border-radius:7px;background:var(--primary);color:var(--primary-foreground);font:600 14px/1 var(--font-sans)}
-.nav{display:flex;gap:2px;margin-left:auto}
-.nav a{font-size:14px;color:var(--muted-foreground);text-decoration:none;padding:8px 12px;border-radius:6px}
-.nav a:hover{color:var(--foreground-strong);background:var(--card)}
-@media (max-width: 860px){.nav{display:none}.topbar .btn{margin-left:auto}}
+/* Botões */
+.btn{appearance:none;display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:44px;padding:0 20px;border-radius:999px;border:1px solid var(--border-strong);background:transparent;color:var(--foreground-strong);font:500 14.5px/1 var(--font-sans);text-decoration:none;cursor:pointer;white-space:nowrap;transition:background-color .18s, border-color .18s, color .18s}
+.btn:hover{border-color:var(--foreground-strong)}
+.btn svg{width:16px;height:16px;flex:none;transition:transform .28s cubic-bezier(.2,.7,.2,1)}
+.btn:hover .arrow{transform:translate(2px,-2px)}
+.btn-accent{background:var(--accent);border-color:var(--accent);color:var(--accent-foreground);font-weight:600}
+.btn-accent:hover{background:var(--foreground-strong);border-color:var(--foreground-strong)}
+.btn-lg{min-height:54px;padding:0 28px;font-size:16px}
+.btn-dark{background:var(--shell);border-color:var(--shell);color:var(--foreground-strong)}
+.btn-dark:hover{background:#000;border-color:#000}
+.btn-ink{border-color:rgb(10 10 10 / .35);color:var(--accent-foreground)}
+.btn-ink:hover{border-color:var(--accent-foreground)}
+
+/* Navegação flutuante */
+.topbar{position:fixed;top:14px;left:0;right:0;z-index:50;display:flex;justify-content:center;padding-inline:var(--gutter);pointer-events:none}
+.topbar-in{pointer-events:auto;display:flex;align-items:center;gap:6px;max-width:100%;padding:6px 6px 6px 14px;border:1px solid var(--border-strong);border-radius:999px;background:color-mix(in srgb, var(--shell) 72%, transparent);-webkit-backdrop-filter:blur(16px) saturate(140%);backdrop-filter:blur(16px) saturate(140%)}
+.brand{display:inline-flex;align-items:center;gap:9px;margin-right:10px;font-weight:600;font-size:15px;color:var(--foreground-strong);text-decoration:none}
+.logo{display:grid;place-items:center;width:26px;height:26px;border-radius:7px;background:var(--foreground-strong);color:var(--shell);font:600 13px/1 var(--font-sans)}
+.nav{display:flex}
+.nav a{font-size:13.5px;color:var(--muted-foreground);text-decoration:none;padding:8px 12px;border-radius:999px;transition:color .18s, background-color .18s}
+.nav a:hover{color:var(--foreground-strong);background:var(--muted)}
+.topbar .btn{min-height:36px;padding:0 14px;font-size:13.5px;margin-left:6px}
+@media (max-width: 900px){.nav{display:none}.topbar-in{width:100%;justify-content:space-between}}
 
 /* Seções */
-section{border-bottom:1px solid var(--border);scroll-margin-top:60px}
-.pad{padding-block:clamp(64px, 9vw, 120px)}
-.eyebrow{display:inline-flex;align-items:center;gap:8px;margin-bottom:16px;font:500 12px/1.3 var(--font-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--subtle-foreground)}
-h2{font-size:clamp(28px, 4vw, 44px);line-height:1.08;letter-spacing:-.03em;font-weight:600;max-width:22ch}
-.lede{margin-top:16px;max-width:62ch;font-size:clamp(16px, 1.6vw, 18px);line-height:1.6;color:var(--muted-foreground)}
-.head{margin-bottom:clamp(36px, 5vw, 56px)}
+section{position:relative;scroll-margin-top:84px}
+.pad{padding-block:clamp(80px, 11vw, 168px)}
+.eyebrow{display:flex;align-items:center;gap:12px;margin-bottom:22px;font:500 12.5px/1.3 var(--font-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted-foreground)}
+.eyebrow span{display:grid;place-items:center;min-width:34px;height:22px;padding:0 8px;border-radius:999px;background:var(--accent);color:var(--accent-foreground);letter-spacing:.02em;font-weight:600}
+h2{font-size:clamp(36px, 5.6vw, 76px);line-height:1.02;letter-spacing:-.04em;font-weight:600}
+h2 em{font-size:1.06em}
+.lede{font-size:clamp(16px, 1.5vw, 19px);line-height:1.6;color:var(--muted-foreground);max-width:52ch}
+.head{display:grid;grid-template-columns:minmax(0, 1.25fr) minmax(0, .75fr);gap:24px clamp(32px, 6vw, 96px);align-items:end;margin-bottom:clamp(40px, 6vw, 80px)}
+.head h2{max-width:14ch}
+@media (max-width: 900px){.head{grid-template-columns:minmax(0, 1fr)}}
+.line{padding-bottom:.1em;margin-bottom:-.1em}
 
 /* Capa */
-.hero{position:relative;background:var(--background);overflow:hidden}
-.hero::before{content:"";position:absolute;inset:0;background-image:radial-gradient(circle at 1px 1px, var(--border-strong) 1px, transparent 0);background-size:28px 28px;-webkit-mask-image:radial-gradient(ellipse 70% 60% at 50% 0%, #000 0%, transparent 75%);mask-image:radial-gradient(ellipse 70% 60% at 50% 0%, #000 0%, transparent 75%);opacity:.55;pointer-events:none}
-.hero .wrap{position:relative;display:grid;grid-template-columns:minmax(0, 1fr) minmax(0, 1.05fr);gap:clamp(32px, 5vw, 72px);align-items:center;padding-block:clamp(56px, 8vw, 104px)}
-@media (max-width: 1080px){.hero .wrap{grid-template-columns:minmax(0, 1fr)}.demo{max-width:640px}}
-.pill{display:inline-flex;align-items:center;gap:8px;margin-bottom:22px;padding:6px 12px 6px 10px;border:1px solid var(--border-strong);border-radius:999px;background:var(--card);font:500 12.5px/1.2 var(--font-mono);color:var(--foreground);text-decoration:none}
-.pill:hover{background:var(--muted)}
-.pill .dot{width:7px;height:7px;border-radius:50%;background:var(--success)}
-h1{font-size:clamp(40px, 5.4vw, 68px);line-height:1;letter-spacing:-.045em;font-weight:600}
+.hero{overflow:hidden;padding-top:clamp(120px, 15vw, 190px)}
+.hero-bg{position:absolute;inset:0;pointer-events:none}
+.hero-bg::before{content:"";position:absolute;inset:0;background-image:linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px);background-size:72px 72px;-webkit-mask-image:radial-gradient(ellipse 75% 55% at 50% 12%, #000 0%, transparent 72%);mask-image:radial-gradient(ellipse 75% 55% at 50% 12%, #000 0%, transparent 72%);opacity:.5}
+.orb{position:absolute;border-radius:50%;filter:blur(90px)}
+.orb-a{width:min(620px, 80vw);aspect-ratio:1;left:50%;top:-12%;margin-left:max(-310px, -40vw);background:var(--accent);opacity:.16}
+.orb-b{width:min(460px, 60vw);aspect-ratio:1;right:-8%;top:46%;background:var(--accent);opacity:.09}
+.hero .wrap{position:relative;display:flex;flex-direction:column;align-items:center;text-align:center}
+.pill{display:inline-flex;align-items:center;gap:9px;margin-bottom:30px;padding:7px 14px 7px 10px;border:1px solid color-mix(in srgb, var(--accent) 40%, transparent);border-radius:999px;background:var(--accent-soft);font:500 12.5px/1.2 var(--font-mono);color:var(--accent);text-decoration:none}
+.pill .dot{position:relative;width:8px;height:8px;border-radius:50%;background:var(--accent)}
+.pill .dot::after{content:"";position:absolute;inset:-4px;border-radius:50%;border:1px solid var(--accent);opacity:.5}
+h1{max-width:13ch;font-size:clamp(46px, 9vw, 132px);line-height:.94;letter-spacing:-.055em;font-weight:600}
+h1 em{font-size:1.07em;letter-spacing:-.03em}
 h1 .dim{color:var(--subtle-foreground)}
-.hero .lede{font-size:clamp(17px, 1.8vw, 20px);max-width:52ch;margin-top:22px}
-.actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:32px}
-.meta{display:flex;flex-wrap:wrap;gap:8px 20px;margin-top:28px;padding:0;list-style:none;font:500 12.5px/1.4 var(--font-mono);color:var(--subtle-foreground)}
-.meta li{display:inline-flex;align-items:center;gap:7px}
-.meta svg{width:14px;height:14px}
+.hero .lede{margin-top:clamp(24px, 3vw, 36px);max-width:56ch;font-size:clamp(17px, 1.7vw, 21px)}
+.actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:36px}
+.hero .actions{justify-content:center}
+.meta{display:flex;flex-wrap:wrap;justify-content:center;gap:8px 22px;margin:30px 0 0;padding:0;list-style:none;font:500 12.5px/1.4 var(--font-mono);color:var(--subtle-foreground)}
+.meta li{display:inline-flex;align-items:center;gap:8px}
+.meta li::before{content:"";width:5px;height:5px;border-radius:50%;background:var(--accent)}
 
 /* Demonstração: uma janela do produto que roda sozinha */
-.demo{min-width:0}
-.tabs{display:flex;gap:6px;margin-bottom:12px;overflow-x:auto;scrollbar-width:none}
+.demo{width:100%;max-width:920px;margin-top:clamp(56px, 7vw, 96px);text-align:left}
+.tabs{display:flex;justify-content:center;gap:6px;margin-bottom:18px;overflow-x:auto;scrollbar-width:none}
 .tabs::-webkit-scrollbar{display:none}
-.tab{appearance:none;flex:none;padding:8px 14px;border:1px solid var(--border-strong);border-radius:999px;background:transparent;color:var(--muted-foreground);font:500 13px/1.2 var(--font-sans);cursor:pointer;transition:background-color .12s, color .12s}
-.tab:hover{color:var(--foreground-strong);background:var(--card)}
-.tab[aria-selected="true"]{background:var(--primary);border-color:var(--primary);color:var(--primary-foreground)}
-.window{border:1px solid var(--border-strong);border-radius:14px;background:var(--background);overflow:hidden;box-shadow:0 24px 60px rgb(0 0 0 / .5)}
-.window-bar{display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--shell);border-bottom:1px solid var(--border);font-weight:600;font-size:13.5px;color:var(--foreground-strong)}
+@media (max-width: 640px){.tabs{justify-content:flex-start}}
+.tab{appearance:none;flex:none;padding:9px 16px;border:1px solid var(--border-strong);border-radius:999px;background:color-mix(in srgb, var(--shell) 70%, transparent);color:var(--muted-foreground);font:500 13.5px/1.2 var(--font-sans);cursor:pointer;transition:background-color .18s, color .18s, border-color .18s}
+.tab:hover{color:var(--foreground-strong);border-color:var(--muted-foreground)}
+.tab[aria-selected="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-foreground);font-weight:600}
+.stage{perspective:1600px}
+.window{position:relative;border:1px solid var(--border-strong);border-bottom:0;border-radius:20px 20px 0 0;background:var(--background);overflow:hidden;transform-origin:50% 0;box-shadow:0 -1px 0 color-mix(in srgb, var(--accent) 45%, transparent), 0 -40px 120px -30px color-mix(in srgb, var(--accent) 28%, transparent)}
+.window-bar{display:flex;align-items:center;gap:10px;padding:14px 20px;background:var(--shell);border-bottom:1px solid var(--border);font-weight:600;font-size:14px;color:var(--foreground-strong)}
 .window-bar .logo{width:24px;height:24px;border-radius:6px;font-size:12px}
 .window-bar span:last-child{margin-left:auto;font:500 11.5px var(--font-mono);color:var(--subtle-foreground)}
-.thread{display:flex;flex-direction:column;gap:14px;padding:20px 18px 8px;min-height:318px}
-@media (max-width: 520px){.thread{min-height:384px}}
+.thread{display:flex;flex-direction:column;gap:16px;padding:28px clamp(18px, 4vw, 44px) 8px;min-height:330px}
+@media (max-width: 560px){.thread{min-height:400px}}
 .user-row{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
-.bubble{max-width:88%;padding:10px 14px;border-radius:14px;background:var(--muted);color:var(--foreground-strong);font-size:14.5px}
-.privacy-note{font-size:12px;color:var(--subtle-foreground);text-align:right}
-.answer-area{position:relative;display:flex;flex-direction:column;gap:12px;align-items:flex-start}
-.waiting{position:absolute;top:2px;left:0;display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--subtle-foreground)}
-.waiting i{width:6px;height:6px;border-radius:50%;background:var(--muted-foreground)}
-.answer{font-size:14.5px;line-height:1.65;color:var(--foreground)}
-.cite{display:inline-grid;place-items:center;min-width:20px;height:20px;margin:0 3px;padding:0 5px;border-radius:999px;background:var(--popover);font:500 11px/1 var(--font-mono);color:var(--foreground-strong);vertical-align:1px}
-.badge{display:inline-flex;align-items:center;gap:7px;padding:4px 10px;border:1px solid var(--border-strong);border-radius:999px;font-size:12px;font-weight:500;color:var(--foreground)}
+.bubble{max-width:88%;padding:11px 16px;border-radius:16px 16px 4px 16px;background:var(--muted);color:var(--foreground-strong);font-size:15.5px}
+.privacy-note{font-size:12.5px;color:var(--subtle-foreground);text-align:right}
+.answer-area{position:relative;display:flex;flex-direction:column;gap:14px;align-items:flex-start}
+.waiting{position:absolute;top:2px;left:0;display:inline-flex;align-items:center;gap:8px;font-size:13.5px;color:var(--subtle-foreground)}
+.waiting i{width:6px;height:6px;border-radius:50%;background:var(--accent)}
+.answer{font-size:15.5px;line-height:1.7;color:var(--foreground);max-width:64ch}
+.cite{display:inline-grid;place-items:center;min-width:20px;height:20px;margin:0 3px;padding:0 5px;border-radius:999px;background:var(--accent);font:600 11px/1 var(--font-mono);color:var(--accent-foreground);vertical-align:1px}
+.badge{display:inline-flex;align-items:center;gap:7px;padding:5px 11px;border:1px solid var(--border-strong);border-radius:999px;font-size:12.5px;font-weight:500;color:var(--foreground)}
 .badge::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--tone, var(--muted-foreground))}
-.badge[data-tone="success"]{--tone:var(--success)}
-.badge[data-tone="danger"]{--tone:var(--danger)}
-.badge[data-tone="warning"]{--tone:var(--warning)}
-.source{width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:10px;background:var(--card)}
-.source b{display:block;font-size:13.5px;font-weight:500;color:var(--foreground-strong)}
-.source small{font-size:12px;color:var(--subtle-foreground)}
-.composer{margin:8px 18px 18px;padding-top:14px;border-top:1px solid var(--border)}
-.field{display:flex;align-items:center;gap:10px;min-height:44px;padding:6px 6px 6px 14px;border:1px solid var(--border-strong);border-radius:10px;background:var(--shell);font-size:14.5px}
+[data-tone="success"]{--tone:var(--success)}
+[data-tone="danger"]{--tone:var(--danger)}
+[data-tone="warning"]{--tone:var(--warning)}
+.source{width:100%;max-width:520px;padding:12px 16px;border:1px solid var(--border);border-radius:12px;background:var(--card)}
+.source b{display:block;font-size:14px;font-weight:500;color:var(--foreground-strong)}
+.source small{font-size:12.5px;color:var(--subtle-foreground)}
+.composer{margin:10px clamp(18px, 4vw, 44px) 0;padding:16px 0 26px;border-top:1px solid var(--border)}
+.field{display:flex;align-items:center;gap:10px;min-height:50px;padding:7px 7px 7px 18px;border:1px solid var(--border-strong);border-radius:999px;background:var(--shell);font-size:15px}
 .typed{color:var(--foreground-strong);white-space:pre-wrap;min-width:0}
 .ph{color:var(--subtle-foreground);overflow:hidden;white-space:nowrap;text-overflow:ellipsis;min-width:0}
 .typed:not(:empty) + .ph{display:none}
-.send{margin-left:auto;flex:none;display:grid;place-items:center;height:32px;padding:0 12px;border-radius:7px;background:var(--primary);color:var(--primary-foreground);font-size:13px;font-weight:500}
-.hint{margin-top:8px;font-size:12px;color:var(--subtle-foreground)}
+.send{margin-left:auto;flex:none;display:grid;place-items:center;height:36px;padding:0 16px;border-radius:999px;background:var(--accent);color:var(--accent-foreground);font-size:13.5px;font-weight:600}
+.hint{margin-top:10px;font-size:12.5px;color:var(--subtle-foreground)}
 
-/* Comportamentos */
-.grid-3{display:grid;grid-template-columns:repeat(auto-fit, minmax(min(100%, 300px), 1fr));gap:16px}
-.card{padding:26px;border:1px solid var(--border);border-radius:14px;background:var(--card);min-width:0}
-.card h3{font-size:17px;line-height:1.3;font-weight:600;margin-bottom:8px}
-.card p{font-size:14.5px;color:var(--muted-foreground)}
-.card .icon{display:grid;place-items:center;width:38px;height:38px;margin-bottom:18px;border:1px solid var(--border-strong);border-radius:9px;background:var(--background);color:var(--foreground-strong)}
-.card .icon svg{width:18px;height:18px}
-.card .badge{margin-bottom:16px}
-.quote{margin-top:16px;padding:12px 14px;border-left:2px solid var(--border-strong);background:var(--background);border-radius:0 8px 8px 0;font-size:13.5px;color:var(--foreground)}
+/* Faixa gigante */
+.band{overflow:hidden;border-block:1px solid var(--border-strong);background:var(--shell)}
+.band-track{display:flex;width:max-content}
+.band ul{display:flex;align-items:center;gap:clamp(20px, 3vw, 44px);margin:0;padding:clamp(16px, 2.4vw, 30px) clamp(10px, 1.5vw, 22px);list-style:none;font-size:clamp(40px, 7vw, 104px);font-weight:600;line-height:1;letter-spacing:-.045em;white-space:nowrap;color:var(--foreground-strong)}
+.band li.o{color:transparent;-webkit-text-stroke:1px var(--muted-foreground)}
+.band li.s{font-family:var(--font-serif);font-style:italic;font-weight:400;color:var(--accent);letter-spacing:-.02em}
+.band li.x{width:.42em;height:.42em;border-radius:50%;background:var(--accent)}
+
+/* Cartões com luz que segue o cursor */
+.spot{position:relative;overflow:hidden;isolation:isolate}
+.spot::before{content:"";position:absolute;inset:0;z-index:-1;opacity:0;transition:opacity .28s;background:radial-gradient(420px circle at var(--mx, 50%) var(--my, 0%), var(--glow, var(--accent-soft)), transparent 65%)}
+.spot:hover::before{opacity:1}
+
+/* Como responde */
+.grid-3{display:grid;grid-template-columns:repeat(auto-fit, minmax(min(100%, 320px), 1fr));gap:16px}
+.out{display:flex;flex-direction:column;min-height:440px;padding:28px;border:1px solid var(--border);border-radius:24px;background:var(--card);min-width:0;--glow:color-mix(in srgb, var(--tone) 16%, transparent);transition:border-color .28s}
+.out:hover{border-color:color-mix(in srgb, var(--tone) 55%, transparent)}
+.out-top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:auto;padding-bottom:40px}
+.out-n{font:500 13px/1 var(--font-mono);color:var(--subtle-foreground)}
+.out h3{font-size:clamp(24px, 2.4vw, 32px);line-height:1.1;letter-spacing:-.03em;font-weight:600;margin-bottom:12px}
+.out p{font-size:15px;color:var(--muted-foreground)}
+.quote{margin-top:22px;padding:14px 16px;border-radius:14px 14px 14px 4px;background:var(--background);border:1px solid var(--border);font-size:14.5px;color:var(--foreground)}
+.out .quote{color:var(--foreground)}
+
+/* Declaração: as palavras acendem com a rolagem */
+.statement{font-size:clamp(28px, 4.6vw, 64px);line-height:1.12;letter-spacing:-.035em;font-weight:500;color:var(--foreground-strong);max-width:22ch;margin-bottom:clamp(56px, 8vw, 120px)}
+.statement .mw{display:inline-block}
 
 /* Compromissos */
-.alt{background:var(--background)}
-.grid-4{display:grid;grid-template-columns:repeat(auto-fit, minmax(min(100%, 250px), 1fr));gap:1px;border:1px solid var(--border);border-radius:14px;background:var(--border);overflow:hidden}
-.grid-4 .card{border:0;border-radius:0;background:var(--shell)}
-.grid-4 ul{margin:14px 0 0;padding:0;list-style:none;display:grid;gap:8px;font-size:13.5px;color:var(--foreground)}
-.grid-4 li{display:flex;gap:9px}
-.grid-4 li::before{content:"";flex:none;width:5px;height:5px;margin-top:9px;border-radius:50%;background:var(--subtle-foreground)}
+.bento{display:grid;grid-template-columns:repeat(12, minmax(0, 1fr));gap:16px}
+.com{grid-column:span 5;display:flex;flex-direction:column;min-height:320px;padding:30px;border:1px solid var(--border);border-radius:24px;background:var(--card);min-width:0;transition:border-color .28s}
+.com:nth-child(1),.com:nth-child(4){grid-column:span 7}
+.com:hover{border-color:color-mix(in srgb, var(--accent) 45%, transparent)}
+@media (max-width: 900px){.com,.com:nth-child(1),.com:nth-child(4){grid-column:1 / -1;min-height:0}}
+.com-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:auto;padding-bottom:48px}
+.com .icon{display:grid;place-items:center;width:46px;height:46px;border-radius:14px;background:var(--accent);color:var(--accent-foreground)}
+.com .icon svg{width:22px;height:22px}
+.com-n{font:500 13px/1 var(--font-mono);color:var(--subtle-foreground)}
+.com h3{font-size:clamp(28px, 3vw, 42px);line-height:1.05;letter-spacing:-.035em;font-weight:600;margin-bottom:8px}
+.com p{font-size:15.5px;color:var(--muted-foreground)}
+.com ul{display:flex;flex-wrap:wrap;gap:8px;margin:22px 0 0;padding:0;list-style:none}
+.com li{padding:6px 12px;border:1px solid var(--border-strong);border-radius:999px;font-size:13px;color:var(--foreground)}
 
 /* Caminho de uma pergunta */
-.flow{display:grid;grid-template-columns:minmax(0, .8fr) minmax(0, 1.2fr);gap:clamp(32px, 5vw, 72px);align-items:start}
-@media (max-width: 900px){.flow{grid-template-columns:minmax(0, 1fr)}}
-.flow .head{position:sticky;top:96px;margin:0}
-@media (max-width: 900px){.flow .head{position:static}}
-.steps{position:relative;margin:0;padding:0;list-style:none;display:grid;gap:10px}
-.rail{position:absolute;left:19px;top:20px;bottom:20px;width:2px;background:var(--border)}
-.rail i{display:block;width:100%;height:100%;background:var(--foreground-strong);transform-origin:top}
+.flow{display:grid;grid-template-columns:minmax(0, .9fr) minmax(0, 1.1fr);gap:clamp(40px, 6vw, 96px);align-items:start}
+@media (max-width: 960px){.flow{grid-template-columns:minmax(0, 1fr)}}
+.flow-head{position:sticky;top:110px}
+.flow-head h2{max-width:11ch;margin-bottom:24px}
+.flow-head .lede + .lede{margin-top:18px;font-size:15px}
+@media (max-width: 960px){.flow-head{position:static}}
+.steps{position:relative;margin:0;padding:0;list-style:none;display:grid;gap:12px}
+.rail{position:absolute;left:23px;top:24px;bottom:24px;width:2px;background:var(--border-strong)}
+.rail i{display:block;width:100%;height:100%;background:var(--accent);transform-origin:top}
 .gs .rail i{transform:scaleY(0)}
-.step{position:relative;display:grid;grid-template-columns:40px minmax(0, 1fr);gap:18px;transition:opacity .28s}
-.gs .step:not(.is-on){opacity:.38}
-.step .n{position:relative;z-index:1;display:grid;place-items:center;width:40px;height:40px;border:1px solid var(--border-strong);border-radius:50%;background:var(--shell);font:500 13px/1 var(--font-mono);color:var(--foreground-strong);transition:background-color .28s, color .28s}
-.step.is-on .n{background:var(--primary);color:var(--primary-foreground)}
-.step .body{padding:18px 20px;border:1px solid var(--border);border-radius:12px;background:var(--card)}
-.step h3{font-size:16px;font-weight:600;margin-bottom:4px}
-.step p{font-size:14px;color:var(--muted-foreground)}
-.exit{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:12px;font-size:12.5px;color:var(--subtle-foreground)}
-.exit code{padding:1px 6px;border:1px solid var(--border);border-radius:5px;background:var(--background);color:var(--foreground)}
+.step{position:relative;display:grid;grid-template-columns:48px minmax(0, 1fr);gap:20px;transition:opacity .45s}
+.gs .step:not(.is-on){opacity:.32}
+.step .n{position:relative;z-index:1;display:grid;place-items:center;width:48px;height:48px;border:1px solid var(--border-strong);border-radius:50%;background:var(--shell);font:500 14px/1 var(--font-mono);color:var(--foreground-strong);transition:background-color .28s, color .28s, border-color .28s}
+.step.is-on .n{background:var(--accent);border-color:var(--accent);color:var(--accent-foreground)}
+.step .body{padding:22px 24px;border:1px solid var(--border);border-radius:20px;background:var(--card)}
+.step h3{font-size:20px;letter-spacing:-.02em;font-weight:600;margin-bottom:4px}
+.step p{font-size:15px;color:var(--muted-foreground)}
+.exit{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:12px;font-size:13px;color:var(--subtle-foreground)}
+.exit code{padding:2px 7px;border:1px solid var(--border);border-radius:6px;background:var(--background);color:var(--foreground)}
 
 /* Telas */
-.screens{display:grid;grid-template-columns:minmax(0, .7fr) minmax(0, 1.3fr);gap:clamp(24px, 4vw, 48px);align-items:start}
-@media (max-width: 900px){.screens{grid-template-columns:minmax(0, 1fr)}}
-.screen-list{display:grid;gap:4px}
-@media (max-width: 900px){.screen-list{display:flex;overflow-x:auto;scrollbar-width:none;gap:6px}.screen-list::-webkit-scrollbar{display:none}}
-.screen-btn{appearance:none;text-align:left;padding:14px 16px;border:1px solid transparent;border-radius:10px;background:transparent;color:var(--muted-foreground);font:inherit;cursor:pointer;transition:background-color .12s}
-.screen-btn:hover{background:var(--card)}
-.screen-btn b{display:block;font-size:15px;font-weight:600;color:var(--foreground)}
-.screen-btn span{display:block;margin-top:2px;font-size:13.5px;line-height:1.5}
-.screen-btn[aria-selected="true"]{background:var(--card);border-color:var(--border-strong)}
+.screens{display:grid;grid-template-columns:minmax(0, .62fr) minmax(0, 1.38fr);gap:clamp(24px, 4vw, 56px);align-items:start}
+@media (max-width: 960px){.screens{grid-template-columns:minmax(0, 1fr)}}
+.screen-list{display:grid;border-top:1px solid var(--border-strong)}
+.screen-btn{appearance:none;position:relative;text-align:left;padding:18px 0 18px 22px;border:0;border-bottom:1px solid var(--border-strong);background:transparent;color:var(--muted-foreground);font:inherit;cursor:pointer}
+.screen-btn::before{content:"";position:absolute;left:0;top:26px;width:8px;height:8px;border-radius:50%;background:var(--border-strong);transition:background-color .18s, transform .28s}
+.screen-btn b{display:block;font-size:20px;letter-spacing:-.02em;font-weight:600;color:var(--muted-foreground);transition:color .18s}
+.screen-btn span{display:none;margin-top:4px;font-size:14.5px;line-height:1.5}
+.screen-btn:hover b{color:var(--foreground-strong)}
 .screen-btn[aria-selected="true"] b{color:var(--foreground-strong)}
-@media (max-width: 900px){.screen-btn{flex:none;padding:8px 14px;border-color:var(--border-strong);border-radius:999px}.screen-btn span{display:none}.screen-btn b{font-size:13px;font-weight:500}}
-.frame{position:relative;aspect-ratio:16/10;border:1px solid var(--border-strong);border-radius:14px;background:var(--background);overflow:hidden;box-shadow:0 24px 60px rgb(0 0 0 / .5)}
+.screen-btn[aria-selected="true"]::before{background:var(--accent);transform:scale(1.4)}
+.screen-btn[aria-selected="true"] span{display:block}
+@media (max-width: 960px){
+  .screen-list{display:flex;overflow-x:auto;scrollbar-width:none;gap:6px;border:0}
+  .screen-list::-webkit-scrollbar{display:none}
+  .screen-btn{flex:none;padding:9px 16px;border:1px solid var(--border-strong);border-radius:999px}
+  .screen-btn::before{display:none}
+  .screen-btn b{font-size:13.5px;font-weight:500}
+  .screen-btn[aria-selected="true"]{background:var(--accent);border-color:var(--accent)}
+  .screen-btn[aria-selected="true"] b{color:var(--accent-foreground)}
+  .screen-btn[aria-selected="true"] span{display:none}
+}
+.frame-wrap{position:relative}
+.frame-wrap::before{content:"";position:absolute;inset:8% 6% -4%;border-radius:50%;background:var(--accent);opacity:.14;filter:blur(80px)}
+.frame{position:relative;aspect-ratio:16/10;border:1px solid var(--border-strong);border-radius:20px;background:var(--background);overflow:hidden}
 .frame img{width:100%;height:100%;object-fit:cover;object-position:top}
 .frame img.contain{object-fit:contain}
-.frame-caption{margin-top:12px;font-size:13.5px;color:var(--subtle-foreground)}
+.frame-caption{position:relative;margin-top:14px;font-size:14px;color:var(--subtle-foreground)}
 
 /* Números */
-.stats{display:grid;grid-template-columns:repeat(auto-fit, minmax(min(100%, 170px), 1fr));gap:1px;margin:0;border:1px solid var(--border);border-radius:14px;background:var(--border);overflow:hidden}
-.stats div{padding:24px 22px;background:var(--background);min-width:0}
-.stats dd{margin:0;font:600 clamp(34px, 4.4vw, 48px)/1 var(--font-sans);letter-spacing:-.04em;color:var(--foreground-strong);font-variant-numeric:tabular-nums}
-.stats dt{margin-top:10px;font-size:13.5px;line-height:1.45;color:var(--muted-foreground)}
-.fine{margin-top:14px;font-size:12.5px;color:var(--subtle-foreground)}
+.stats{display:grid;grid-template-columns:repeat(3, minmax(0, 1fr));margin:0;border-top:1px solid var(--border-strong)}
+@media (max-width: 760px){.stats{grid-template-columns:repeat(2, minmax(0, 1fr))}}
+.stats div{padding:clamp(22px, 3vw, 40px) clamp(4px, 2vw, 28px) clamp(22px, 3vw, 40px) 0;border-bottom:1px solid var(--border-strong);min-width:0}
+.stats dd{margin:0;font:600 clamp(60px, 10vw, 148px)/.9 var(--font-sans);letter-spacing:-.06em;color:var(--foreground-strong);font-variant-numeric:tabular-nums;transition:color .28s}
+.stats div:hover dd{color:var(--accent)}
+.stats dt{margin-top:14px;font-size:15px;line-height:1.45;color:var(--muted-foreground);max-width:24ch}
+.fine{margin-top:18px;font:500 12.5px var(--font-mono);color:var(--subtle-foreground)}
 
 /* Stack */
-.marquee{overflow:hidden;border-block:1px solid var(--border);background:var(--shell);-webkit-mask-image:linear-gradient(to right, transparent, #000 12%, #000 88%, transparent);mask-image:linear-gradient(to right, transparent, #000 12%, #000 88%, transparent)}
+.marquee{overflow:hidden;-webkit-mask-image:linear-gradient(to right, transparent, #000 10%, #000 90%, transparent);mask-image:linear-gradient(to right, transparent, #000 10%, #000 90%, transparent)}
 .track{display:flex;width:max-content}
-.track ul{display:flex;gap:10px;margin:0;padding:18px 5px;list-style:none}
-.track li{padding:7px 14px;border:1px solid var(--border-strong);border-radius:999px;font:500 13px/1.2 var(--font-mono);color:var(--foreground);white-space:nowrap}
-.layers{display:grid;gap:0;margin:0;border:1px solid var(--border);border-radius:14px;overflow:hidden}
-.layers div{display:grid;grid-template-columns:150px minmax(0, 1fr);gap:16px;padding:16px 20px;background:var(--card);border-top:1px solid var(--border)}
-.layers div:first-child{border-top:0}
-.layers dt{font:500 12px/1.7 var(--font-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--subtle-foreground)}
-.layers dd{margin:0;font-size:14.5px;color:var(--foreground)}
-@media (max-width: 560px){.layers div{grid-template-columns:minmax(0, 1fr);gap:4px}}
+.track ul{display:flex;gap:10px;margin:0;padding:5px;list-style:none}
+.track li{padding:12px 22px;border:1px solid var(--border-strong);border-radius:999px;font:500 clamp(15px, 1.6vw, 20px)/1.2 var(--font-sans);color:var(--foreground);white-space:nowrap}
+.track li.a{background:var(--accent);border-color:var(--accent);color:var(--accent-foreground)}
+.layers{display:grid;margin:clamp(40px, 6vw, 80px) 0 0;border-top:1px solid var(--border-strong)}
+.layers div{display:grid;grid-template-columns:minmax(0, .4fr) minmax(0, 1fr);gap:20px;padding:22px 0;border-bottom:1px solid var(--border-strong);transition:padding .28s}
+.layers dt{font-size:clamp(20px, 2.2vw, 28px);letter-spacing:-.025em;font-weight:600;color:var(--foreground-strong)}
+.layers dd{margin:0;font-size:16px;color:var(--muted-foreground);align-self:center}
+.layers div:hover dt{color:var(--accent)}
+@media (max-width: 640px){.layers div{grid-template-columns:minmax(0, 1fr);gap:4px}}
 
-/* Código aberto */
-.oss{display:grid;grid-template-columns:minmax(0, 1fr) minmax(0, 1fr);gap:clamp(24px, 4vw, 56px);align-items:start}
-@media (max-width: 900px){.oss{grid-template-columns:minmax(0, 1fr)}}
-.contrib{margin:28px 0 0;padding:0;list-style:none;display:grid;gap:14px;counter-reset:c}
-.contrib li{display:grid;grid-template-columns:28px minmax(0, 1fr);gap:14px;font-size:15px;color:var(--foreground);counter-increment:c}
-.contrib li::before{content:counter(c);display:grid;place-items:center;width:28px;height:28px;border:1px solid var(--border-strong);border-radius:50%;font:500 12px/1 var(--font-mono);color:var(--foreground-strong)}
-.contrib li span{color:var(--muted-foreground);display:block;font-size:14px}
-.terminal{border:1px solid var(--border-strong);border-radius:14px;background:var(--background);overflow:hidden}
-.terminal-bar{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--border);background:var(--shell);font:500 12px var(--font-mono);color:var(--subtle-foreground)}
+/* Código aberto: o painel em cor cheia */
+.oss-panel{border-radius:clamp(24px, 3vw, 40px);background:var(--accent);color:var(--accent-foreground);padding:clamp(28px, 5vw, 72px);overflow:hidden}
+.oss{display:grid;grid-template-columns:minmax(0, 1fr) minmax(0, .9fr);gap:clamp(32px, 5vw, 72px);align-items:end}
+@media (max-width: 960px){.oss{grid-template-columns:minmax(0, 1fr)}}
+.oss-panel .eyebrow{color:rgb(10 10 10 / .72)}
+.oss-panel .eyebrow span{background:var(--accent-foreground);color:var(--accent)}
+.oss-panel h2{color:var(--accent-foreground);font-size:clamp(40px, 6.4vw, 92px);max-width:9ch}
+.oss-panel h2 em{display:block;color:var(--accent-foreground)}
+.oss-panel .lede{margin-top:24px;color:rgb(10 10 10 / .78);max-width:48ch}
+.oss-panel :focus-visible{outline-color:var(--accent-foreground)}
+.contrib{margin:32px 0 0;padding:0;list-style:none;display:grid;counter-reset:c;border-top:1px solid rgb(10 10 10 / .25)}
+.contrib li{display:grid;grid-template-columns:36px minmax(0, 1fr);gap:8px;padding:14px 0;border-bottom:1px solid rgb(10 10 10 / .25);font-size:17px;font-weight:600;letter-spacing:-.01em;counter-increment:c}
+.contrib li::before{content:"0" counter(c);font:500 13px/1.9 var(--font-mono)}
+.contrib li span{display:block;font-size:14.5px;font-weight:400;letter-spacing:0;color:rgb(10 10 10 / .74)}
+.contrib code{background:rgb(10 10 10 / .1);padding:1px 6px;border-radius:5px}
+.terminal{border-radius:20px;background:var(--shell);color:var(--foreground);overflow:hidden;box-shadow:0 30px 60px -20px rgb(0 0 0 / .45)}
+.terminal-bar{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--border);font:500 12px var(--font-mono);color:var(--subtle-foreground)}
 .terminal-bar i{width:10px;height:10px;border-radius:50%;background:var(--border-strong)}
+.terminal-bar i:first-child{background:var(--accent)}
 .terminal-bar span{margin-left:6px}
-.copy{appearance:none;margin-left:auto;display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border:1px solid var(--border-strong);border-radius:6px;background:transparent;color:var(--foreground);font:500 12px/1 var(--font-sans);cursor:pointer}
-.copy:hover{background:var(--muted)}
+.copy{appearance:none;margin-left:auto;display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border:1px solid var(--border-strong);border-radius:999px;background:transparent;color:var(--foreground);font:500 12px/1 var(--font-sans);cursor:pointer}
+.copy:hover{border-color:var(--accent);color:var(--accent)}
+.copy:focus-visible{outline-color:var(--accent)}
 .copy svg{width:13px;height:13px}
-.terminal pre{margin:0;padding:18px;overflow-x:auto;font:400 13px/1.8 var(--font-mono);color:var(--foreground)}
+.terminal pre{margin:0;padding:22px;white-space:pre-wrap;overflow-wrap:anywhere;font:400 13.5px/1.9 var(--font-mono);color:var(--foreground)}
 .terminal pre .c{color:var(--subtle-foreground)}
-.terminal pre .p{color:var(--subtle-foreground);user-select:none}
-.doc-links{display:grid;grid-template-columns:repeat(auto-fit, minmax(min(100%, 250px), 1fr));gap:12px;margin-top:clamp(36px, 5vw, 56px)}
-.doc-link{display:block;padding:18px 20px;border:1px solid var(--border);border-radius:12px;background:var(--card);text-decoration:none;transition:border-color .12s, background-color .12s}
-.doc-link:hover{border-color:var(--border-strong);background:var(--muted)}
-.doc-link b{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:15px;font-weight:600;color:var(--foreground-strong)}
-.doc-link b svg{width:15px;height:15px;color:var(--subtle-foreground)}
-.doc-link span{display:block;margin-top:4px;font-size:13.5px;color:var(--muted-foreground)}
+.terminal pre .p{color:var(--accent);user-select:none}
+.doc-links{margin-top:clamp(40px, 6vw, 80px);border-top:1px solid var(--border-strong)}
+.doc-link{display:grid;grid-template-columns:minmax(0, 1fr) minmax(0, 1fr) 44px;gap:16px;align-items:center;padding:clamp(18px, 2.4vw, 30px) 0;border-bottom:1px solid var(--border-strong);text-decoration:none}
+.doc-link b{font-size:clamp(24px, 3.4vw, 44px);line-height:1.05;letter-spacing:-.035em;font-weight:600;color:var(--foreground-strong);transition:color .18s, transform .45s cubic-bezier(.2,.7,.2,1)}
+.doc-link span{font-size:15px;color:var(--muted-foreground)}
+.doc-link i{display:grid;place-items:center;width:44px;height:44px;border:1px solid var(--border-strong);border-radius:50%;color:var(--foreground-strong);transition:background-color .18s, border-color .18s, color .18s, transform .45s cubic-bezier(.2,.7,.2,1)}
+.doc-link i svg{width:18px;height:18px}
+.doc-link:hover b{color:var(--accent);transform:translateX(10px)}
+.doc-link:hover i{background:var(--accent);border-color:var(--accent);color:var(--accent-foreground);transform:rotate(45deg)}
+@media (max-width: 720px){.doc-link{grid-template-columns:minmax(0, 1fr) 44px}.doc-link span{grid-column:1;grid-row:2}.doc-link i{grid-row:1 / span 2}}
 
 /* Fecho */
-.closing{background:var(--background);text-align:center}
-.closing h2{max-width:20ch;margin-inline:auto;font-size:clamp(32px, 5vw, 56px)}
-.closing .lede{margin-inline:auto}
+.closing{overflow:hidden;text-align:center;border-top:1px solid var(--border-strong)}
+.closing .wrap{display:flex;flex-direction:column;align-items:center;padding-top:clamp(80px, 11vw, 168px)}
+.closing h2{max-width:12ch}
+.closing .lede{margin-top:24px}
 .closing .actions{justify-content:center}
-footer{padding-block:32px 40px;font-size:13px;color:var(--subtle-foreground)}
+.wordmark{display:flex;justify-content:center;margin-top:clamp(48px, 7vw, 96px);font-size:min(31vw, 420px);font-weight:600;line-height:.78;letter-spacing:-.07em;color:var(--foreground-strong);overflow:hidden;padding-top:.06em;margin-bottom:-.03em;user-select:none}
+.wordmark span{display:inline-block}
+.wordmark span:first-child{color:var(--accent)}
+footer{position:relative;padding-block:28px 36px;border-top:1px solid var(--border-strong);background:var(--shell);font-size:13px;color:var(--subtle-foreground)}
 footer .wrap{display:flex;flex-wrap:wrap;gap:12px 28px;align-items:center;justify-content:space-between}
 footer p{max-width:70ch}
+
+/* A capa só aparece depois de as animações estarem prontas. */
+.pending [data-hero]{visibility:hidden}
 </style>
 </head>
 <body>
 
-<header class="topbar">
-  <div class="wrap">
+<div class="progress" id="progress" aria-hidden="true"></div>
+
+<header class="topbar" id="topbar">
+  <div class="topbar-in">
     <a class="brand" href="#topo"><span class="logo" aria-hidden="true">A</span>Atrium</a>
     <nav class="nav" aria-label="Seções">
       <a href="#como-responde">Como responde</a>
@@ -257,7 +349,7 @@ footer p{max-width:70ch}
       <a href="#telas">Telas</a>
       <a href="#codigo-aberto">Código aberto</a>
     </nav>
-    <a class="btn" href="https://github.com/Tiodevs/AI-Chat" rel="noopener">
+    <a class="btn btn-accent" href="https://github.com/Tiodevs/AI-Chat" rel="noopener">
       <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.52-1.33-1.28-1.69-1.28-1.69-1.05-.71.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.29 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.78 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.8 1.19 1.83 1.19 3.09 0 4.42-2.69 5.4-5.25 5.68.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .5Z"/></svg>
       GitHub
     </a>
@@ -268,28 +360,27 @@ footer p{max-width:70ch}
 
 <!-- Capa -->
 <section class="hero">
+  <div class="hero-bg" aria-hidden="true"><div class="orb orb-a"></div><div class="orb orb-b"></div></div>
   <div class="wrap">
-    <div class="hero-copy">
-      <a class="pill" href="#codigo-aberto" data-hero><span class="dot" aria-hidden="true"></span>Código aberto · licença MIT</a>
-      <h1 data-hero>IA de atendimento que mostra a fonte <span class="dim">e sabe quando não responder.</span></h1>
-      <p class="lede" data-hero>O Atrium responde visitantes de um hospital usando só o que o hospital publicou. Cada resposta traz a fonte, perguntas médicas são recusadas e, quando a informação não existe, ele diz que não encontrou.</p>
-      <div class="actions" data-hero>
-        <a class="btn btn-primary btn-lg" href="https://github.com/Tiodevs/AI-Chat" rel="noopener">
-          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.52-1.33-1.28-1.69-1.28-1.69-1.05-.71.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.29 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.78 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.8 1.19 1.83 1.19 3.09 0 4.42-2.69 5.4-5.25 5.68.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .5Z"/></svg>
-          Ver o código no GitHub
-        </a>
-        <a class="btn btn-lg" href="https://atrium-gold.vercel.app" rel="noopener">
-          Abrir a demonstração
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7M8 7h9v9"/></svg>
-        </a>
-      </div>
-      <ul class="meta" data-hero>
-        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5L20 7"/></svg>FastAPI + LangGraph</li>
-        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5L20 7"/></svg>React 19 + GSAP</li>
-        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5L20 7"/></svg>Postgres + pgvector</li>
-        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5L20 7"/></svg>LGPD por design</li>
-      </ul>
+    <a class="pill" href="#codigo-aberto" data-hero><span class="dot" aria-hidden="true"></span>Código aberto · licença MIT</a>
+    <h1 id="title" data-hero>IA de atendimento que <em>mostra a fonte</em> <span class="dim">e sabe quando não responder.</span></h1>
+    <p class="lede" data-hero>O Atrium responde visitantes de um hospital usando só o que o hospital publicou. Cada resposta traz a fonte, perguntas médicas são recusadas e, quando a informação não existe, ele diz que não encontrou.</p>
+    <div class="actions" data-hero>
+      <a class="btn btn-accent btn-lg magnetic" href="https://github.com/Tiodevs/AI-Chat" rel="noopener">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.52-1.33-1.28-1.69-1.28-1.69-1.05-.71.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.29 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.78 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.8 1.19 1.83 1.19 3.09 0 4.42-2.69 5.4-5.25 5.68.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .5Z"/></svg>
+        Ver o código no GitHub
+      </a>
+      <a class="btn btn-lg magnetic" href="https://atrium-gold.vercel.app" rel="noopener">
+        Abrir a demonstração
+        <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7M8 7h9v9"/></svg>
+      </a>
     </div>
+    <ul class="meta" data-hero>
+      <li>FastAPI + LangGraph</li>
+      <li>React 19 + GSAP</li>
+      <li>Postgres + pgvector</li>
+      <li>LGPD por design</li>
+    </ul>
 
     <div class="demo" data-hero id="demo">
       <div class="tabs" role="tablist" aria-label="Três situações de uma conversa">
@@ -297,52 +388,65 @@ footer p{max-width:70ch}
         <button class="tab" role="tab" type="button" aria-selected="false" aria-controls="demo-panel">Recusa orientação médica</button>
         <button class="tab" role="tab" type="button" aria-selected="false" aria-controls="demo-panel">Admite que não sabe</button>
       </div>
-      <div class="window" id="demo-panel" role="tabpanel">
-        <div class="window-bar"><span class="logo" aria-hidden="true">A</span><span>Atrium</span><span>Harborlight General Hospital</span></div>
-        <div class="thread">
-          <div class="user-row">
-            <div class="bubble" data-el="bubble">Onde posso estacionar?</div>
-            <div class="privacy-note" data-el="note" hidden></div>
+      <div class="stage">
+        <div class="window" id="demo-panel" role="tabpanel">
+          <div class="window-bar"><span class="logo" aria-hidden="true">A</span><span>Atrium</span><span>Harborlight General Hospital</span></div>
+          <div class="thread">
+            <div class="user-row">
+              <div class="bubble" data-el="bubble">Onde posso estacionar?</div>
+              <div class="privacy-note" data-el="note" hidden></div>
+            </div>
+            <div class="answer-area">
+              <div class="waiting" data-el="wait" aria-hidden="true" style="visibility:hidden"><i></i><i></i><i></i>Preparando a resposta</div>
+              <p class="answer" data-el="answer">Você pode estacionar na Garagem da Harbor Street<span class="cite">2</span>. Há também serviço de manobrista na entrada principal, disponível das 06:00 às 20:00<span class="cite">2</span>. Os primeiros 30 minutos na garagem são gratuitos<span class="cite">2</span>.</p>
+              <span class="badge" data-el="badge" data-tone="success">Respondida</span>
+              <div class="source" data-el="source"><b>2. Estacionamento</b><small>Fonte: documento publicado pelo hospital</small></div>
+            </div>
           </div>
-          <div class="answer-area">
-            <div class="waiting" data-el="wait" aria-hidden="true" style="visibility:hidden"><i></i><i></i><i></i>Preparando a resposta</div>
-            <p class="answer" data-el="answer">Você pode estacionar na Garagem da Harbor Street<span class="cite">2</span>. Há também serviço de manobrista na entrada principal, disponível das 06:00 às 20:00<span class="cite">2</span>. Os primeiros 30 minutos na garagem são gratuitos<span class="cite">2</span>.</p>
-            <span class="badge" data-el="badge" data-tone="success">Respondida</span>
-            <div class="source" data-el="source"><b>2. Estacionamento</b><small>Fonte: documento publicado pelo hospital</small></div>
+          <div class="composer" aria-hidden="true">
+            <div class="field"><span class="typed" data-el="typed"></span><span class="ph">Pergunte sobre visita, caminhos ou horários</span><span class="send" data-el="send">Enviar</span></div>
+            <p class="hint">Não envie sintomas nem nomes de medicamentos. O Atrium não dá orientação médica.</p>
           </div>
-        </div>
-        <div class="composer" aria-hidden="true">
-          <div class="field"><span class="typed" data-el="typed"></span><span class="ph">Pergunte sobre visita, caminhos ou horários</span><span class="send" data-el="send">Enviar</span></div>
-          <p class="hint">Não envie sintomas nem nomes de medicamentos. O Atrium não dá orientação médica.</p>
         </div>
       </div>
     </div>
   </div>
 </section>
 
+<!-- Faixa gigante -->
+<div class="band" aria-hidden="true">
+  <div class="band-track" id="band">
+    <ul>
+      <li>Código aberto</li><li class="x"></li><li class="o">Respostas com fonte</li><li class="x"></li><li class="s">sem orientação médica</li><li class="x"></li><li>LGPD por design</li><li class="x"></li><li class="o">Licença MIT</li><li class="x"></li><li class="s">sem resposta inventada</li><li class="x"></li>
+    </ul>
+  </div>
+</div>
+
 <!-- Como responde -->
 <section id="como-responde">
   <div class="wrap pad">
-    <div class="head">
-      <p class="eyebrow" data-reveal>Como responde</p>
-      <h2 data-reveal>A IA é a porta de entrada, mas não trabalha solta.</h2>
+    <header class="head">
+      <div>
+        <p class="eyebrow" data-reveal><span>01</span>Como responde</p>
+        <h2 data-split>A IA é a porta de entrada, mas <em>não trabalha solta.</em></h2>
+      </div>
       <p class="lede" data-reveal>Muita gente procura um hospital com dúvidas simples: horário de visita, onde estacionar, por qual entrada chegar. O Atrium responde na hora, em português, e toda conversa termina em um de três caminhos.</p>
-    </div>
+    </header>
     <div class="grid-3">
-      <article class="card" data-reveal>
-        <span class="badge" data-tone="success">Respondida</span>
+      <article class="out spot" data-tone="success" data-reveal>
+        <div class="out-top"><span class="badge">Respondida</span><span class="out-n">01</span></div>
         <h3>Responde só com o que foi publicado</h3>
         <p>A resposta sai dos documentos do hospital, e cada afirmação aponta a fonte. Citações e telefones são conferidos contra o texto recuperado antes de a resposta valer.</p>
         <p class="quote">“Os primeiros 30 minutos na garagem são gratuitos <span class="cite">2</span>.”</p>
       </article>
-      <article class="card" data-reveal>
-        <span class="badge" data-tone="danger">Orientação médica recusada</span>
+      <article class="out spot" data-tone="danger" data-reveal>
+        <div class="out-top"><span class="badge">Orientação médica recusada</span><span class="out-n">02</span></div>
         <h3>Não dá orientação médica</h3>
         <p>Perguntas sobre sintomas, diagnóstico ou remédios recebem uma recusa fixa, com o caminho da emergência. A mensagem da pessoa não é guardada.</p>
         <p class="quote">“Não posso ajudar com sintomas, diagnóstico ou medicamento.”</p>
       </article>
-      <article class="card" data-reveal>
-        <span class="badge" data-tone="warning">Não está nas informações publicadas</span>
+      <article class="out spot" data-tone="warning" data-reveal>
+        <div class="out-top"><span class="badge">Não está nas informações publicadas</span><span class="out-n">03</span></div>
         <h3>Não inventa</h3>
         <p>Se nada nos documentos sustenta uma resposta, o Atrium diz que não encontrou e indica o telefone da central, em vez de arriscar um palpite.</p>
         <p class="quote">“Não encontrei isso nas informações publicadas do Harborlight.”</p>
@@ -352,34 +456,36 @@ footer p{max-width:70ch}
 </section>
 
 <!-- Compromissos -->
-<section id="compromissos" class="alt">
-  <div class="wrap pad">
-    <div class="head">
-      <p class="eyebrow" data-reveal>Os quatro compromissos</p>
-      <h2 data-reveal>Um produto de IA para o público, feito com responsabilidade.</h2>
-      <p class="lede" data-reveal>O hospital é inventado. A engenharia ao redor dele tem forma de produção, e serve de referência para quem quer construir algo parecido.</p>
-    </div>
-    <div class="grid-4">
-      <article class="card" data-reveal>
-        <div class="icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3M5 10a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2zM9 13v2M15 13v2M2 13v2M22 13v2"/></svg></div>
+<section id="compromissos">
+  <div class="wrap pad" style="padding-top:0">
+    <p class="statement" id="statement">O hospital é inventado. A engenharia ao redor dele tem forma de produção, e serve de referência para quem quer construir algo parecido.</p>
+    <header class="head">
+      <div>
+        <p class="eyebrow" data-reveal><span>02</span>Os quatro compromissos</p>
+        <h2 data-split>Um produto de IA para o público, feito com <em>responsabilidade.</em></h2>
+      </div>
+    </header>
+    <div class="bento">
+      <article class="com spot" data-reveal>
+        <div class="com-top"><div class="icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3M5 10a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2zM9 13v2M15 13v2M2 13v2M22 13v2"/></svg></div><span class="com-n">01</span></div>
         <h3>IA primeiro</h3>
         <p>A conversa é a interface principal.</p>
         <ul><li>Respostas transmitidas em tempo real</li><li>Cadastro por conversa guiada</li><li>Formulário comum sempre disponível</li></ul>
       </article>
-      <article class="card" data-reveal>
-        <div class="icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 6v6c0 4.5 3.2 7.6 8 9 4.800-1.4 8-4.5 8-9V6z"/><path d="m9 12 2 2 4-4"/></svg></div>
+      <article class="com spot" data-reveal>
+        <div class="com-top"><div class="icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 6v6c0 4.5 3.2 7.6 8 9 4.8-1.4 8-4.5 8-9V6z"/><path d="m9 12 2 2 4-4"/></svg></div><span class="com-n">02</span></div>
         <h3>Segurança</h3>
         <p>Proteção em camadas, da borda ao modelo.</p>
         <ul><li>Defesa contra instruções escondidas</li><li>Limites de uso e sessões seguras</li><li>Orçamento diário de tokens</li></ul>
       </article>
-      <article class="card" data-reveal>
-        <div class="icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v16M7 20h10M5 8h14M5 8l-3 6a3 3 0 0 0 6 0zM19 8l-3 6a3 3 0 0 0 6 0z"/></svg></div>
+      <article class="com spot" data-reveal>
+        <div class="com-top"><div class="icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v16M7 20h10M5 8h14M5 8l-3 6a3 3 0 0 0 6 0zM19 8l-3 6a3 3 0 0 0 6 0z"/></svg></div><span class="com-n">03</span></div>
         <h3>Ética</h3>
         <p>A pessoa sempre sabe que fala com uma IA.</p>
         <ul><li>Nada de diagnóstico</li><li>Nada de resposta inventada</li><li>Nenhuma decisão importante pelo modelo</li></ul>
       </article>
-      <article class="card" data-reveal>
-        <div class="icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></div>
+      <article class="com spot" data-reveal>
+        <div class="com-top"><div class="icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></div><span class="com-n">04</span></div>
         <h3>Privacidade</h3>
         <p>LGPD desde o desenho.</p>
         <ul><li>Coleta mínima e consentimento por finalidade</li><li>Retenção com prazo</li><li>Exportação e exclusão pelo titular</li></ul>
@@ -390,13 +496,13 @@ footer p{max-width:70ch}
 
 <!-- Por dentro -->
 <section id="por-dentro">
-  <div class="wrap pad">
+  <div class="wrap pad" style="padding-top:0">
     <div class="flow">
-      <div class="head">
-        <p class="eyebrow" data-reveal>Por dentro</p>
-        <h2 data-reveal>O caminho de uma pergunta até a resposta com fonte.</h2>
+      <div class="flow-head">
+        <p class="eyebrow" data-reveal><span>03</span>Por dentro</p>
+        <h2 data-split>O caminho de uma pergunta até a <em>resposta com fonte.</em></h2>
         <p class="lede" data-reveal>Cada passo tem uma saída segura. O modelo só escreve depois que a pergunta passou pelo portão e a busca achou contexto, e o que ele escreve ainda é conferido.</p>
-        <p class="lede" data-reveal style="font-size:14.5px"><a href="https://github.com/Tiodevs/AI-Chat/blob/main/docs/guia/04-pergunta-de-ponta-a-ponta.md" rel="noopener">Ler o passo a passo no guia do código</a></p>
+        <p class="lede" data-reveal><a href="https://github.com/Tiodevs/AI-Chat/blob/main/docs/guia/04-pergunta-de-ponta-a-ponta.md" rel="noopener">Ler o passo a passo no guia do código</a></p>
       </div>
       <ol class="steps" id="steps">
         <li class="rail" aria-hidden="true"><i></i></li>
@@ -412,12 +518,14 @@ footer p{max-width:70ch}
 </section>
 
 <!-- Telas -->
-<section id="telas" class="alt">
-  <div class="wrap pad">
-    <div class="head">
-      <p class="eyebrow" data-reveal>Telas</p>
-      <h2 data-reveal>O produto inteiro, do visitante à operação.</h2>
-    </div>
+<section id="telas">
+  <div class="wrap pad" style="padding-top:0">
+    <header class="head">
+      <div>
+        <p class="eyebrow" data-reveal><span>04</span>Telas</p>
+        <h2 data-split>O produto inteiro, do visitante <em>à operação.</em></h2>
+      </div>
+    </header>
     <div class="screens" data-reveal>
       <div class="screen-list" role="tablist" aria-label="Telas do Atrium">
         <button class="screen-btn" role="tab" type="button" aria-selected="true" data-src="conversa.png" data-alt="Conversa no Atrium: o visitante pergunta onde estacionar e recebe uma resposta com a fonte citada"><b>Conversa</b><span>A resposta chega em tempo real, com a fonte de cada afirmação.</span></button>
@@ -428,7 +536,7 @@ footer p{max-width:70ch}
         <button class="screen-btn" role="tab" type="button" aria-selected="false" data-src="admin-qualidade.png" data-alt="Inspetor de qualidade com conversas pseudonimizadas"><b>Qualidade</b><span>Conversas pseudonimizadas, só de quem consentiu, para a equipe revisar.</span></button>
         <button class="screen-btn" role="tab" type="button" aria-selected="false" data-src="mobile-conversa.png" data-contain data-alt="Conversa no celular"><b>No celular</b><span>A mesma experiência onde muitos visitantes fazem a pergunta.</span></button>
       </div>
-      <div>
+      <div class="frame-wrap">
         <div class="frame" id="frame"><img id="shot" src="../assets/screenshots/conversa.png" width="2160" height="1350" alt="Conversa no Atrium: o visitante pergunta onde estacionar e recebe uma resposta com a fonte citada"></div>
         <p class="frame-caption" id="shot-caption">A resposta chega em tempo real, com a fonte de cada afirmação.</p>
       </div>
@@ -438,103 +546,113 @@ footer p{max-width:70ch}
 
 <!-- Números -->
 <section id="numeros">
-  <div class="wrap pad">
-    <div class="head">
-      <p class="eyebrow" data-reveal>Qualidade em números</p>
-      <h2 data-reveal>Testado como produção, documentado como aula.</h2>
+  <div class="wrap pad" style="padding-top:0">
+    <header class="head">
+      <div>
+        <p class="eyebrow" data-reveal><span>05</span>Qualidade em números</p>
+        <h2 data-split>Testado como produção, <em>documentado como aula.</em></h2>
+      </div>
       <p class="lede" data-reveal>Os testes automáticos nunca chamam o modelo de verdade: usam provedores falsos e determinísticos. A qualidade das respostas é medida à parte, com um conjunto de avaliação.</p>
-    </div>
-    <dl class="stats" id="stats" data-reveal>
-      <div><dd data-count="372">372</dd><dt>testes na API, com Pytest</dt></div>
-      <div><dd data-count="129">129</dd><dt>testes no frontend, com Vitest</dt></div>
-      <div><dd data-count="54">54</dd><dt>histórias no Storybook</dt></div>
-      <div><dd data-count="14">14</dd><dt>decisões de arquitetura escritas (ADRs)</dt></div>
-      <div><dd data-count="12">12</dd><dt>documentos no corpus fictício</dt></div>
-      <div><dd data-count="11">11</dd><dt>casos de avaliação das respostas</dt></div>
+    </header>
+    <dl class="stats" id="stats">
+      <div data-reveal><dd data-count="372">372</dd><dt>testes na API, com Pytest</dt></div>
+      <div data-reveal><dd data-count="129">129</dd><dt>testes no frontend, com Vitest</dt></div>
+      <div data-reveal><dd data-count="54">54</dd><dt>histórias no Storybook</dt></div>
+      <div data-reveal><dd data-count="14">14</dd><dt>decisões de arquitetura escritas (ADRs)</dt></div>
+      <div data-reveal><dd data-count="12">12</dd><dt>documentos no corpus fictício</dt></div>
+      <div data-reveal><dd data-count="11">11</dd><dt>casos de avaliação das respostas</dt></div>
     </dl>
     <p class="fine">Contagem feita no código em 2026-11-08.</p>
   </div>
 </section>
 
 <!-- Stack -->
-<section id="stack" class="alt">
-  <div class="wrap pad" style="padding-bottom:clamp(32px, 4vw, 48px)">
-    <div class="head" style="margin-bottom:0">
-      <p class="eyebrow" data-reveal>Stack</p>
-      <h2 data-reveal>Ferramentas conhecidas, em camadas bem separadas.</h2>
-    </div>
+<section id="stack">
+  <div class="wrap">
+    <header class="head">
+      <div>
+        <p class="eyebrow" data-reveal><span>06</span>Stack</p>
+        <h2 data-split>Ferramentas conhecidas, em <em>camadas bem separadas.</em></h2>
+      </div>
+    </header>
   </div>
   <div class="marquee" aria-hidden="true">
-    <div class="track" id="track">
-      <ul>
-        <li>React 19</li><li>TypeScript</li><li>Vite</li><li>Tailwind CSS 4</li><li>shadcn/ui</li><li>GSAP</li><li>Python 3.12</li><li>FastAPI</li><li>Pydantic</li><li>SQLAlchemy 2</li><li>LangChain</li><li>LangGraph</li><li>Gemini</li><li>PostgreSQL</li><li>pgvector</li><li>Pytest</li><li>Vitest</li><li>Playwright</li><li>Storybook</li><li>OpenTelemetry</li><li>Prometheus</li><li>Grafana</li><li>LangSmith</li><li>GitHub Actions</li><li>Vercel</li><li>Railway</li>
-      </ul>
+    <div class="track" data-track="1">
+      <ul><li>React 19</li><li class="a">TypeScript</li><li>Vite</li><li>Tailwind CSS 4</li><li>shadcn/ui</li><li class="a">GSAP</li><li>Python 3.12</li><li>FastAPI</li><li>Pydantic</li><li class="a">SQLAlchemy 2</li><li>LangChain</li><li>LangGraph</li><li>Gemini</li></ul>
+    </div>
+    <div class="track" data-track="-1">
+      <ul><li>PostgreSQL</li><li class="a">pgvector</li><li>Pytest</li><li>Vitest</li><li>Playwright</li><li class="a">Storybook</li><li>OpenTelemetry</li><li>Prometheus</li><li>Grafana</li><li class="a">LangSmith</li><li>GitHub Actions</li><li>Vercel</li><li>Railway</li></ul>
     </div>
   </div>
-  <div class="wrap pad" style="padding-top:clamp(32px, 4vw, 48px)">
-    <dl class="layers" data-reveal>
-      <div><dt>Frontend</dt><dd>React 19, TypeScript, Vite, Tailwind CSS 4, shadcn/ui sobre Radix, TanStack Query, React Router e GSAP</dd></div>
-      <div><dt>API</dt><dd>Python 3.12, FastAPI, Pydantic, SQLAlchemy 2 assíncrono com asyncpg e Alembic</dd></div>
-      <div><dt>IA</dt><dd>LangChain nas perguntas, LangGraph no cadastro e Gemini atrás de portas próprias</dd></div>
-      <div><dt>Dados</dt><dd>PostgreSQL com pgvector, busca híbrida vetorial e por texto completo</dd></div>
-      <div><dt>Testes</dt><dd>Pytest, Vitest, Testing Library, Playwright, axe e Storybook</dd></div>
-      <div><dt>Observabilidade</dt><dd>structlog, OpenTelemetry, Prometheus, Grafana e LangSmith</dd></div>
-      <div><dt>Entrega</dt><dd>GitHub Actions, Vercel no frontend e Railway na API, no banco e no monitoramento</dd></div>
+  <div class="wrap pad" style="padding-top:0">
+    <dl class="layers">
+      <div data-reveal><dt>Frontend</dt><dd>React 19, TypeScript, Vite, Tailwind CSS 4, shadcn/ui sobre Radix, TanStack Query, React Router e GSAP</dd></div>
+      <div data-reveal><dt>API</dt><dd>Python 3.12, FastAPI, Pydantic, SQLAlchemy 2 assíncrono com asyncpg e Alembic</dd></div>
+      <div data-reveal><dt>IA</dt><dd>LangChain nas perguntas, LangGraph no cadastro e Gemini atrás de portas próprias</dd></div>
+      <div data-reveal><dt>Dados</dt><dd>PostgreSQL com pgvector, busca híbrida vetorial e por texto completo</dd></div>
+      <div data-reveal><dt>Testes</dt><dd>Pytest, Vitest, Testing Library, Playwright, axe e Storybook</dd></div>
+      <div data-reveal><dt>Observabilidade</dt><dd>structlog, OpenTelemetry, Prometheus, Grafana e LangSmith</dd></div>
+      <div data-reveal><dt>Entrega</dt><dd>GitHub Actions, Vercel no frontend e Railway na API, no banco e no monitoramento</dd></div>
     </dl>
   </div>
 </section>
 
 <!-- Código aberto -->
 <section id="codigo-aberto">
-  <div class="wrap pad">
-    <div class="oss">
-      <div>
-        <p class="eyebrow" data-reveal>Código aberto</p>
-        <h2 data-reveal>Leia, rode, mude. É seu também.</h2>
-        <p class="lede" data-reveal>O Atrium é distribuído sob a licença MIT: você pode usar, copiar, modificar e distribuir o código, mantendo o aviso de copyright. A especificação, as decisões e o plano de construção estão no mesmo repositório.</p>
-        <ol class="contrib">
-          <li data-reveal><div>Leia o guia de contribuição<span>Como propor uma mudança e como documentar.</span></div></li>
-          <li data-reveal><div>Ache ou abra uma issue<span>Correções, testes, acessibilidade, documentação, avaliações ou ideias de produto.</span></div></li>
-          <li data-reveal><div>Abra a PR<span>Branch <code>tipo/assunto-curto</code>, commits atômicos e a seção da especificação atualizada quando o comportamento mudar.</span></div></li>
-        </ol>
-        <div class="actions" data-reveal>
-          <a class="btn btn-primary" href="https://github.com/Tiodevs/AI-Chat/blob/main/CONTRIBUTING.md" rel="noopener">Guia de contribuição</a>
-          <a class="btn" href="https://github.com/Tiodevs/AI-Chat/issues" rel="noopener">Ver as issues</a>
-          <a class="btn" href="https://github.com/Tiodevs/AI-Chat/blob/main/LICENSE" rel="noopener">Licença MIT</a>
+  <div class="wrap pad" style="padding-top:0">
+    <div class="oss-panel" id="oss-panel">
+      <div class="oss">
+        <div>
+          <p class="eyebrow"><span>07</span>Código aberto</p>
+          <h2 data-split>Leia, rode, mude. <em>É seu também.</em></h2>
+          <p class="lede" data-reveal>O Atrium é distribuído sob a licença MIT: você pode usar, copiar, modificar e distribuir o código, mantendo o aviso de copyright. A especificação, as decisões e o plano de construção estão no mesmo repositório.</p>
+          <div class="actions" data-reveal>
+            <a class="btn btn-dark magnetic" href="https://github.com/Tiodevs/AI-Chat/blob/main/CONTRIBUTING.md" rel="noopener">Guia de contribuição</a>
+            <a class="btn btn-ink" href="https://github.com/Tiodevs/AI-Chat/issues" rel="noopener">Ver as issues</a>
+            <a class="btn btn-ink" href="https://github.com/Tiodevs/AI-Chat/blob/main/LICENSE" rel="noopener">Licença MIT</a>
+          </div>
         </div>
-      </div>
-      <div class="terminal" data-reveal>
-        <div class="terminal-bar"><i></i><i></i><i></i><span>rodar localmente</span>
-          <button class="copy" type="button" id="copy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg><span id="copy-label">Copiar</span></button>
-        </div>
+        <div>
+          <div class="terminal" data-reveal>
+            <div class="terminal-bar"><i></i><i></i><i></i><span>rodar localmente</span>
+              <button class="copy" type="button" id="copy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg><span id="copy-label">Copiar</span></button>
+            </div>
 <pre id="cmd"><span class="c"># tudo em Docker: banco, API, frontend e monitoramento</span>
 <span class="p">$ </span>git clone https://github.com/Tiodevs/AI-Chat.git
 <span class="p">$ </span>cd AI-Chat
 <span class="c"># sem chave do Gemini, o adaptador demo responde por regras</span>
 <span class="p">$ </span>echo "APP_AI_ADAPTER=demo" > .env
 <span class="p">$ </span>docker compose up --build</pre>
+          </div>
+          <ol class="contrib">
+            <li data-reveal><div>Leia o guia de contribuição<span>Como propor uma mudança e como documentar.</span></div></li>
+            <li data-reveal><div>Ache ou abra uma issue<span>Correções, testes, acessibilidade, documentação, avaliações ou ideias de produto.</span></div></li>
+            <li data-reveal><div>Abra a PR<span>Branch <code>tipo/assunto-curto</code>, commits atômicos e a seção da especificação atualizada quando o comportamento mudar.</span></div></li>
+          </ol>
+        </div>
       </div>
     </div>
 
     <div class="doc-links">
-      <a class="doc-link" data-reveal href="https://github.com/Tiodevs/AI-Chat/blob/main/docs/sdd.md" rel="noopener"><b>Especificação (SDD)<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7M8 7h9v9"/></svg></b><span>O que o sistema faz e por quê. Vem antes do código.</span></a>
-      <a class="doc-link" data-reveal href="https://github.com/Tiodevs/AI-Chat/blob/main/docs/guia/README.md" rel="noopener"><b>Guia do código<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7M8 7h9v9"/></svg></b><span>Uma trilha de estudo em 14 partes, arquivo por arquivo.</span></a>
-      <a class="doc-link" data-reveal href="https://github.com/Tiodevs/AI-Chat/blob/main/docs/engenharia/README.md" rel="noopener"><b>Engenharia do Atrium<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7M8 7h9v9"/></svg></b><span>Onde cada peça roda, a CI, a entrega e a observabilidade.</span></a>
-      <a class="doc-link" data-reveal href="https://github.com/Tiodevs/AI-Chat/blob/main/docs/plano-de-acao.md" rel="noopener"><b>Plano de ação<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7M8 7h9v9"/></svg></b><span>As etapas, os critérios de aceite e o que falta fazer.</span></a>
+      <a class="doc-link" data-reveal href="https://github.com/Tiodevs/AI-Chat/blob/main/docs/sdd.md" rel="noopener"><b>Especificação (SDD)</b><span>O que o sistema faz e por quê. Vem antes do código.</span><i aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M8 7h9v9"/></svg></i></a>
+      <a class="doc-link" data-reveal href="https://github.com/Tiodevs/AI-Chat/blob/main/docs/guia/README.md" rel="noopener"><b>Guia do código</b><span>Uma trilha de estudo em 14 partes, arquivo por arquivo.</span><i aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M8 7h9v9"/></svg></i></a>
+      <a class="doc-link" data-reveal href="https://github.com/Tiodevs/AI-Chat/blob/main/docs/engenharia/README.md" rel="noopener"><b>Engenharia do Atrium</b><span>Onde cada peça roda, a CI, a entrega e a observabilidade.</span><i aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M8 7h9v9"/></svg></i></a>
+      <a class="doc-link" data-reveal href="https://github.com/Tiodevs/AI-Chat/blob/main/docs/plano-de-acao.md" rel="noopener"><b>Plano de ação</b><span>As etapas, os critérios de aceite e o que falta fazer.</span><i aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M8 7h9v9"/></svg></i></a>
     </div>
   </div>
 </section>
 
 <!-- Fecho -->
 <section class="closing">
-  <div class="wrap pad">
-    <h2 data-reveal>IA no atendimento pode ser útil, segura e honesta.</h2>
+  <div class="wrap">
+    <h2 data-split>IA no atendimento pode ser útil, segura e <em>honesta.</em></h2>
     <p class="lede" data-reveal>Veja como cada regra desta página vira código, teste e documento.</p>
     <div class="actions" data-reveal>
-      <a class="btn btn-primary btn-lg" href="https://github.com/Tiodevs/AI-Chat" rel="noopener">Ver o código no GitHub</a>
-      <a class="btn btn-lg" href="https://atrium-gold.vercel.app" rel="noopener">Abrir a demonstração</a>
+      <a class="btn btn-accent btn-lg magnetic" href="https://github.com/Tiodevs/AI-Chat" rel="noopener">Ver o código no GitHub</a>
+      <a class="btn btn-lg magnetic" href="https://atrium-gold.vercel.app" rel="noopener">Abrir a demonstração <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7M8 7h9v9"/></svg></a>
     </div>
   </div>
+  <div class="wordmark" id="wordmark" aria-hidden="true"><span>A</span><span>t</span><span>r</span><span>i</span><span>u</span><span>m</span></div>
 </section>
 
 </main>
@@ -548,22 +666,26 @@ footer p{max-width:70ch}
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.13.0/gsap.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.13.0/ScrollTrigger.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.13.0/SplitText.min.js"></script>
 <script>
 (function () {
   "use strict";
 
   /* Os tokens de movimento da seção 16.2 do SDD, os mesmos de
-     apps/web/src/motion/tokens.ts. A página só acrescenta `reveal`, um
-     deslocamento maior para blocos que entram com a rolagem. */
+     apps/web/src/motion/tokens.ts, usados na janela do produto. `display`
+     é só desta página: os movimentos largos de título e de rolagem. */
   var motion = {
     duration: { instant: 0.12, fast: 0.18, base: 0.28, slow: 0.45, chart: 0.8 },
     ease: { enter: "power2.out", exit: "power2.in", move: "power3.inOut", confirm: "back.out(2)" },
     stagger: { list: 0.05 },
-    distance: { enter: 8, reveal: 16 }
+    distance: { enter: 8 },
+    display: { duration: 1, ease: "power4.out", stagger: 0.09, distance: 28 }
   };
 
   var hasGsap = typeof window.gsap !== "undefined" && typeof window.ScrollTrigger !== "undefined";
+  var hasSplit = typeof window.SplitText !== "undefined";
   var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var finePointer = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
   /* Sem GSAP (CDN fora do ar) ou com movimento reduzido, a página fica
      estática e completa: nenhum estado escondido depende de script. */
   var animate = hasGsap && !reduce;
@@ -667,7 +789,7 @@ footer p{max-width:70ch}
         ease: "none",
         onUpdate: function () { el.typed.textContent = s.question.slice(0, Math.round(typing.n)); }
       }, 0.4)
-      .to(el.send, { scale: 0.92, duration: motion.duration.instant, ease: motion.ease.enter, yoyo: true, repeat: 1 }, "+=0.25")
+      .to(el.send, { scale: 0.9, duration: motion.duration.instant, ease: motion.ease.enter, yoyo: true, repeat: 1 }, "+=0.25")
       .add(function () { el.typed.textContent = ""; })
       .fromTo(el.bubble, { autoAlpha: 0, y: motion.distance.enter }, { autoAlpha: 1, y: 0, duration: motion.duration.base, ease: motion.ease.enter })
       .to(el.note, { autoAlpha: 1, duration: motion.duration.base, ease: motion.ease.enter }, "<0.1")
@@ -705,10 +827,10 @@ footer p{max-width:70ch}
     if (!animate) { swap(); return; }
     gsap.killTweensOf(shot);
     gsap.to(shot, {
-      autoAlpha: 0, duration: motion.duration.fast, ease: motion.ease.exit,
+      autoAlpha: 0, scale: 0.985, duration: motion.duration.fast, ease: motion.ease.exit,
       onComplete: function () {
         shot.onload = function () {
-          gsap.fromTo(shot, { autoAlpha: 0, scale: 1.015 }, { autoAlpha: 1, scale: 1, duration: motion.duration.slow, ease: motion.ease.enter, clearProps: "transform" });
+          gsap.fromTo(shot, { autoAlpha: 0, scale: 1.03 }, { autoAlpha: 1, scale: 1, duration: 0.7, ease: motion.display.ease, clearProps: "transform" });
         };
         swap();
       }
@@ -729,13 +851,25 @@ footer p{max-width:70ch}
       .join("\n");
     function done(ok) {
       copyLabel.textContent = ok ? "Copiado" : "Não foi possível copiar";
-      if (animate) gsap.fromTo(copyBtn, { scale: 0.94 }, { scale: 1, duration: motion.duration.base, ease: motion.ease.confirm, clearProps: "transform" });
+      if (animate) gsap.fromTo(copyBtn, { scale: 0.92 }, { scale: 1, duration: motion.duration.base, ease: motion.ease.confirm, clearProps: "transform" });
       setTimeout(function () { copyLabel.textContent = "Copiar"; }, 2000);
     }
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(text).then(function () { done(true); }, function () { done(false); });
     } else { done(false); }
   });
+
+  /* ---------- A luz que segue o cursor nos cartões ---------- */
+
+  if (finePointer) {
+    $$(".spot").forEach(function (card) {
+      card.addEventListener("pointermove", function (event) {
+        var box = card.getBoundingClientRect();
+        card.style.setProperty("--mx", (event.clientX - box.left) + "px");
+        card.style.setProperty("--my", (event.clientY - box.top) + "px");
+      });
+    });
+  }
 
   /* ---------- Sem animação: estado final e fim ---------- */
 
@@ -744,73 +878,187 @@ footer p{max-width:70ch}
   /* ---------- Com GSAP ---------- */
 
   gsap.registerPlugin(ScrollTrigger);
+  if (hasSplit) gsap.registerPlugin(SplitText);
   gsap.defaults({ duration: motion.duration.base, ease: motion.ease.enter });
-  document.documentElement.classList.add("gs");
+  var root = document.documentElement;
+  root.classList.add("gs", "pending");
 
-  /* Entrada da capa: uma timeline, sem encadear delay. */
-  gsap.timeline()
-    .from($$(".hero-copy [data-hero]"), {
-      autoAlpha: 0, y: motion.distance.reveal, duration: motion.duration.slow,
-      stagger: 0.08, clearProps: "all"
-    }, 0.1)
-    .from(demo, { autoAlpha: 0, y: 24, duration: 0.7, clearProps: "all" }, 0.35)
-    .add(function () { play(0); }, 0.6);
-
-  /* A demonstração pausa fora da tela. */
-  ScrollTrigger.create({
-    trigger: demo, start: "top bottom", end: "bottom top",
-    onToggle: function (self) {
-      demoVisible = self.isActive;
-      if (demoTl) { if (demoVisible) demoTl.play(); else demoTl.pause(); }
+  /* Um título dividido em linhas, cada uma subindo de trás de uma máscara.
+     Sem o SplitText, o título entra inteiro. */
+  function riseLines(target, vars) {
+    if (!hasSplit) {
+      return gsap.from(target, Object.assign({ autoAlpha: 0, y: motion.display.distance, duration: motion.display.duration, ease: motion.display.ease }, vars));
     }
-  });
+    var split = SplitText.create(target, { type: "lines", mask: "lines", linesClass: "line" });
+    return gsap.from(split.lines, Object.assign({
+      yPercent: 115, duration: motion.display.duration, ease: motion.display.ease, stagger: motion.display.stagger,
+      /* No fim, o título volta a ser texto corrido e quebra com a tela. */
+      onComplete: function () { split.revert(); }
+    }, vars));
+  }
 
-  /* Blocos que entram com a rolagem, em lotes para o stagger valer por linha. */
-  var reveals = $$("[data-reveal]");
-  gsap.set(reveals, { autoAlpha: 0, y: motion.distance.reveal });
-  ScrollTrigger.batch(reveals, {
-    start: "top 88%", once: true,
-    onEnter: function (batch) {
-      gsap.to(batch, { autoAlpha: 1, y: 0, duration: motion.duration.slow, stagger: motion.stagger.list * 1.6, overwrite: true, clearProps: "all" });
+  function start() {
+    /* Entrada da capa: uma timeline, sem encadear delay. */
+    var heroRest = $$(".hero [data-hero]").filter(function (node) { return node.id !== "title" && node !== demo; });
+    var intro = gsap.timeline();
+    intro
+      .add(riseLines("#title"), 0.1)
+      .from(heroRest, { autoAlpha: 0, y: motion.display.distance, duration: 0.8, ease: motion.display.ease, stagger: 0.08, clearProps: "all" }, 0.35)
+      .from(demo, { autoAlpha: 0, y: 60, duration: 1.1, ease: motion.display.ease, clearProps: "opacity,visibility" }, 0.6)
+      .from("#topbar", { autoAlpha: 0, yPercent: -120, duration: 0.8, ease: motion.display.ease }, 0.4)
+      .add(function () { play(0); }, 1);
+    root.classList.remove("pending");
+
+    /* As luzes da capa flutuam devagar. */
+    gsap.to(".orb-a", { xPercent: 14, yPercent: 10, scale: 1.12, duration: 9, ease: "sine.inOut", repeat: -1, yoyo: true });
+    gsap.to(".orb-b", { xPercent: -18, yPercent: -12, scale: 0.9, duration: 11, ease: "sine.inOut", repeat: -1, yoyo: true });
+
+    /* A janela começa inclinada e assenta conforme a rolagem. */
+    gsap.fromTo("#demo-panel", { rotateX: 18, scale: 0.92 }, {
+      rotateX: 0, scale: 1, ease: "none",
+      scrollTrigger: { trigger: demo, start: "top 92%", end: "top 30%", scrub: 0.6 }
+    });
+
+    /* A demonstração pausa fora da tela. */
+    ScrollTrigger.create({
+      trigger: demo, start: "top bottom", end: "bottom top",
+      onToggle: function (self) {
+        demoVisible = self.isActive;
+        if (demoTl) { if (demoVisible) demoTl.play(); else demoTl.pause(); }
+      }
+    });
+
+    /* Barra de progresso e navegação que some ao descer e volta ao subir. */
+    gsap.to("#progress", { scaleX: 1, ease: "none", scrollTrigger: { start: 0, end: "max", scrub: 0.3 } });
+    var topbar = $("#topbar");
+    var topbarHidden = false;
+    function setTopbar(hidden) {
+      if (hidden === topbarHidden) return;
+      topbarHidden = hidden;
+      gsap.to(topbar, { yPercent: hidden ? -180 : 0, duration: motion.duration.slow, ease: motion.ease.move, overwrite: true });
     }
-  });
+    ScrollTrigger.create({
+      start: 200, end: "max",
+      onUpdate: function (self) { setTopbar(self.direction === 1); },
+      onLeaveBack: function () { setTopbar(false); }
+    });
+    topbar.addEventListener("focusin", function () { setTopbar(false); });
 
-  /* O caminho da pergunta: o trilho enche com a rolagem e cada passo acende. */
-  var steps = $("#steps");
-  gsap.to($(".rail i", steps), {
-    scaleY: 1, ease: "none",
-    scrollTrigger: { trigger: steps, start: "top 70%", end: "bottom 62%", scrub: 0.4 }
-  });
-  $$(".step", steps).forEach(function (step) {
-    ScrollTrigger.create({ trigger: step, start: "top 70%", end: "max", toggleClass: { targets: step, className: "is-on" } });
-  });
+    /* Faixa gigante: anda sempre, e inverte com o sentido da rolagem. */
+    var band = $("#band");
+    band.appendChild(band.firstElementChild.cloneNode(true));
+    var bandTween = gsap.to(band, { xPercent: -50, duration: 36, ease: "none", repeat: -1 });
+    bandTween.totalTime(bandTween.duration() * 200);
+    ScrollTrigger.create({
+      start: 0, end: "max",
+      onUpdate: function (self) { gsap.to(bandTween, { timeScale: self.direction === 1 ? 1 : -1, duration: 0.5, overwrite: true }); }
+    });
 
-  /* Os números contam uma vez, na duração de revelação de gráfico. */
-  ScrollTrigger.create({
-    trigger: "#stats", start: "top 85%", once: true,
-    onEnter: function () {
-      $$("[data-count]").forEach(function (node, i) {
-        var target = Number(node.getAttribute("data-count"));
-        var counter = { v: 0 };
-        gsap.to(counter, {
-          v: target, duration: motion.duration.chart * 1.5, delay: i * motion.stagger.list, ease: motion.ease.enter,
-          onUpdate: function () { node.textContent = String(Math.round(counter.v)); }
+    /* Títulos das seções. */
+    $$("h2[data-split]").forEach(function (title) {
+      riseLines(title, { scrollTrigger: { trigger: title, start: "top 88%", once: true } });
+    });
+
+    /* Blocos que entram com a rolagem, em lotes para o stagger valer por linha. */
+    var reveals = $$("[data-reveal]");
+    gsap.set(reveals, { autoAlpha: 0, y: motion.display.distance });
+    ScrollTrigger.batch(reveals, {
+      start: "top 90%", once: true,
+      onEnter: function (batch) {
+        gsap.to(batch, { autoAlpha: 1, y: 0, duration: 0.9, ease: motion.display.ease, stagger: motion.display.stagger, overwrite: true, clearProps: "all" });
+      }
+    });
+
+    /* A declaração: cada palavra acende conforme a rolagem. */
+    var statement = $("#statement");
+    var text = statement.textContent;
+    statement.setAttribute("aria-label", text);
+    statement.textContent = "";
+    text.split(" ").forEach(function (word, i) {
+      if (i) statement.appendChild(document.createTextNode(" "));
+      var span = document.createElement("span");
+      span.className = "mw";
+      span.setAttribute("aria-hidden", "true");
+      span.textContent = word;
+      statement.appendChild(span);
+    });
+    gsap.fromTo($$(".mw", statement), { opacity: 0.16 }, {
+      opacity: 1, ease: "none", stagger: 0.1,
+      scrollTrigger: { trigger: statement, start: "top 82%", end: "bottom 45%", scrub: 0.4 }
+    });
+
+    /* O caminho da pergunta: o trilho enche com a rolagem e cada passo acende. */
+    var steps = $("#steps");
+    gsap.to($(".rail i", steps), {
+      scaleY: 1, ease: "none",
+      scrollTrigger: { trigger: steps, start: "top 68%", end: "bottom 60%", scrub: 0.4 }
+    });
+    $$(".step", steps).forEach(function (step) {
+      ScrollTrigger.create({ trigger: step, start: "top 68%", end: "max", toggleClass: { targets: step, className: "is-on" } });
+    });
+
+    /* A moldura das telas sobe um pouco mais devagar que a página. */
+    gsap.fromTo("#frame", { yPercent: 6 }, { yPercent: -4, ease: "none", scrollTrigger: { trigger: "#frame", start: "top bottom", end: "bottom top", scrub: 0.6 } });
+
+    /* Os números contam uma vez. */
+    ScrollTrigger.create({
+      trigger: "#stats", start: "top 85%", once: true,
+      onEnter: function () {
+        $$("[data-count]").forEach(function (node, i) {
+          var target = Number(node.getAttribute("data-count"));
+          var counter = { v: 0 };
+          gsap.to(counter, {
+            v: target, duration: 1.6, delay: i * 0.08, ease: motion.display.ease,
+            onUpdate: function () { node.textContent = String(Math.round(counter.v)); }
+          });
         });
+      }
+    });
+
+    /* As duas faixas da stack andam em sentidos opostos. */
+    $$("[data-track]").forEach(function (track) {
+      var dir = Number(track.getAttribute("data-track"));
+      track.appendChild(track.firstElementChild.cloneNode(true));
+      var tween = gsap.fromTo(track, { xPercent: dir === 1 ? 0 : -50 }, { xPercent: dir === 1 ? -50 : 0, duration: 42, ease: "none", repeat: -1 });
+      ScrollTrigger.create({
+        trigger: track, start: "top bottom", end: "bottom top",
+        onToggle: function (self) { if (self.isActive) tween.play(); else tween.pause(); }
+      });
+    });
+
+    /* O painel de código aberto cresce até a largura cheia. */
+    gsap.fromTo("#oss-panel", { scale: 0.9 }, { scale: 1, ease: "none", scrollTrigger: { trigger: "#oss-panel", start: "top 95%", end: "top 45%", scrub: 0.5 } });
+
+    /* A marca do fecho sobe letra por letra. */
+    gsap.from($$("#wordmark span"), {
+      yPercent: 105, duration: 1.2, ease: motion.display.ease, stagger: 0.07,
+      scrollTrigger: { trigger: "#wordmark", start: "top 92%", once: true }
+    });
+
+    /* Botões que puxam para o cursor. */
+    if (finePointer) {
+      $$(".magnetic").forEach(function (button) {
+        var toX = gsap.quickTo(button, "x", { duration: 0.4, ease: "power3.out" });
+        var toY = gsap.quickTo(button, "y", { duration: 0.4, ease: "power3.out" });
+        button.addEventListener("pointermove", function (event) {
+          var box = button.getBoundingClientRect();
+          toX((event.clientX - box.left - box.width / 2) * 0.28);
+          toY((event.clientY - box.top - box.height / 2) * 0.38);
+        });
+        button.addEventListener("pointerleave", function () { toX(0); toY(0); });
       });
     }
-  });
 
-  /* A faixa da stack: a lista é duplicada e anda meia largura, em laço. */
-  var track = $("#track");
-  track.appendChild(track.firstElementChild.cloneNode(true));
-  var marquee = gsap.to(track, { xPercent: -50, duration: 48, ease: "none", repeat: -1 });
-  ScrollTrigger.create({
-    trigger: track, start: "top bottom", end: "bottom top",
-    onToggle: function (self) { if (self.isActive) marquee.play(); else marquee.pause(); }
-  });
+    /* Fontes e imagens mudam alturas depois do carregamento. */
+    window.addEventListener("load", function () { ScrollTrigger.refresh(); });
+  }
 
-  /* Fontes e imagens mudam alturas depois do carregamento. */
-  window.addEventListener("load", function () { ScrollTrigger.refresh(); });
+  /* As linhas dos títulos dependem da fonte final. Espera por ela, mas não
+     por mais de 1,5 s. */
+  var started = false;
+  function startOnce() { if (!started) { started = true; start(); } }
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(startOnce);
+  setTimeout(startOnce, 1500);
 })();
 </script>
 </body>
