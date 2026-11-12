@@ -76,3 +76,17 @@ export async function requireAdmin(args: LoaderFunctionArgs) {
   }
   return me
 }
+
+/**
+ * Exige sessão, aceite em dia e o papel da equipe: `attendant` ou `admin`
+ * (seção 29.3). Um membro recebe a página 403 da moldura.
+ *
+ * @throws `Response` 403 para quem não é da equipe.
+ */
+export async function requireStaff(args: LoaderFunctionArgs) {
+  const me = await requireUser(args)
+  if (me.role !== "attendant" && me.role !== "admin") {
+    throw new Response(null, { status: 403 })
+  }
+  return me
+}

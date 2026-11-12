@@ -26,6 +26,11 @@
 export type ServerEvent = {
   event: string
   data: string
+  /**
+   * O campo `id:` do bloco, quando há. Os fluxos do atendimento humano o
+   * mandam em cada `message`, como `{handoff_id}:{seq}` (seção 29.6).
+   */
+  id?: string
 }
 
 /**
@@ -142,8 +147,8 @@ export function postEventStream(
  *
  * Linhas que começam com `:` são comentários, como o `: keepalive`. Cada
  * linha se divide no primeiro `:`, e um espaço logo depois dele sai do
- * valor. Várias linhas `data` se juntam com quebra de linha. Campos que a
- * API não usa, como `id` e `retry`, ficam de fora.
+ * valor. Várias linhas `data` se juntam com quebra de linha. O `id` vai no
+ * evento, para a retomada do atendimento (seção 29.6); `retry` fica de fora.
  *
  * @returns O evento, ou `null` quando o bloco não tem `data`, como um bloco
  *   só de comentário.
@@ -152,6 +157,7 @@ function parseFrame(frame: string): ServerEvent | null {
   let event = "message"
   const data: string[] = []
   let sawData = false
+  let id: string | null = null
   for (const line of frame.split("\n")) {
     if (line === "" || line.startsWith(":")) {
       continue
@@ -167,10 +173,151 @@ function parseFrame(frame: string): ServerEvent | null {
     } else if (field === "data") {
       data.push(value)
       sawData = true
+    } else if (field === "id") {
+      id = value
     }
   }
   if (!sawData) {
     return null
   }
-  return { event, data: data.join("\n") }
+  const parsed: ServerEvent = { event, data: data.join("\n") }
+  if (id !== null) {
+    parsed.id = id
+  }
+  return parsed
+}
+
+/** Estado da conexão de um fluxo longo, para a tela mostrar Reconectando. */
+export type StreamState = "open" | "reconnecting" | "closed"
+
+/**
+ * Espera entre tentativas depois de uma queda: 1, 2, 4 e até 10 segundos.
+ * Depois do evento `reconnect`, o fluxo volta na hora (seção 29.6).
+ */
+const retryDelaysMs = [1000, 2000, 4000, 10000]
+
+/**
+ * Depois de 5 segundos sem fluxo aberto, a tela mostra "Reconectando…"
+ * (seção 29.11).
+ */
+const reconnectingAfterMs = 5000
+
+/**
+ * Abre um fluxo `GET` longo e o mantém vivo, com retomada pelo
+ * `Last-Event-ID`. Serve aos fluxos do atendimento humano (seção 29.6):
+ * `GET /v1/conversations/{id}/handoff/events` e `GET /v1/attendance/events`.
+ *
+ * 1. Faz o `GET` com `Last-Event-ID`, quando já viu um `id:`.
+ * 2. Entrega cada evento a `onEvent` e guarda o último `id`.
+ * 3. No evento `reconnect`, que o servidor manda aos 10 minutos, abre de
+ *    novo na hora. Numa queda, tenta de novo com espera crescente.
+ * 4. Um 401, 403 ou 404, o evento `error` ou `stop()` encerram de vez.
+ *
+ * `onState` recebe `reconnecting` só depois de 5 segundos sem fluxo, para
+ * uma reconexão rápida não piscar na tela.
+ *
+ * @returns `stop`, que fecha o fluxo e cancela as tentativas.
+ */
+export function openEventStream({
+  url,
+  onEvent,
+  onState,
+  lastEventId = null,
+}: {
+  url: string
+  onEvent: (event: ServerEvent) => void
+  onState?: (state: StreamState) => void
+  lastEventId?: string | null
+}): { stop: () => void } {
+  let stopped = false
+  let controller: AbortController | null = null
+  let lastId = lastEventId
+  let warnTimer: ReturnType<typeof setTimeout> | null = null
+
+  function warnLater() {
+    if (warnTimer === null) {
+      warnTimer = setTimeout(() => {
+        onState?.("reconnecting")
+      }, reconnectingAfterMs)
+    }
+  }
+
+  function clearWarning() {
+    if (warnTimer !== null) {
+      clearTimeout(warnTimer)
+      warnTimer = null
+    }
+  }
+
+  async function run() {
+    let attempt = 0
+    while (!stopped) {
+      const current = new AbortController()
+      controller = current
+      let ended: "reconnect" | "drop" | "final" = "drop"
+      try {
+        // 1.
+        const headers: Record<string, string> = {
+          accept: "text/event-stream",
+        }
+        if (lastId) {
+          headers["Last-Event-ID"] = lastId
+        }
+        const response = await fetch(url, {
+          method: "GET",
+          credentials: "include",
+          headers,
+          signal: current.signal,
+        })
+        if ([401, 403, 404].includes(response.status)) {
+          ended = "final"
+        } else if (response.ok && response.body) {
+          clearWarning()
+          onState?.("open")
+          attempt = 0
+          // 2.
+          for await (const event of readEventStream(response.body)) {
+            if (event.id) {
+              lastId = event.id
+            }
+            onEvent(event)
+            if (event.event === "reconnect") {
+              ended = "reconnect"
+              break
+            }
+            if (event.event === "error") {
+              ended = "final"
+              break
+            }
+          }
+        }
+      } catch {
+        // Queda de rede ou `stop()`: o laço decide abaixo.
+      }
+      current.abort()
+      if (stopped || ended === "final") {
+        break
+      }
+      // 3.
+      warnLater()
+      if (ended === "drop") {
+        const delay =
+          retryDelaysMs[Math.min(attempt, retryDelaysMs.length - 1)] ?? 10000
+        attempt += 1
+        await new Promise((resolve) => setTimeout(resolve, delay))
+      }
+    }
+    // 4.
+    clearWarning()
+    onState?.("closed")
+  }
+
+  void run()
+  return {
+    stop() {
+      stopped = true
+      controller?.abort()
+      clearWarning()
+    },
+  }
 }

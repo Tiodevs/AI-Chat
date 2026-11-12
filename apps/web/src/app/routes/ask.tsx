@@ -11,11 +11,14 @@ import { useParams } from "react-router"
 
 import { ConversationScreen } from "@/features/ask/conversation-screen.tsx"
 import { useAskConversation } from "@/features/ask/useAskConversation.ts"
+import { useHandoff } from "@/features/ask/useHandoff.ts"
 
 /** Passa à tela o estado da conversa e as ações de perguntar e parar. */
 export function Component() {
   const { id } = useParams()
   const ask = useAskConversation(id)
+  // O atendimento humano da conversa (seção 29.11). Sem id, não faz nada.
+  const handoff = useHandoff(id)
   return (
     <ConversationScreen
       messages={ask.messages}
@@ -30,6 +33,7 @@ export function Component() {
       onAsk={ask.ask}
       onStop={ask.stop}
       onFeedback={ask.feedback}
+      handoff={id ? handoff : undefined}
     />
   )
 }

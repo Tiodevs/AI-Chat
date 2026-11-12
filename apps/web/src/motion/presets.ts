@@ -682,8 +682,37 @@ export function moveSegments(target: gsap.TweenTarget, reduced: boolean) {
  * `presets.enterRoute(...)`, e o teste percorre a lista inteira com
  * movimento reduzido.
  */
+/**
+ * Atendimento humano (seção 29.11): o `HandoffStatusBar` ao mudar de estado
+ * e um item novo da `QueueList` entram como a troca de rota, com
+ * `autoAlpha` e `y` de 8 a 0 em `duration.base`, e vários itens com
+ * `stagger.list`. Com movimento reduzido, aparecem direto.
+ */
+export function enterHandoffStatus(
+  target: gsap.TweenTarget,
+  reduced: boolean
+) {
+  enter(
+    target,
+    reduced,
+    { autoAlpha: 0, y: motionTokens.distance.enter },
+    { autoAlpha: 1, y: 0 }
+  )
+}
+
+/** A mensagem da equipe ao chegar usa o preset do M5 (seção 29.11). */
+export function enterAttendantMessage(
+  target: gsap.TweenTarget,
+  reduced: boolean
+) {
+  enterUserMessage(target, reduced)
+}
+
 export const presets = {
   enterRoute,
+  enterHandoffStatus,
+  enterQueueItem: enterHandoffStatus,
+  enterAttendantMessage,
   showSidebarLabels,
   moveSidebar,
   enterPresence,

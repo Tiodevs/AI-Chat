@@ -41,6 +41,9 @@ export const pt = {
     documents: "Documentos",
     quality: "Qualidade",
     privacyRequests: "Pedidos de titular",
+    attendance: "Fila e atendimentos",
+    attendanceCommitment: "Compromisso de confidencialidade",
+    adminAttendance: "Atendimentos encerrados",
   },
   // Navegação (seção 15.4): grupos e itens da barra lateral e da busca ⌘K
   // (`app/navigation.ts`), as ações do `GuestHeader`, os links Conta e
@@ -64,6 +67,9 @@ export const pt = {
     documents: "Documentos",
     quality: "Qualidade",
     privacyRequests: "Pedidos de privacidade",
+    attendanceGroup: "Atendimento",
+    attendanceQueue: "Fila e atendimentos",
+    attendanceClosed: "Atendimentos encerrados",
   },
   // A barra lateral (`AppSidebar` e `sidebar-body.tsx`), o menu do
   // visitante (`GuestHeader`) e a busca (`SearchDialog`).
@@ -389,7 +395,8 @@ export const pt = {
       personalizationNote:
         "Tipo de visitante e motivo da visita podem indicar que você é paciente. Opcional.",
       quality: "Usar minhas conversas para melhorar o assistente",
-      qualityNote: "Opcional. Sem isso, suas conversas não entram na avaliação.",
+      qualityNote:
+        "Opcional. Sem isso, suas conversas não entram na avaliação.",
       grantedOn: "Aceito em {date}",
       off: "Desligado",
       version: "Versão {version}",
@@ -437,15 +444,47 @@ export const pt = {
         title: "Que dados tratamos e por quê",
         columns: ["Dado", "Finalidade", "Base legal"],
         rows: [
-          ["Nome, e-mail e senha (guardada como hash)", "Ter uma conta e entrar", "Execução de contrato"],
+          [
+            "Nome, e-mail e senha (guardada como hash)",
+            "Ter uma conta e entrar",
+            "Execução de contrato",
+          ],
           ["Telefone, opcional", "Contato do perfil", "Execução de contrato"],
-          ["Tipo de visitante e motivo da visita, opcionais", "Personalizar respostas públicas", "Consentimento específico e destacado"],
-          ["Conversas de membro", "Guardar o histórico que você pediu", "Execução de contrato"],
-          ["Conversas de convidado", "Responder à pergunta feita", "Pedido do titular"],
-          ["Conversas usadas para melhoria", "Avaliar e melhorar o assistente", "Consentimento"],
-          ["Rastros de IA mascarados", "Qualidade e diagnóstico", "Legítimo interesse"],
-          ["HMAC do IP e navegador", "Segurança e limite de pedidos", "Legítimo interesse"],
-          ["Registros de consentimento", "Provar o seu consentimento", "Cumprimento de obrigação"],
+          [
+            "Tipo de visitante e motivo da visita, opcionais",
+            "Personalizar respostas públicas",
+            "Consentimento específico e destacado",
+          ],
+          [
+            "Conversas de membro",
+            "Guardar o histórico que você pediu",
+            "Execução de contrato",
+          ],
+          [
+            "Conversas de convidado",
+            "Responder à pergunta feita",
+            "Pedido do titular",
+          ],
+          [
+            "Conversas usadas para melhoria",
+            "Avaliar e melhorar o assistente",
+            "Consentimento",
+          ],
+          [
+            "Rastros de IA mascarados",
+            "Qualidade e diagnóstico",
+            "Legítimo interesse",
+          ],
+          [
+            "HMAC do IP e navegador",
+            "Segurança e limite de pedidos",
+            "Legítimo interesse",
+          ],
+          [
+            "Registros de consentimento",
+            "Provar o seu consentimento",
+            "Cumprimento de obrigação",
+          ],
         ],
       },
       health: {
@@ -461,20 +500,45 @@ export const pt = {
         lead: "Estes operadores tratam dados fora do Brasil, com as cláusulas contratuais de cada provedor (art. 33 da LGPD).",
         columns: ["Operador", "País", "Finalidade"],
         rows: [
-          ["Railway", "Estados Unidos", "Hospedagem da API, do banco de dados e da tarefa de retenção"],
-          ["Vercel", "Estados Unidos", "Entrega do site e encaminhamento dos pedidos para a API"],
-          ["Google (API Gemini)", "Estados Unidos", "Classificar e responder perguntas e entender o cadastro por conversa"],
-          ["LangChain (LangSmith)", "Estados Unidos", "Rastros de IA mascarados, para qualidade e diagnóstico"],
+          [
+            "Railway",
+            "Estados Unidos",
+            "Hospedagem da API, do banco de dados e da tarefa de retenção",
+          ],
+          [
+            "Vercel",
+            "Estados Unidos",
+            "Entrega do site e encaminhamento dos pedidos para a API",
+          ],
+          [
+            "Google (API Gemini)",
+            "Estados Unidos",
+            "Classificar e responder perguntas e entender o cadastro por conversa",
+          ],
+          [
+            "LangChain (LangSmith)",
+            "Estados Unidos",
+            "Rastros de IA mascarados, para qualidade e diagnóstico",
+          ],
         ],
       },
       retention: {
         title: "Por quanto tempo guardamos",
         columns: ["Dado", "Prazo"],
         rows: [
-          ["Conta e perfil", "Até você excluir a conta, ou 24 meses sem entrar"],
-          ["Conversas de membro", "12 meses depois da última mensagem, ou até a exclusão da conta"],
+          [
+            "Conta e perfil",
+            "Até você excluir a conta, ou 24 meses sem entrar",
+          ],
+          [
+            "Conversas de membro",
+            "12 meses depois da última mensagem, ou até a exclusão da conta",
+          ],
           ["Conversas de convidado", "30 dias"],
-          ["Sessão de cadastro", "Apagada na conclusão, no abandono ou em 24 horas"],
+          [
+            "Sessão de cadastro",
+            "Apagada na conclusão, no abandono ou em 24 horas",
+          ],
           ["Sessões de entrada", "14 dias depois de expirar ou de você sair"],
           ["Limites de pedidos", "48 horas"],
           ["Registros de consentimento", "Enquanto a conta existir"],
@@ -496,8 +560,16 @@ export const pt = {
         lead: "Usamos só cookies estritamente necessários. Não há cookie de análise nem de publicidade, por isso não há banner de cookies.",
         columns: ["Cookie", "Para que serve", "Duração"],
         rows: [
-          ["atrium_session", "Manter você conectado à conta", "14 dias, ou até você sair"],
-          ["atrium_guest", "Manter a conversa de convidado depois de recarregar a página", "30 dias"],
+          [
+            "atrium_session",
+            "Manter você conectado à conta",
+            "14 dias, ou até você sair",
+          ],
+          [
+            "atrium_guest",
+            "Manter a conversa de convidado depois de recarregar a página",
+            "30 dias",
+          ],
         ],
         storage:
           "A preferência de movimento fica no armazenamento local do navegador e não sai dele.",
@@ -593,9 +665,7 @@ export const pt = {
       {
         id: "privacidade",
         title: "Privacidade",
-        body: [
-          "O tratamento dos seus dados está no Aviso de Privacidade.",
-        ],
+        body: ["O tratamento dos seus dados está no Aviso de Privacidade."],
       },
       {
         id: "mudancas",
@@ -723,7 +793,8 @@ export const pt = {
     },
     inspector: {
       title: "Conversa {pseudonym}",
-      description: "Identidade pseudonimizada. Abrir esta conversa ficou registrado na auditoria.",
+      description:
+        "Identidade pseudonimizada. Abrir esta conversa ficou registrado na auditoria.",
       loading: "Carregando a conversa",
       user: "Pergunta",
       assistant: "Resposta",
@@ -742,7 +813,8 @@ export const pt = {
     reveal: {
       action: "Revelar identidade",
       title: "Revelar a identidade do membro",
-      description: "Use só quando houver motivo, como um pedido do titular. O motivo fica gravado na auditoria.",
+      description:
+        "Use só quando houver motivo, como um pedido do titular. O motivo fica gravado na auditoria.",
       reason: "Motivo",
       reasonHint: "De 10 a 500 caracteres.",
       reasonInvalid: "Explique o motivo em 10 a 500 caracteres.",
@@ -795,7 +867,8 @@ export const pt = {
       failed: "Falhou",
       archived: "Arquivado",
     },
-    processingNote: "A versão {version} está em processamento. A versão ativa continua respondendo.",
+    processingNote:
+      "A versão {version} está em processamento. A versão ativa continua respondendo.",
     failedNote: "A versão {version} falhou: {error}",
     actions: {
       replace: "Substituir",
@@ -803,7 +876,8 @@ export const pt = {
       retrying: "Tentando…",
       archive: "Arquivar",
       archiveTitle: "Arquivar “{title}”?",
-      archiveBody: "O documento sai das respostas do assistente na hora. Ele continua na lista como arquivado.",
+      archiveBody:
+        "O documento sai das respostas do assistente na hora. Ele continua na lista como arquivado.",
       archiveConfirm: "Arquivar documento",
       cancel: "Cancelar",
       archived: "“{title}” foi arquivado.",
@@ -811,7 +885,8 @@ export const pt = {
     },
     replace: {
       title: "Substituir documento",
-      description: "Envie a nova versão de “{title}”. A versão ativa continua respondendo até a nova ficar pronta.",
+      description:
+        "Envie a nova versão de “{title}”. A versão ativa continua respondendo até a nova ficar pronta.",
       submit: "Enviar nova versão",
       submitting: "Enviando…",
       sent: "Nova versão de “{title}” enviada. A ingestão começou.",
@@ -858,7 +933,8 @@ export const pt = {
     },
     detail: {
       title: "Pedido de {type}",
-      description: "Responda ao titular pelo e-mail de contato. Cada mudança de status fica registrada na auditoria.",
+      description:
+        "Responda ao titular pelo e-mail de contato. Cada mudança de status fica registrada na auditoria.",
       contact: "Contato",
       receivedAt: "Recebido em",
       closedAt: "Fechado em",
@@ -868,8 +944,10 @@ export const pt = {
       request: "O que a pessoa pediu",
       statusLabel: "Status",
       note: "Nota de resolução",
-      noteHint: "Até 2.000 caracteres. Obrigatória para concluir ou recusar. Não inclua dados de saúde.",
-      noteRequired: "Escreva a nota de resolução para concluir ou recusar o pedido.",
+      noteHint:
+        "Até 2.000 caracteres. Obrigatória para concluir ou recusar. Não inclua dados de saúde.",
+      noteRequired:
+        "Escreva a nota de resolução para concluir ou recusar o pedido.",
       noteKeep: "Em branco, a nota atual continua gravada.",
       save: "Salvar",
       saving: "Salvando…",
@@ -885,5 +963,216 @@ export const pt = {
     accepting: "Aceitando…",
     upToDate: "Você já aceitou a versão vigente.",
     continue: "Continuar",
+  },
+  // Atendimento humano pelo lado do visitante, na conversa `/ask/:id`
+  // (seções 29.5, 29.9.5 e 29.11): `HandoffOffer`, `HandoffDialog`,
+  // `HandoffStatusBar`, `AttendantMessage` e o bloco do atendimento.
+  handoff: {
+    offerQuestion: "Quer falar com uma pessoa da equipe?",
+    offerButton: "Falar com uma pessoa",
+    busy: "A fila está cheia agora. Tente de novo em alguns minutos ou ligue para a mesa telefônica no (555) 014-2600.",
+    closed:
+      "Ninguém da equipe está disponível agora. Você pode ligar para a mesa telefônica no (555) 014-2600.",
+    blocked:
+      "O atendimento por uma pessoa não está disponível para você agora. Ligue para a mesa telefônica no (555) 014-2600.",
+    // O diálogo de confirmação da seção 29.9.5, antes de qualquer pedido.
+    dialog: {
+      title: "Falar com uma pessoa da equipe",
+      intro:
+        "Uma pessoa da equipe de atendimento do Harborlight vai ler esta conversa para continuar daqui.",
+      notShared:
+        "A equipe não vê seu nome, seu e-mail nem seu telefone. O que você escrever para a equipe não vai para a IA.",
+      noHealth:
+        "Não compartilhe dados de saúde, documentos ou dados de outras pessoas. A equipe não dá orientação médica e não informa se alguém está internado.",
+      retention:
+        "As mensagens do atendimento ficam guardadas com esta conversa e são apagadas em até 90 dias depois do fim do atendimento.",
+      confirm: "Chamar a equipe",
+      cancel: "Agora não",
+      calling: "Chamando…",
+    },
+    queued: "Você está na fila. Posição {position}.",
+    leaveQueue: "Sair da fila",
+    assigned: "Você está falando com uma pessoa da equipe do Harborlight.",
+    end: "Encerrar atendimento",
+    ending: "Encerrando…",
+    returned: "Outra pessoa da equipe vai continuar o atendimento.",
+    reconnecting: "Reconectando…",
+    started: "Atendimento com a equipe do Harborlight",
+    composerLabel: "Escreva para a equipe",
+    composerNotice:
+      "Você está falando com uma pessoa. Não compartilhe dados de saúde nem documentos. Números de documento e de cartão, e-mail e telefone são removidos antes do envio.",
+    teamLabel: "Equipe do Harborlight",
+    removed: "Removemos esta mensagem para proteger sua privacidade.",
+    purged: "O conteúdo deste atendimento foi apagado.",
+    sendFailed: "Não foi possível enviar. Tente de novo.",
+    continueWithAtrium: "Você pode continuar perguntando ao Atrium.",
+    // O texto do divisor de encerramento, pelo motivo (seção 29.5).
+    closeReasons: {
+      resolved: "Atendimento encerrado pela equipe.",
+      redirected: "Atendimento encerrado pela equipe.",
+      out_of_scope: "Atendimento encerrado pela equipe.",
+      no_response: "Atendimento encerrado pela equipe.",
+      abusive:
+        "Atendimento encerrado. O atendimento por uma pessoa fica indisponível para você por 24 horas.",
+      visitor_cancelled: "Você saiu da fila.",
+      visitor_ended: "Você encerrou o atendimento.",
+      queue_timeout:
+        "Ninguém da equipe conseguiu responder agora. Você pode ligar para a mesa telefônica no (555) 014-2600.",
+      visitor_left:
+        "Ninguém da equipe conseguiu responder agora. Você pode ligar para a mesa telefônica no (555) 014-2600.",
+      service_closed:
+        "Ninguém da equipe conseguiu responder agora. Você pode ligar para a mesa telefônica no (555) 014-2600.",
+      inactivity: "Atendimento encerrado por falta de mensagens.",
+    },
+  },
+  // Console da equipe, `/attendance` e `/attendance/commitment` (seções
+  // 29.3 e 29.11): `PresenceToggle`, `QueueList`, `HandoffThread`,
+  // `RedactDialog` e a tela do compromisso.
+  attendance: {
+    presenceLabel: "Sua presença",
+    available: "Disponível",
+    away: "Ausente",
+    stats: {
+      queued: "Na fila",
+      mine: "Comigo",
+      available: "Equipe disponível",
+    },
+    queueTitle: "Fila",
+    queueLabel: "Visitantes na fila",
+    emptyQueue: "Nenhum visitante na fila.",
+    awayNotice:
+      "Você está como ausente. Marque Disponível para receber atendimentos.",
+    take: "Assumir",
+    taking: "Assumindo…",
+    atCapacity: "Você já tem 3 atendimentos. Encerre ou devolva um antes.",
+    taken: "Outra pessoa já assumiu este atendimento.",
+    waiting: "Esperando há {time}",
+    justNow: "menos de 1 minuto",
+    minutesOne: "1 minuto",
+    minutesMany: "{minutes} minutos",
+    returned: "Devolvido",
+    visitorAway: "Visitante ausente",
+    visitorPresent: "Visitante na conversa",
+    // Os rótulos do motivo da oferta (seção 29.11).
+    triggers: {
+      abstained: "Não estava nas informações publicadas",
+      grounding_failed: "A IA não confirmou a resposta",
+      off_topic: "Fora do tema da IA",
+      degraded: "IA indisponível",
+      error: "IA indisponível",
+      not_helpful: "Resposta marcada como não útil",
+    },
+    handoffsLabel: "Seus atendimentos",
+    noHandoffs: "Nenhum atendimento com você agora.",
+    conversationTitle: "Conversa com o Atrium",
+    handoffTitle: "Mensagens do atendimento",
+    visitorLabel: "Visitante",
+    atriumLabel: "Atrium",
+    teamLabel: "Equipe do Harborlight",
+    healthMarker: "Mensagem de saúde, não guardada.",
+    removedMessage: "Mensagem removida ({category}).",
+    composerLabel: "Responder ao visitante",
+    composerHint:
+      "Responda só com informação pública do Harborlight. Não dê orientação médica nem confirme quem está internado.",
+    placeholder: "Escreva a resposta",
+    send: "Enviar",
+    sending: "Enviando…",
+    emergency: "Enviar orientação de emergência",
+    redact: "Remover conteúdo",
+    redactTitle: "Remover o conteúdo desta mensagem",
+    redactDescription:
+      "O texto é apagado na hora, sem cópia. O visitante vê um aviso no lugar.",
+    redactCategory: "Categoria",
+    redactConfirm: "Remover",
+    categories: {
+      health: "Dado de saúde",
+      document: "Documento",
+      contact: "Contato",
+      third_party: "Dado de outra pessoa",
+      other: "Outro",
+      retention: "Prazo de retenção",
+    },
+    release: "Devolver à fila",
+    close: "Encerrar",
+    closeTitle: "Encerrar o atendimento",
+    closeDescription:
+      "Escolha o motivo. O visitante vê o aviso de encerramento e volta a conversar com o Atrium.",
+    closeReasonLabel: "Motivo",
+    closeReasonPlaceholder: "Escolha um motivo",
+    closeConfirm: "Encerrar atendimento",
+    cancel: "Cancelar",
+    closeReasons: {
+      resolved: "Respondido",
+      redirected: "Encaminhado para a mesa telefônica ou outro canal",
+      out_of_scope: "Fora do que a equipe atende",
+      no_response: "O visitante não respondeu",
+      abusive: "Ofensa ou assédio",
+    },
+    statusClosed: "Atendimento encerrado.",
+    reconnecting: "Reconectando…",
+    titleCount: "({count}) Atendimento · Atrium",
+    actionFailed: "Não foi possível concluir a ação.",
+    // O compromisso de confidencialidade da seção 29.3.
+    commitment: {
+      lead: "Antes de assumir o primeiro atendimento, e a cada versão nova, leia e aceite o compromisso abaixo (versão {version}).",
+      items: [
+        "Uso o que leio só para responder a esta pessoa, neste atendimento.",
+        "Respondo só com informação pública do Harborlight. O catálogo da seção 9 é a referência de horários e telefones.",
+        "Não dou orientação médica. Num assunto de sintoma, dose, exame ou remédio, uso a ação Enviar orientação de emergência, que manda o texto fixo de orientação.",
+        "Nunca confirmo nem nego que alguém está internado ou é paciente, e não informo quarto, estado, exame ou alta.",
+        "Nunca peço documento, cartão, senha, endereço, e-mail ou telefone. O atendimento não tem retorno por fora.",
+        "Assunto de uma pessoa específica, como cobrança, exame ou internação, vai para o telefone do setor. Pedido sobre dados pessoais vai para o canal de privacidade, em /privacy.",
+        "Removo, com a categoria, a mensagem que traz dado de saúde, documento ou dado de outra pessoa.",
+        "Não copio, não fotografo e não repasso o conteúdo do console.",
+        "Encerro como abuso uma conversa com ofensa ou assédio.",
+        "Saio da conta ao deixar o computador.",
+      ],
+      checkbox: "Li e aceito o compromisso",
+      accept: "Aceitar e continuar",
+      accepting: "Aceitando…",
+    },
+  },
+  // Atendimentos encerrados do admin, `/admin/attendance` (seção 29.11).
+  adminAttendance: {
+    description:
+      "Atendimentos encerrados, sem conteúdo. Para ler um deles, escreva o motivo: ele fica na auditoria.",
+    periodLabel: "Período",
+    period7: "7 dias",
+    period30: "30 dias",
+    columns: {
+      label: "Atendimento",
+      trigger: "Motivo da oferta",
+      wait: "Espera",
+      duration: "Duração",
+      closeReason: "Encerramento",
+      purged: "Texto",
+      actions: "Ações",
+    },
+    purgedYes: "Apagado",
+    purgedNo: "Guardado",
+    open: "Abrir",
+    empty: "Nenhum atendimento encerrado no período.",
+    reasonTitle: "Por que você vai abrir este atendimento?",
+    reasonLabel: "Motivo",
+    reasonHint:
+      "De 10 a 500 caracteres. Por exemplo: apurar uma reclamação ou um pedido de titular.",
+    reasonError: "Escreva o motivo com 10 a 500 caracteres.",
+    confirm: "Abrir atendimento",
+    opening: "Abrindo…",
+    sheetTitle: "Atendimento {label}",
+    sheetDescription: "Leitura registrada na auditoria. Só leitura.",
+    closeReasons: {
+      resolved: "Respondido",
+      redirected: "Encaminhado",
+      out_of_scope: "Fora do escopo",
+      no_response: "Sem resposta do visitante",
+      abusive: "Abuso",
+      visitor_cancelled: "Visitante saiu da fila",
+      visitor_ended: "Visitante encerrou",
+      queue_timeout: "Espera vencida",
+      visitor_left: "Visitante ausente",
+      service_closed: "Serviço desligado",
+      inactivity: "Sem mensagens",
+    },
   },
 } as const

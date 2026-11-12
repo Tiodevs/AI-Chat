@@ -14,6 +14,7 @@ import {
   HEALTH_MARKER,
   type AssistantTurn,
   type CitationView,
+  type StoredHandoff,
   type StoredMessage,
   type Turn,
   type UserTurn,
@@ -42,11 +43,37 @@ export function questionLimit(retryAfterSeconds: number): string {
  *   pergunta anterior em `retryText`, para o Tentar de novo.
  * - O banco não devolve o `request_id` nem a avaliação, então os dois
  *   começam vazios. Avaliar de novo recebe 409 e vira `"locked"`.
+ * - As mensagens do atendimento humano saem da conversa com a IA. Cada
+ *   atendimento entra como um `HandoffTurn`, no ponto do pedido: depois das
+ *   mensagens gravadas antes dele (seção 29.11).
  */
-export function turnsFromStored(messages: StoredMessage[]): Turn[] {
+export function turnsFromStored(
+  messages: StoredMessage[],
+  handoffs: StoredHandoff[] = []
+): Turn[] {
   const turns: Turn[] = []
   let lastUserText: string | null = null
+  const blocks = [...handoffs].sort(
+    (first, second) =>
+      Date.parse(first.requestedAt) - Date.parse(second.requestedAt)
+  )
+  let next = 0
   for (const message of messages) {
+    if (message.handoffId || message.role === "attendant") {
+      continue
+    }
+    // Os atendimentos pedidos antes desta mensagem vêm antes dela.
+    while (
+      next < blocks.length &&
+      Date.parse(blocks[next]?.requestedAt ?? "") <=
+        Date.parse(message.createdAt)
+    ) {
+      const block = blocks[next]
+      if (block) {
+        turns.push({ key: block.id, role: "handoff", handoffId: block.id })
+      }
+      next += 1
+    }
     if (message.role === "user") {
       const privacy = message.content === HEALTH_MARKER
       // O texto da pergunta médica não está no banco: não há o que repetir.
@@ -81,7 +108,45 @@ export function turnsFromStored(messages: StoredMessage[]): Turn[] {
     }
     turns.push(assistant)
   }
+  for (const block of blocks.slice(next)) {
+    turns.push({ key: block.id, role: "handoff", handoffId: block.id })
+  }
   return turns
+}
+
+/**
+ * Desfechos que oferecem o atendimento logo depois da resposta (seção
+ * 29.4). `answered` só com a nota não útil; `refused` e `cancelled`
+ * nunca.
+ */
+const offerOutcomes = new Set([
+  "abstained",
+  "grounding_failed",
+  "off_topic",
+  "degraded",
+  "error",
+])
+
+/**
+ * A resposta que motiva a oferta do atendimento, ou `null` (FR-19).
+ *
+ * Só a última resposta da thread conta, e só quando ela é o último item:
+ * depois de um atendimento, a oferta espera uma resposta nova do Atrium. A
+ * regra é a mesma de `handoff_offer`, em `apps/api/app/domain/handoff.py`;
+ * a API confere de novo no pedido.
+ */
+export function offerAnswer(messages: Turn[]): AssistantTurn | null {
+  const last = messages[messages.length - 1]
+  if (last?.role !== "assistant" || last.phase !== "done" || !last.id) {
+    return null
+  }
+  if (last.outcome && offerOutcomes.has(last.outcome)) {
+    return last
+  }
+  if (last.outcome === "answered" && last.feedback === -1) {
+    return last
+  }
+  return null
 }
 
 /**

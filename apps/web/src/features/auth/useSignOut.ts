@@ -10,7 +10,9 @@ import { useState } from "react"
 import { useNavigate } from "react-router"
 
 import { queryClient } from "@/app/query-client.ts"
+import { resetHandoffState } from "@/features/ask/handoff-store.ts"
 import { resetAskState } from "@/features/ask/store.ts"
+import { resetAttendanceState } from "@/features/attendance/useAttendance.ts"
 import { pt } from "@/i18n/pt.ts"
 import { api } from "@/lib/api/client.ts"
 
@@ -56,6 +58,9 @@ export function useSignOut() {
       queryClient.setQueryData(meQuery.queryKey, null)
       // 4.
       resetAskState()
+      // O atendimento humano e o console também saem com a conta (seção 29.8).
+      resetHandoffState()
+      resetAttendanceState()
       // 5.
       await navigate("/", { replace: true })
     } catch {

@@ -126,6 +126,28 @@ export function appendTurns(conversationId: string, turns: Turn[]) {
 }
 
 /**
+ * Acrescenta o bloco de um atendimento humano no fim da thread, quando o
+ * visitante chama a equipe (seção 29.11). Um bloco que já está na thread
+ * não entra de novo.
+ */
+export function appendHandoffTurn(conversationId: string, handoffId: string) {
+  const current = ensure(conversationId).snapshot
+  const present = current.messages.some((message) => {
+    return message.role === "handoff" && message.handoffId === handoffId
+  })
+  if (present) {
+    return
+  }
+  write(conversationId, {
+    messages: [
+      ...current.messages,
+      { key: handoffId, role: "handoff", handoffId },
+    ],
+  })
+  emit()
+}
+
+/**
  * Troca o turno do assistente pela versão nova e recalcula o anúncio.
  *
  * Enquanto `announcementFor` devolve vazio, `live` mantém o texto anterior.
