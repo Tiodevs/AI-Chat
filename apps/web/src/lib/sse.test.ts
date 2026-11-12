@@ -7,9 +7,14 @@
  * corte no meio do JSON. Roda no projeto `dom` do Vitest, embora não use a
  * tela. Não usa `fetch`, a API nem banco.
  */
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 
-import { readEventStream, takeEvents } from "./sse.ts"
+import {
+  openEventStream,
+  readEventStream,
+  takeEvents,
+  type ServerEvent,
+} from "./sse.ts"
 
 describe("leitor SSE", () => {
   it("junta um evento partido entre leituras", async () => {
@@ -61,5 +66,52 @@ describe("leitor SSE", () => {
       { event: "token", data: '{"text":"visita"}' },
       { event: "done", data: '{"outcome":"answered"}' },
     ])
+  })
+
+  it("lê o campo id de cada evento", () => {
+    const taken = takeEvents('id: h:3\nevent: message\ndata: {"seq":3}\n\n')
+    expect(taken.events).toEqual([
+      { event: "message", data: '{"seq":3}', id: "h:3" },
+    ])
+  })
+
+  it("reabre o fluxo depois do reconnect com o Last-Event-ID, sem repetir", async () => {
+    // Etapa 17.6, CA-3, e FR-23: a segunda conexão leva o último `id:`.
+    const bodies = [
+      'id: h:1\nevent: message\ndata: {"seq":1}\n\nevent: reconnect\ndata: {}\n\n',
+      'id: h:2\nevent: message\ndata: {"seq":2}\n\nevent: error\ndata: {"code":"x"}\n\n',
+    ]
+    const seen: (string | null)[] = []
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (_url: string, init: RequestInit) => {
+        const headers = new Headers(init.headers)
+        seen.push(headers.get("Last-Event-ID"))
+        return new Response(bodies.shift() ?? "", {
+          status: 200,
+          headers: { "content-type": "text/event-stream" },
+        })
+      })
+    )
+    const events: ServerEvent[] = []
+    await new Promise<void>((resolve) => {
+      openEventStream({
+        url: "http://127.0.0.1/backend/v1/attendance/events",
+        onEvent: (event) => {
+          events.push(event)
+        },
+        onState: (state) => {
+          if (state === "closed") {
+            resolve()
+          }
+        },
+      })
+    })
+    expect(seen).toEqual([null, "h:1"])
+    expect(
+      events
+        .filter((event) => event.event === "message")
+        .map((event) => event.id)
+    ).toEqual(["h:1", "h:2"])
   })
 })
