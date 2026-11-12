@@ -14,7 +14,7 @@ from pathlib import Path
 
 import pytest
 
-from app.domain.phones import phones_in
+from app.domain.phones import CATALOG_PHONES, phones_in
 
 ROOT = Path(__file__).resolve().parents[4]
 CATALOG_PATH = ROOT / "docs/sdd/corpus.md"
@@ -70,6 +70,8 @@ def test_seed_documents_cover_the_section_9_catalog() -> None:
     catalog = load_catalog(CATALOG_PATH)
     assert tuple(catalog.facts) == EXPECTED_FILES
     assert catalog.phones == PUBLISHED_PHONES
+    # A remoção de identificadores do atendimento usa a mesma lista (seção 29.9.7).
+    assert catalog.phones == CATALOG_PHONES
     assert catalog.time_ranges == PUBLISHED_TIME_RANGES
 
     documents = {

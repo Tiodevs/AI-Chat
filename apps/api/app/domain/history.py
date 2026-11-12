@@ -2,11 +2,14 @@
 
 Camada de domínio. `QaWorkflow.run` aplica `history_window` antes da reescrita e da geração.
 O histórico vem do banco, então uma pergunta de saúde de um turno anterior já está trocada
-pelo marcador `[health-related message not stored]` (seção 11.4).
+pelo marcador `[health-related message not stored]` (seção 11.4). Antes da janela, o
+`ConversationService` passa as mensagens por `ai_messages`, que tira as do atendimento humano
+(seção 29.7).
 """
 
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 from typing import Protocol
+from uuid import UUID
 
 # Até 6 trocas e 6.000 caracteres somados: o custo de uma pergunta não cresce com a conversa
 # (seção 7.1).
@@ -30,6 +33,34 @@ class HistoryTurn(Protocol):
     def content(self) -> str:
         """Texto da mensagem, como foi gravado."""
         ...
+
+
+class StoredMessage(Protocol):
+    """O que o filtro precisa de uma mensagem gravada: o papel e o atendimento dela."""
+
+    @property
+    def role(self) -> str:
+        """`user`, `assistant` ou `attendant`."""
+        ...
+
+    @property
+    def handoff_id(self) -> UUID | None:
+        """O atendimento da mensagem, ou `None` na conversa com a IA (seção 29.7)."""
+        ...
+
+
+def ai_messages[MessageT: StoredMessage](messages: Iterable[MessageT]) -> list[MessageT]:
+    """Só as mensagens da conversa com a IA, na ordem em que vieram. FR-21, seção 29.2.
+
+    Uma mensagem com `handoff_id` é do atendimento humano e nunca entra no histórico do
+    modelo, nem a do visitante nem a da equipe. O papel `attendant` também fica de fora, por
+    defesa: o banco exige `handoff_id` nele.
+    """
+    return [
+        message
+        for message in messages
+        if message.handoff_id is None and message.role in ("user", "assistant")
+    ]
 
 
 def history_window[TurnT: HistoryTurn](

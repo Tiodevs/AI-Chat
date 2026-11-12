@@ -2,13 +2,20 @@
 
 Testa a função pura `history_window`, de `app/domain/history.py`, entregue na Etapa 12.3. As
 conversas são listas de `_Turn` com rótulos curtos, como `p5` e `r5`, completados com pontos
-até o tamanho pedido. O uso da janela no `QaWorkflow` fica em `test_qa.py`. Não usa banco nem
+até o tamanho pedido. O uso da janela no `QaWorkflow` fica em `test_qa.py`. Testa também o
+filtro `ai_messages`, que tira as mensagens do atendimento humano (FR-21). Não usa banco nem
 rede.
 """
 
 from dataclasses import dataclass
+from uuid import UUID
 
-from app.domain.history import HISTORY_MAX_CHARS, HISTORY_MAX_EXCHANGES, history_window
+from app.domain.history import (
+    HISTORY_MAX_CHARS,
+    HISTORY_MAX_EXCHANGES,
+    ai_messages,
+    history_window,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -76,3 +83,31 @@ def test_zero_limits_send_no_history() -> None:
     turns = _conversation(2)
     assert history_window(turns, max_exchanges=0) == ()
     assert history_window(turns, max_chars=0) == ()
+
+
+@dataclass(frozen=True)
+class _Stored:
+    role: str
+    content: str
+    handoff_id: UUID | None = None
+
+
+def test_handoff_messages_never_enter_the_model_history() -> None:
+    # CA-4 da Etapa 17.1 (FR-21): nem a mensagem do visitante no atendimento, nem a da equipe.
+    handoff = UUID("00000000-0000-4000-8000-0000000000a1")
+    stored = [
+        _Stored("user", "Quais são os horários?"),
+        _Stored("assistant", "Não encontrei."),
+        _Stored("user", "Meu CPF é [CPF removido]", handoff),
+        _Stored("attendant", "Pode ligar para a mesa.", handoff),
+        _Stored("user", "E o estacionamento?"),
+    ]
+    kept = ai_messages(stored)
+    assert [message.content for message in kept] == [
+        "Quais são os horários?",
+        "Não encontrei.",
+        "E o estacionamento?",
+    ]
+    assert all(message.handoff_id is None for message in kept)
+    window = history_window(kept)
+    assert all(turn.content not in {"Pode ligar para a mesa."} for turn in window)
