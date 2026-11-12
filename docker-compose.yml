@@ -68,13 +68,17 @@ services:
       PSEUDONYM_KEY: local-pseudonym-key-0000000000000000000000000000000000000
       PRIVACY_CONTACT_EMAIL: privacidade@example.com
       LANGSMITH_TRACING: "false"
+      # O atendimento humano da seção 29 fica ligado na máquina local, como pede a Fase 17.
+      HANDOFF_ENABLED: ${HANDOFF_ENABLED:-true}
       # O OpenTelemetry carrega, mas não exporta nada: localmente não há receptor (seção 18.2).
       OTEL_SERVICE_NAME: atrium-api
       OTEL_TRACES_EXPORTER: none
       OTEL_METRICS_EXPORTER: none
       OTEL_LOGS_EXPORTER: none
     # Substitui o `CMD` do Dockerfile. Faz o pré-deploy da Railway (seção 22.1) antes do
-    # servidor, mas sem `--skip-without-key`: sem chave, a semente com `gemini` falha e a API
+    # servidor e cria as duas contas de teste do atendimento humano, `atendente@example.com`
+    # e `visitante@example.com`, com as senhas de `app/scripts/attendance_dev.py`. Sem
+    # `--skip-without-key`: sem chave, a semente com `gemini` falha e a API
     # não sobe. A semente pula os arquivos de checksum igual, então trocar o adaptador num
     # volume já semeado deixa os vetores do embedding anterior (seção 22.1); `down -v`
     # recomeça do banco vazio. O `exec` troca o shell pelo uvicorn, que recebe o sinal de parada.
@@ -85,6 +89,7 @@ services:
         alembic upgrade head
         && python -m app.scripts.bootstrap_admin
         && python -m app.scripts.seed
+        && python -m app.scripts.attendance_dev seed
         && exec opentelemetry-instrument uvicorn app.main:app --host 0.0.0.0 --port 8000 --proxy-headers
     ports:
       - "127.0.0.1:8000:8000"
