@@ -1,6 +1,6 @@
 # Landing page do Atrium
 
-A página que apresenta o projeto para quem chega de fora: o que o Atrium faz, os compromissos, as telas, a documentação, que o código é aberto e a stack. É um arquivo só, sem build.
+A página que apresenta o projeto para quem chega de fora: o que o Atrium faz, os compromissos, as telas, que o código é aberto, a documentação e a stack. É um arquivo só, sem build.
 
 | Arquivo | Papel |
 |---|---|
