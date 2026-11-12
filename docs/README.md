@@ -61,7 +61,8 @@ A especificação (SDD) é a fonte das regras. Quando o código e ela divergem, 
 | [sdd/observabilidade.md](sdd/observabilidade.md) | 17 e 18 | Portas dos provedores, logs, rastros, métricas e LangSmith |
 | [sdd/entrega.md](sdd/entrega.md) | 19 a 25 | Ambientes, testes, CI/CD, ordem de construção, ADRs e riscos |
 | [sdd/atendimento-humano.md](sdd/atendimento-humano.md) | 29 | Atendimento por uma pessoa da equipe, aprovado na Etapa 17.0, com o canal em tempo real, a segurança e a LGPD. A [versão visual](sdd/atendimento-humano.html) tem os diagramas, as decisões fechadas e as etapas da Fase 17; abra o arquivo no navegador. |
-| [adr/](adr/) | 24 | Os 16 registros de decisão, um por arquivo, com contexto, decisão, consequências e alternativas. O 015 e o 016 estão em proposta. |
+| [sdd/whatsapp.md](sdd/whatsapp.md) | 30 | Canal WhatsApp, em proposta na Etapa 18.0: Cloud API da Meta, webhook com caixa de entrada e caixa de saída, atendimento humano pelo WhatsApp, LGPD e custos |
+| [adr/](adr/) | 24 | Os 18 registros de decisão, um por arquivo, com contexto, decisão, consequências e alternativas. O 017 e o 018, do canal WhatsApp, estão em proposta. |
 
 ## Guia do código: como
 
@@ -155,7 +156,7 @@ Cada pasta de código tem um `README.md` com a tabela de todos os arquivos, a or
 
 | Documento | Para que serve |
 |---|---|
-| [plano-de-acao.md](plano-de-acao.md) | As etapas de implementação, os critérios de aceite, o status e os débitos técnicos. As Fases 13 a 17 são o que falta, e a 17 é o atendimento humano, com a especificação aprovada na Etapa 17.0. |
+| [plano-de-acao.md](plano-de-acao.md) | As etapas de implementação, os critérios de aceite, o status e os débitos técnicos. As Fases 13 a 18 são o que falta. A 17 é o atendimento humano, com a especificação aprovada na Etapa 17.0, e a 18 é o canal WhatsApp, com a especificação em revisão na Etapa 18.0. |
 | [CONTRIBUTING.md](../CONTRIBUTING.md) | Como propor uma mudança e [como documentar](../CONTRIBUTING.md#como-documentar) |
 | [usabilidade/](usabilidade/roteiro.md) | Roteiro, registro e resultados do teste de usabilidade (Etapa 9.2) |
 | [Modelos de issue](../.github/ISSUE_TEMPLATE/) e [de PR](../.github/pull_request_template.md) | O que uma issue e uma PR precisam ter |

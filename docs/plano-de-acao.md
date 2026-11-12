@@ -70,6 +70,12 @@ Algumas etapas precisam de contas e chaves que só você pode criar. A IA para e
 | Segredo `EDGE_SECRET`, um valor por ambiente, o mesmo na Vercel e no serviço `api` da Railway: na Vercel (Preview e Production) antes do merge da 12.5a, na Railway depois do deploy dela e antes da 12.5b | Etapa 12.5 | Vercel e Railway |
 | Uma conta de membro para cada pessoa que vai atender, criada por ela mesma pelo formulário, e o e-mail do admin que concede o papel | Etapa 17.2 (teste manual) | O próprio Atrium, em cada ambiente |
 | `HANDOFF_ENABLED=true` no serviço `api` | Etapa 17.7 em development e Etapa 17.8 em production | Railway |
+| Conta de desenvolvedor da Meta, um portfólio empresarial e um app do tipo Business com o produto WhatsApp. O app dá um número de teste grátis, que envia para até 5 números cadastrados: cadastre o seu | Etapa 18.0 | developers.facebook.com e business.facebook.com |
+| Um usuário do sistema no portfólio, com token permanente só com `whatsapp_business_messaging` e `whatsapp_business_management`, e o segredo do app | Etapa 18.2 | Configurações do negócio na Meta e Railway, serviço `api` de `development` |
+| `WHATSAPP_VERIFY_TOKEN`, um valor aleatório por ambiente, e o webhook apontado para `/backend/v1/whatsapp/webhook` da Vercel do ambiente, com o campo `messages` assinado | Etapa 18.2 | Railway e painel do app na Meta |
+| Forma de pagamento na conta do WhatsApp Business, de preferência com cobrança em reais. Sem ela, a Meta para as mensagens de serviço que passam da cota grátis de 1.000 por mês | Etapa 18.6 | Configurações de pagamento do WhatsApp na Meta |
+| Um número de telefone próprio, que recebe SMS ou ligação para a verificação e não está em uso no aplicativo do WhatsApp, e o nome de exibição aprovado pela Meta | Etapa 18.6 | Operadora e Gerenciador do WhatsApp |
+| `WHATSAPP_ENABLED=true` no serviço `api` | Etapa 18.3 em development e Etapa 18.6 em production | Railway |
 
 ## 3. Etapas
 
@@ -1564,6 +1570,175 @@ A Fase 17 implementa a seção 29 do SDD, aprovada na Etapa 17.0 em 2026-11-12: 
 3. Exporte os dados de um membro que teve atendimento.
 4. Depois do deploy aprovado, faça J9 e J10 em production.
 
+### Fase 18 — Canal WhatsApp (SDD 23, passo 13)
+
+A Fase 18 implementa a seção 30 do SDD, em proposta: o visitante escreve para o número do Harborlight no WhatsApp, o Atrium responde com o mesmo pipeline da web e, quando a IA não ajuda, a pessoa da equipe responde pelo mesmo console do atendimento humano. A Etapa 18.0 aprova a especificação antes de qualquer código. A arquitetura segue o que a Meta pede para webhooks: responder 200 rápido, tolerar repetição, conferir a assinatura e identificar pelo BSUID (seção 30.2, ADR-017 e ADR-018). `WHATSAPP_ENABLED` liga na máquina local para os testes de cada etapa, em development na 18.3, com o número de teste da Meta, e em production só depois da 18.6.
+
+#### Etapa 18.0 — Revisão da especificação do canal WhatsApp
+
+**Objetivo.** Fechar a seção 30 antes da primeira linha de código, como a Etapa 17.0 fez com a seção 29.
+
+**Seções.** 5.1, 5.2, 23, 24, 26, 28, 30, ADR-017 e ADR-018.
+
+**Entregas.**
+- Você confirma ou altera as decisões D-10 a D-14.
+- Você cria o app na Meta, com o número de teste, e confirma os pré-requisitos da seção 2 deste plano.
+- A IA atualiza a seção 30 e os dois ADRs com as decisões, troca o status da seção para aprovada e registra a revisão na seção 28.
+- Ponteiros para a seção 30 nas seções 4.2, 8.1, 10, 11, 12, 15.3 e 18.3.
+
+**Critérios de aceite.**
+- CA-1. A seção 26 não tem decisão do canal em aberto.
+- CA-2. A seção 30, o ADR-017 e o ADR-018 mostram a decisão final, sem "Proposta".
+- CA-3. A seção 28 registra a aprovação.
+
+**Como testar.** Leia a seção 30 e os dois ADRs, confira no diff que só mudou o que você decidiu e mande, pelo painel da Meta, uma mensagem do número de teste para o seu WhatsApp, para ver o app funcionando antes do código.
+
+#### Etapa 18.1 — Domínio e porta do WhatsApp
+
+**Objetivo.** As regras puras do canal e a porta da Graph API, testadas sem banco, sem rede e sem modelo.
+
+**Seções.** 6.2, 17, 30.4, 30.6, 30.10 e 30.14.
+
+**Entregas.**
+- `domain/whatsapp.py`: conferência da assinatura sobre bytes em tempo constante, leitura do payload do webhook para eventos tipados, comandos (`APAGAR DADOS`, `ENCERRAR`), ids dos botões, regra da conversa nova em 24 horas e `to_whatsapp_text` com o corte em 4.096 caracteres.
+- `ports/messaging.py` com `MessagingChannel`, o adaptador `MetaCloudApiChannel` com `httpx` e o `FakeMessagingChannel` dos testes.
+- `apps/api/app/prompts/whatsapp.py` com os textos fixos da seção 30.6 e o aviso da seção 30.9.4.
+- `.claude/rules/whatsapp.md`, carregada ao tocar os arquivos do canal, com as regras das seções 30.8 e 30.9 para agentes de código, e a linha dela no `CLAUDE.md`, que também passa a dizer que os testes nunca chamam a Meta.
+
+**Critérios de aceite.**
+- CA-1. Uma assinatura de outro corpo, ausente ou com outro segredo é recusada, e um JSON reformatado com o mesmo conteúdo também (teste de unidade).
+- CA-2. `to_whatsapp_text` converte negrito, itálico, títulos e tabelas, põe as fontes e corta na última frase que cabe (FR-27).
+- CA-3. O leitor de payload acha o BSUID em `from_user_id` sem telefone e trata `statuses[]` e `system` (NFR-23).
+- CA-4. Nenhum teste faz pedido HTTP à Meta, e o teste de arquitetura continua verde (NFR-24, NFR-1).
+
+**Como testar.** `uv run pytest tests/unit -k whatsapp` em `apps/api`.
+
+#### Etapa 18.2 — Dados e webhook
+
+**Objetivo.** Receber da Meta sem perder e sem duplicar.
+
+**Seções.** 8.1, 10.3, 10.4, 30.2, 30.4 (recebimento), 30.7, 30.8 e 30.10.
+
+**Entregas.**
+- Migração com `whatsapp_contacts`, `whatsapp_inbound_events`, `whatsapp_outbound_messages`, as colunas `channel` e `whatsapp_contact_id` em `conversations` e `channel` em `handoffs`, com downgrade.
+- `WhatsAppRepository`, com o `pg_notify('atrium_whatsapp', ...)` dentro da transação.
+- `GET` e `POST /v1/whatsapp/webhook`, montadas só com `WHATSAPP_ENABLED`, e a isenção de `Origin` só nesse caminho, no `ApiGuardMiddleware`.
+- A conferência em `create_app` dos três segredos com o canal ligado.
+- O limite de assinaturas inválidas por IP.
+
+**Critérios de aceite.**
+- CA-1. A migração passa no upgrade e no downgrade.
+- CA-2. A mesma notificação duas vezes grava uma linha só (NFR-22).
+- CA-3. A rota responde 200 sem chamar provedor de chat nem a porta de mensagens (NFR-21).
+- CA-4. Outro `POST` sem `Origin` continua recebendo 403 (NFR-12).
+- CA-5. Um webhook de teste da Meta, mandado pelo painel para development pelo rewrite da Vercel, passa na assinatura. O resultado vai na PR (seção 30.16).
+
+**Como testar.**
+1. `uv run pytest tests/integration -k whatsapp_webhook` em `apps/api`.
+2. No painel da Meta, aponte o webhook para `https://<vercel de development>/backend/v1/whatsapp/webhook`, com o `WHATSAPP_VERIFY_TOKEN` de development, e clique em Verificar.
+3. Mande o evento de teste `messages` pelo painel e confira a linha em `whatsapp_inbound_events` com `psql`.
+
+#### Etapa 18.3 — Processador, resposta da IA e envio
+
+**Objetivo.** Responder à pergunta pelo WhatsApp com o pipeline da seção 7.1.
+
+**Seções.** 6.2, 6.4, 7.1, 10.1, 30.4, 30.6, 30.8 e 30.9.4.
+
+**Entregas.**
+- O processador e o enviador no `lifespan`, com `LISTEN atrium_whatsapp`, `FOR UPDATE SKIP LOCKED`, advisory lock por contato, tentativas e espera crescente.
+- Contato pelo BSUID, troca por evento `system`, conversa com `channel = 'whatsapp'` e a regra das 24 horas.
+- Aviso antes da primeira resposta, confirmação de leitura com digitação, resposta fixa de mídia, recusa médica e a pergunta pelo `QuestionService`, com o orçamento e o limite por contato.
+- Atualização da saída pelos webhooks de status.
+- `WHATSAPP_ENABLED=true` em development, com o número de teste.
+
+**Critérios de aceite.**
+- CA-1. O aviso sai antes da primeira resposta e de novo com a versão nova (FR-28).
+- CA-2. A pergunta gera a resposta com fontes, e a pergunta médica recebe o texto fixo sem chamar o gerador nem gravar o conteúdo (FR-27, FR-29).
+- CA-3. Mídia recebe a resposta fixa, sem download (FR-31).
+- CA-4. Um 429 da Graph API tenta de novo, e o 131047 vira `failed` sem nova tentativa (seção 30.4).
+- CA-5. Nenhuma mensagem sai sem mensagem recebida do contato nas últimas 24 horas (FR-33).
+- CA-6. Em development, a resposta chega em até 15 segundos no p95 de 20 perguntas (NFR-25).
+
+**Como testar.**
+1. Do seu WhatsApp, cadastrado como destinatário do número de teste, mande "Qual o horário de visita?". Confira o aviso, o digitando e a resposta com a fonte.
+2. Mande "Que remédio tomo para dor de cabeça?" e confira a resposta fixa.
+3. Mande uma foto e confira a resposta de mídia.
+4. Mande a mesma pergunta duas vezes seguidas e confira que cada uma tem uma resposta só.
+
+#### Etapa 18.4 — Atendimento humano pelo WhatsApp
+
+**Objetivo.** Levar a oferta, a fila e a conversa com a equipe para o WhatsApp, com o mesmo console.
+
+**Seções.** 29.4, 29.5, 29.9.7, 29.10, 29.11, 30.5 e 30.11.
+
+**Pré-requisito.** Etapas 17.1 a 17.7 aprovadas.
+
+**Entregas.**
+- A oferta com botões depois dos desfechos da seção 29.4, a confirmação com o texto da seção 30.5 e o pedido de atendimento com o contato como sujeito.
+- As mensagens de status gravadas na mesma transação da mudança, e os rótulos "*Equipe do Harborlight:*" e "*Atrium (IA):*".
+- A mensagem da equipe num atendimento do WhatsApp grava a saída na mesma transação, e o console mostra o status de entrega.
+- A varredura sem `visitor_left` para o canal e o comando ENCERRAR.
+- O `Badge` WhatsApp na `QueueList` e no `HandoffThread`, com histórias no Storybook (DP-7), e `channel` e `delivery` no OpenAPI e nos tipos gerados.
+
+**Critérios de aceite.**
+- CA-1. A oferta aparece só nos desfechos da seção 29.4 e só com `open` (FR-30).
+- CA-2. Com atendimento ativo, a mensagem do visitante vai para o atendimento com a remoção de identificadores, e o `FakeChatProvider` não recebe chamada (FR-30, FR-21).
+- CA-3. O console mostra WhatsApp e nunca o BSUID (seção 30.11).
+- CA-4. A mensagem da equipe aparece no WhatsApp do visitante, e o console mostra Entregue e Lida.
+
+**Como testar.**
+1. Do WhatsApp, pergunte algo fora do corpus. Toque em Falar com uma pessoa e em Chamar a equipe.
+2. No console, com uma conta `attendant`, assuma o atendimento marcado WhatsApp e responda.
+3. Confira a mensagem com "Equipe do Harborlight" no celular e o status Lida no console.
+4. Envie ENCERRAR do celular e confira o encerramento no console.
+
+#### Etapa 18.5 — Privacidade, retenção e APAGAR DADOS
+
+**Objetivo.** Os direitos do titular, a retenção e os documentos de privacidade do canal.
+
+**Seções.** 11.3, 11.6, 11.7, 11.11 e 30.9.
+
+**Entregas.**
+- O comando APAGAR DADOS com os botões Apagar e Cancelar, e o aviso `removed` ao console.
+- As regras `whatsapp_contacts` e `whatsapp_events` no `retention-job`, e o texto apagado da entrada e da saída nos status finais.
+- O Aviso de Privacidade com a seção WhatsApp e a `LEGAL_DOCUMENT_VERSION` nova.
+- `docs/privacy/ropa.md`, `ripd.md` e `lia.md` com as linhas e os riscos da seção 30.9, e a Meta na lista de operadores da seção 11.7.
+
+**Critérios de aceite.**
+- CA-1. APAGAR DADOS com Apagar remove contato, conversas, atendimentos e linhas, e Cancelar não muda nada (FR-32).
+- CA-2. A retenção apaga o contato 30 dias depois da última mensagem e não toca no contato com atendimento ativo (seção 30.9.7).
+- CA-3. Nenhuma coluna guarda telefone, e os logs não têm BSUID nem texto (NFR-23).
+- CA-4. Os documentos de privacidade batem com a seção 30.9.
+
+**Como testar.**
+1. Do WhatsApp, envie APAGAR DADOS e toque em Apagar. Confira com `psql` que o contato sumiu.
+2. Crie em development um contato com última mensagem há 31 dias, rode `uv run python -m app.scripts.retention` e confira a remoção.
+3. Leia o Aviso novo.
+
+#### Etapa 18.6 — Observabilidade, número próprio e publicação
+
+**Objetivo.** Operar o canal e ligá-lo em production.
+
+**Seções.** 18.2, 18.3, 22.1, 22.3, 30.12, 30.14, 30.15 e 30.16.
+
+**Pré-requisito.** Etapa 17.8 aprovada.
+
+**Entregas.**
+- As métricas, o painel "Atrium, WhatsApp" e os quatro alertas da seção 30.12 em `ops/grafana/`.
+- As variáveis do canal na tabela da seção 22.1 e o roteiro de rotação do token em `docs/rollback.md`.
+- A parte nova do guia, `docs/guia/16-canal-whatsapp.md`, os READMEs de pasta e o resumo em `docs/engenharia/README.md`.
+- As linhas que a seção 30 marca para outras seções passam para as tabelas das seções 8.1, 10.4, 11.3, 11.6, 15.3 e 18.3.
+- O número próprio registrado na Cloud API, o webhook de production e `WHATSAPP_ENABLED=true` em production, depois da sua aprovação.
+
+**Critérios de aceite.**
+- CA-1. Os alertas existem no Grafana, com o contato da seção 18.3.
+- CA-2. O alerta de envio falhando dispara com um token inválido em development.
+- CA-3. Em production, J12, J13 e J14 funcionam com o número próprio, uma pessoa no console e dados fictícios.
+
+**Como testar.**
+1. Troque o token de development por um inválido, mande uma pergunta e confira o alerta no Discord. Volte o token.
+2. Depois do deploy aprovado, faça J12, J13 e J14 em production pelo número próprio.
+
 ## 4. Status das etapas
 
 A IA atualiza esta tabela em cada PR.
@@ -1630,6 +1805,13 @@ A IA atualiza esta tabela em cada PR.
 | 17.6 | Telas do visitante | Aprovada |
 | 17.7 | Console da equipe e encerrados do admin | Aprovada |
 | 17.8 | Privacidade, operação e publicação | Pendente |
+| 18.0 | Revisão da especificação do canal WhatsApp | Pendente |
+| 18.1 | Domínio e porta do WhatsApp | Pendente |
+| 18.2 | Dados e webhook | Pendente |
+| 18.3 | Processador, resposta da IA e envio | Pendente |
+| 18.4 | Atendimento humano pelo WhatsApp | Pendente |
+| 18.5 | Privacidade, retenção e APAGAR DADOS | Pendente |
+| 18.6 | Observabilidade, número próprio e publicação | Pendente |
 
 Valores possíveis: Pendente, Em andamento, Em revisão, Ajustes pedidos, Aprovada, Débito técnico. Débito técnico é uma etapa adiada de propósito, com o risco escrito na seção 6.
 
@@ -1685,8 +1867,20 @@ Cada requisito da seção 5 tem pelo menos uma etapa responsável. Uma etapa pos
 | NFR-18 | 17.3, 17.5 |
 | NFR-19 | 17.3, 17.4 |
 | NFR-20 | 17.3, 17.4, 17.5 |
+| FR-27 | 18.1, 18.3 |
+| FR-28 | 18.3, 18.5 |
+| FR-29 | 18.3 |
+| FR-30 | 18.4 |
+| FR-31 | 18.3 |
+| FR-32 | 18.5 |
+| FR-33 | 18.3 |
+| NFR-21 | 18.2 |
+| NFR-22 | 18.2, 18.3 |
+| NFR-23 | 18.1, 18.5 |
+| NFR-24 | 18.1 e todas as seguintes da Fase 18 |
+| NFR-25 | 18.3 |
 
-As jornadas da seção 15.3 ficam assim: J1 e J2 na 4.3, J3 e J4 na 5.2, J5 na 6.1, J6 na 7.1, J7 na 7.2 e J8 em 6.2 e 7.3. As jornadas do atendimento, da seção 29.11, ficam assim: J9 na 17.6, e J10 e J11 na 17.7.
+As jornadas da seção 15.3 ficam assim: J1 e J2 na 4.3, J3 e J4 na 5.2, J5 na 6.1, J6 na 7.1, J7 na 7.2 e J8 em 6.2 e 7.3. As jornadas do atendimento, da seção 29.11, ficam assim: J9 na 17.6, e J10 e J11 na 17.7. As do canal WhatsApp, da seção 30.11, ficam assim: J12 na 18.3, J13 na 18.4 e J14 na 18.5, todas de novo em production na 18.6.
 
 ## 6. Débitos técnicos
 

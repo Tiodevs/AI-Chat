@@ -241,6 +241,7 @@ Implementar nesta ordem. Cada passo pode ser publicado em development e deixa os
 10. **Publicação.** `deploy.yml`, development, aprovação, produção e verificação de rollback.
 11. **Melhorias da auditoria.** As divergências entre o código e este documento e o endurecimento encontrados na auditoria de 2026-11-07, nesta ordem: entrega, custo e disponibilidade do LLM, resiliência da API, experiência do visitante, privacidade e qualidade de IA. São as Fases 11 a 16 do plano de ação. Cada etapa que muda comportamento atualiza a seção correspondente deste documento. Da entrega, só a CI que não passa vazia entrou antes do custo do LLM: o rollback conferido, a CI endurecida e a cobertura medida ficaram como débito técnico em 2026-11-07, com o risco escrito na seção 6 do plano de ação.
 12. **Atendimento humano.** A seção 29, aprovada na Etapa 17.0 com as decisões D-5 a D-9, nas Etapas 17.1 a 17.8 do plano de ação. A Etapa 15.1 vem antes da 17.4, porque o atendimento põe uma pessoa lendo a conversa do membro, e a chave de convidado não pode continuar abrindo essa conversa. `HANDOFF_ENABLED` só liga em production depois da Etapa 17.8, com o Aviso de Privacidade, o RIPD e a LIA atualizados.
+13. **Canal WhatsApp.** A seção 30, proposta e em revisão na Etapa 18.0 com as decisões D-10 a D-14, nas Etapas 18.1 a 18.6 do plano de ação. A Etapa 18.4 depende das Etapas 17.1 a 17.7, já aprovadas, e a 18.6 vem depois da 17.8, porque o canal leva o atendimento humano para fora do site. `WHATSAPP_ENABLED` liga em development na 18.3, com o número de teste da Meta, e em production só depois da 18.6.
 
 ## 24. Registros de decisão de arquitetura
 
@@ -264,6 +265,8 @@ Cada ADR também vive em `docs/adr/NNN-titulo.md`, com contexto, decisão, conse
 | ADR-014 | Adaptador `demo` por regras para a e2e com a API real | E2e só com respostas simuladas. Gemini de verdade na CI. | A CI percorre as jornadas sem chave, sem custo e sem variação. A qualidade da IA continua medida no LangSmith. |
 | ADR-015 | Atendimento humano por SSE e `POST` pelo rewrite de mesma origem, com fluxos de até 10 minutos retomados pelo `seq` | WebSocket pelo rewrite. WebSocket direto na Railway. Serviço de tempo real de terceiros. Só consulta periódica. | Cookie, `Origin`, segredo da borda, IP confiável e CSP continuam como estão. O navegador reconecta a cada 10 minutos. |
 | ADR-016 | `LISTEN/NOTIFY` do PostgreSQL acorda os fluxos do atendimento, com carga só de ids | Fila em memória do processo. Redis. Consulta ao banco a cada segundo por fluxo. | Vale com mais de uma réplica e no meio de um deploy. Uma conexão a mais por processo, fora do pool. |
+| ADR-017 | Proposta: WhatsApp pela Cloud API, com o webhook que só confere e grava, um processador no `lifespan` e caixa de saída no PostgreSQL | Responder ao webhook depois da IA. Tarefa de fundo sem gravar antes. Redis ou fila gerenciada. BSP. | Notificação repetida não responde duas vezes, e falha da Graph API não perde a resposta. Envio pelo menos uma vez. |
+| ADR-018 | Proposta: identidade do WhatsApp pelo BSUID, sem guardar o telefone | Guardar o `wa_id`. Guardar o telefone cifrado. | Nenhum número de telefone no banco. Pedido de titular por outro canal precisa de outra prova. |
 
 ## 25. Riscos
 
@@ -285,4 +288,5 @@ Cada ADR também vive em `docs/adr/NNN-titulo.md`, com contexto, decisão, conse
 | Animações prejudicam acessibilidade ou desempenho. | Só `transform` e `opacity`, movimento reduzido testado, metas de INP e CLS. |
 | A interface escura cansa ou falha contraste. | Teste de contraste dos tokens e teste de usabilidade. O tema claro fica para depois. |
 | O atendimento humano traz riscos próprios: dado de saúde dito a uma pessoa, acesso indevido pela equipe e fluxos longos pelo rewrite. | Seções 29.9.11 e 29.15. |
+| O canal WhatsApp traz riscos próprios: foto de exame enviada, token da Meta vazado, mudança de preço e de política da Meta. | Seções 30.9.8 e 30.16. |
 

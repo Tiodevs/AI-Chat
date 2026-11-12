@@ -136,6 +136,7 @@ A seção 9 é o único catálogo de horários e telefones. Prompts, arquivos de
 - GitHub Actions para CI e para publicação em development e produção
 - Design system documentado, com catálogo de componentes
 - Movimento com GSAP, com suporte a movimento reduzido
+- Canal WhatsApp pela Cloud API da Meta, com resposta da IA e atendimento humano, proposto na seção 30 e em revisão na Etapa 18.0
 
 ### 4.2 Fora do escopo
 
@@ -175,6 +176,13 @@ Uma fila, armazenamento de objetos, várias réplicas da API e um ambiente separ
 | FR-24 | O visitante encerra o atendimento quando quiser. A equipe encerra com um motivo de uma lista fechada. |
 | FR-25 | Identificadores na mensagem do visitante são removidos antes de gravar, e a equipe apaga o conteúdo de uma mensagem com dado sensível, com auditoria. |
 | FR-26 | O admin só abre um atendimento encerrado com um motivo, gravado em `handoff.view`. |
+| FR-27 | Uma pessoa pode mandar uma pergunta de texto pelo WhatsApp e receber a resposta do mesmo pipeline da seção 7.1, com as fontes. |
+| FR-28 | Antes da primeira resposta no WhatsApp, e de novo quando a versão dos documentos legais muda, a pessoa recebe o aviso de que fala com uma IA, o pedido de não mandar dados de saúde e o link do Aviso de Privacidade. |
+| FR-29 | No WhatsApp, recusa médica, abstenção e degradação seguem as regras da web, e a pergunta médica não tem o conteúdo gravado. |
+| FR-30 | Depois de uma resposta que não ajudou, o WhatsApp oferece o atendimento com botões. A pessoa confirma antes de entrar na fila, e a equipe responde pelo mesmo console da seção 29. |
+| FR-31 | Mídia recebida pelo WhatsApp não é baixada nem guardada, e a pessoa recebe a resposta fixa. |
+| FR-32 | A pessoa apaga os próprios dados do WhatsApp com o comando APAGAR DADOS e a confirmação por botão. |
+| FR-33 | O Atrium nunca inicia conversa no WhatsApp. Ele só responde dentro da janela de 24 horas, sem modelo de mensagem. |
 
 ### 5.2 Não funcionais
 
@@ -200,8 +208,15 @@ Uma fila, armazenamento de objetos, várias réplicas da API e um ambiente separ
 | NFR-18 | Toda leitura de conteúdo pela equipe é autorizada em cada pedido e em cada tique do fluxo. O aviso entre processos leva só ids (ADR-016). |
 | NFR-19 | Um fluxo do atendimento dura no máximo 10 minutos e é retomado pelo último `seq`, sem perda. |
 | NFR-20 | Pedidos de atendimento, mensagens e fluxos têm limites por sujeito, por IP, por atendente e por processo (seção 29.8). |
+| NFR-21 | O webhook do WhatsApp confere a assinatura da Meta antes de interpretar o corpo e responde 200 sem chamar modelo nem rede (ADR-017). |
+| NFR-22 | Uma notificação repetida pela Meta não gera segunda resposta. |
+| NFR-23 | O número de telefone de quem escreve pelo WhatsApp nunca é gravado. A identidade é o BSUID, e logs, rastros e métricas levam só o HMAC dele (ADR-018). |
+| NFR-24 | A execução padrão dos testes automáticos não faz chamada à Graph API da Meta. |
+| NFR-25 | Com a API aquecida, a resposta a uma pergunta pelo WhatsApp sai em até 15 segundos no p95, contados do recebimento do webhook. |
 
 FR-19 a FR-26 e NFR-17 a NFR-20 são do atendimento humano, seção 29, aprovada na Etapa 17.0 e implementada nas Etapas 17.1 a 17.8.
+
+FR-27 a FR-33 e NFR-21 a NFR-25 são do canal WhatsApp, seção 30, em revisão na Etapa 18.0. Nenhum deles vale antes da aprovação.
 
 ### 5.3 Metas para medir
 
@@ -239,10 +254,11 @@ O documento completo fica dividido por assunto. A numeração das seções não 
 | [Provedores e observabilidade](sdd/observabilidade.md) | 17 e 18 | Portas, logs, rastros, métricas e LangSmith |
 | [Entrega](sdd/entrega.md) | 19 a 25 | Ambientes, testes, CI/CD, ordem de construção, ADRs e riscos |
 | [Atendimento humano](sdd/atendimento-humano.md) | 29 | Oferta, fila, canal em tempo real, dados, segurança e LGPD do atendimento por uma pessoa |
+| [Canal WhatsApp](sdd/whatsapp.md) | 30 | Proposta: Cloud API da Meta, webhook com caixa de entrada, atendimento pelo WhatsApp, LGPD e custos |
 
 ## 26. Decisões em aberto
 
-Nenhuma decisão está em aberto. As decisões D-1 a D-4 fecharam na Etapa 0.1, e as D-5 a D-9, do atendimento humano (seção 29), na Etapa 17.0, em 2026-11-12, todas como a proposta.
+As decisões D-1 a D-4 fecharam na Etapa 0.1, e as D-5 a D-9, do atendimento humano (seção 29), na Etapa 17.0, em 2026-11-12, todas como a proposta. As decisões D-10 a D-14, do canal WhatsApp (seção 30), estão abertas até a Etapa 18.0.
 
 | ID | Decisão | Onde ficou |
 |---|---|---|
@@ -255,6 +271,11 @@ Nenhuma decisão está em aberto. As decisões D-1 a D-4 fecharam na Etapa 0.1, 
 | D-7 | O texto do atendimento fica 90 dias depois do encerramento, ou menos, com a conversa. A alternativa era 30 dias. | Seções 29.2 e 29.9.9 |
 | D-8 | A sessão de `attendant` e de `admin` dura 12 horas. A alternativa era manter os 14 dias. | Seções 29.2 e 29.8 |
 | D-9 | O visitante vê só "Equipe do Harborlight", sem o nome de quem atende. A alternativa era o primeiro nome. | Seções 29.2 e 29.9.5 |
+| D-10 | Em aberto. Proposta: Cloud API direta da Meta, sem provedor intermediário. A alternativa é um BSP, como Twilio ou 360dialog, com painel pronto e custo por mensagem. | Seções 30.2 e 30.3, ADR-017 |
+| D-11 | Em aberto. Proposta: o webhook passa pelo rewrite da Vercel, com o segredo da borda e a assinatura da Meta. A alternativa é a rota direto na Railway, isenta do segredo da borda. | Seções 30.3, 30.4 e 30.16 |
+| D-12 | Em aberto. Proposta: a identidade é o BSUID, sem guardar o telefone. A alternativa é guardar o `wa_id`. | Seções 30.3 e 30.7, ADR-018 |
+| D-13 | Em aberto. Proposta: a conversa do WhatsApp é apagada 30 dias depois da última mensagem da pessoa. A alternativa é 90 dias. | Seções 30.3 e 30.9.7 |
+| D-14 | Em aberto. Proposta: o atendimento pelo WhatsApp usa a mesma fila e o mesmo console da seção 29. A alternativa é só indicar o telefone da mesa. | Seções 30.3 e 30.5 |
 
 ## 27. Glossário
 
@@ -278,6 +299,11 @@ Nenhuma decisão está em aberto. As decisões D-1 a D-4 fecharam na Etapa 0.1, 
 | Fila de atendimento | Os atendimentos `queued`, pela ordem do pedido |
 | `seq` | O número crescente de cada mensagem de um atendimento, usado para retomar o fluxo |
 | `LISTEN/NOTIFY` | O aviso do PostgreSQL entre conexões, entregue só depois do commit |
+| Cloud API | A API do WhatsApp Business hospedada pela Meta, seção 30 |
+| BSUID | O identificador de uma pessoa do WhatsApp no escopo da empresa, usado no lugar do telefone |
+| `wamid` | O id que a Meta dá a cada mensagem do WhatsApp, usado para não processar duas vezes |
+| Janela de atendimento | As 24 horas depois da última mensagem da pessoa, em que a empresa responde com texto livre |
+| Caixa de entrada e caixa de saída | As tabelas que guardam o evento recebido e a mensagem a enviar antes do trabalho, para nada se perder nem repetir (ADR-017) |
 
 ## 28. Histórico de revisão
 
@@ -313,3 +339,4 @@ Nenhuma decisão está em aberto. As decisões D-1 a D-4 fecharam na Etapa 0.1, 
 | 1.24 | 2026-11-12 | Atendimento humano aprovado na Etapa 17.0: D-5 a D-9 fechadas como a proposta, seção 29, ADR-015 e ADR-016 sem o status de proposta, e ponteiros para a seção 29 nas seções 8.1, 10, 11, 12, 15.3, 15.4 e 18.3. |
 | 1.25 | 2026-11-12 | Conversa do membro só para o membro (Etapa 15.1): o cadastro zera o `guest_key_id` das conversas anexadas, a chave de convidado só abre conversa sem membro, o `atrium_guest` sai no login, no fim do cadastro e no logout, e quem não é dono recebe 404 nas rotas de conversa (seções 7.2, 10.3 e 12). |
 | 1.26 | 2026-11-12 | Atendimento humano implementado nas Etapas 17.1 a 17.7, em revisão: domínio, migração `0010_handoffs`, papel `attendant` e sessão de 12 horas, `LISTEN/NOTIFY`, fluxos SSE com retomada, rotas do visitante, da equipe e do admin, telas da conversa, do console e dos encerrados. Na seção 29.11, o motivo da capacidade aparece em texto, a categoria da remoção usa um `ToggleGroup` de escolha única e o som opcional fica para depois. Na seção 29.14, o `docker-compose.yml` liga o serviço e cria as contas de teste. Os scripts `attendants` e `attendance_dev` entram na seção 6.3. |
+| 1.27 | 2026-11-12 | Proposta do canal WhatsApp, em revisão na Etapa 18.0: seção 30, FR-27 a FR-33, NFR-21 a NFR-25, decisões D-10 a D-14, ADR-017 (Cloud API com caixa de entrada e caixa de saída no PostgreSQL), ADR-018 (identidade pelo BSUID), passo 13 da ordem de construção e Fase 18 do plano de ação. Nenhum comportamento existente muda até a aprovação. |
