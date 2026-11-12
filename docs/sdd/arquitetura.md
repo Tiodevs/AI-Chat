@@ -131,7 +131,7 @@ apps/
       repositories/    consultas, inclusive a busca vetorial e por texto completo
       db/              sessão, pool e unidade de trabalho
       evals/           casos, avaliadores e sincronização do conjunto do LangSmith
-      scripts/         seed, search, ask, bootstrap_admin, retention, sync_eval_dataset, run_evals, export_openapi
+      scripts/         seed, search, ask, bootstrap_admin, retention, sync_eval_dataset, run_evals, export_openapi, attendants, attendance_dev
     tests/
       unit/
       integration/

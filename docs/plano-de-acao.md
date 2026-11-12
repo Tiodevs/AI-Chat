@@ -1527,6 +1527,14 @@ A Fase 17 implementa a seção 29 do SDD, aprovada na Etapa 17.0 em 2026-11-12: 
 2. Marque Disponível, peça o atendimento como visitante, assuma, responda e encerre.
 3. Como admin, abra o atendimento em `/admin/attendance` com um motivo e confira `handoff.view`.
 
+**Entrega das Etapas 17.0 a 17.7 (2026-11-12).** A seu pedido, as Etapas 15.1 e 17.0 a 17.7 foram feitas em sequência, sem esperar a aprovação de cada uma, na branch `feat/atendimento-humano`, criada da `docs/atendimento-humano`. Ficaram de fora, para a revisão decidir:
+
+- Etapa 17.3, a medida de um fluxo de 12 minutos pela Vercel em development (seção 29.15). Os testes cobrem o `reconnect` com a duração encurtada.
+- Etapa 17.4, o CA-8, que depende do deploy em development, e a linha da fumaça para `GET /backend/v1/handoff/availability`.
+- Etapas 17.6 e 17.7, as jornadas J9, J10 e J11 no Playwright, com axe, e a suíte ao vivo com dois contextos. O fluxo foi conferido à mão no Docker Compose, com o navegador e a API.
+- Etapa 17.7, o `HANDOFF_ENABLED=true` em development, porque gravar variável na Railway publica a `main`.
+- Etapa 17.7, o som opcional dos avisos do console.
+
 #### Etapa 17.8 — Privacidade, operação e publicação
 
 **Objetivo.** Documentos de privacidade, retenção e operação antes de ligar o serviço em production.
@@ -1614,13 +1622,13 @@ A IA atualiza esta tabela em cada PR.
 | 16.2 | Lint mais rigoroso | Pendente |
 | 16.3 | Produção que se recupera | Pendente |
 | 17.0 | Revisão da especificação do atendimento humano | Em revisão |
-| 17.1 | Domínio do atendimento | Pendente |
-| 17.2 | Dados, papel de atendente e sessão da equipe | Pendente |
-| 17.3 | Canal em tempo real | Pendente |
-| 17.4 | API do visitante | Pendente |
-| 17.5 | API da equipe | Pendente |
-| 17.6 | Telas do visitante | Pendente |
-| 17.7 | Console da equipe e encerrados do admin | Pendente |
+| 17.1 | Domínio do atendimento | Em revisão |
+| 17.2 | Dados, papel de atendente e sessão da equipe | Em revisão |
+| 17.3 | Canal em tempo real | Em revisão |
+| 17.4 | API do visitante | Em revisão |
+| 17.5 | API da equipe | Em revisão |
+| 17.6 | Telas do visitante | Em revisão |
+| 17.7 | Console da equipe e encerrados do admin | Em revisão |
 | 17.8 | Privacidade, operação e publicação | Pendente |
 
 Valores possíveis: Pendente, Em andamento, Em revisão, Ajustes pedidos, Aprovada, Débito técnico. Débito técnico é uma etapa adiada de propósito, com o risco escrito na seção 6.

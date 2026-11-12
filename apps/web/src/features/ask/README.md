@@ -7,13 +7,17 @@ A pergunta e a conversa do visitante: as telas Início (`/`) e Conversa (`/ask/:
 | Arquivo | O que faz | Quem usa |
 |---|---|---|
 | [`types.ts`](types.ts) | Tipos da conversa na tela: turnos, fases da resposta, citações, avaliação e o retrato do store. Também o `HEALTH_MARKER`, o marcador que a API grava no lugar de uma pergunta médica. | Todos os arquivos da pasta; `ChatThread`, `AssistantMessage` e `SourceList` em [`components/patterns`](../../components/patterns/) |
-| [`model.ts`](model.ts) | Funções puras: `applyStreamEvent` aplica um evento SSE ao turno, `turnsFromStored` converte as mensagens gravadas, `syncPrivacy` esconde a pergunta médica, `announcementFor` escolhe o texto da região ao vivo e `assistantAfter` acha a resposta na consulta de reserva. | `useAskConversation.ts` e `store.ts` |
+| [`model.ts`](model.ts) | Funções puras: `applyStreamEvent` aplica um evento SSE ao turno, `turnsFromStored` converte as mensagens gravadas e põe cada atendimento humano no lugar, `syncPrivacy` esconde a pergunta médica, `announcementFor` escolhe o texto da região ao vivo, `assistantAfter` acha a resposta na consulta de reserva e `offerAnswer` diz se a última resposta oferece o atendimento. | `useAskConversation.ts`, `store.ts` e `conversation-screen.tsx` |
 | [`store.ts`](store.ts) | Store externo: o retrato de cada conversa e o da tela inicial, o `AbortController` de cada fluxo, a pergunta a caminho da rota nova e a marca de indisponibilidade da aba. | `useAskConversation.ts`, [`useSignOut`](../auth/useSignOut.ts) e [`src/test/setup.ts`](../../test/setup.ts) |
 | [`useAskConversation.ts`](useAskConversation.ts) | Controlador: cria a conversa, envia a pergunta, lê o fluxo SSE, faz a consulta de reserva, para a resposta e grava a avaliação. | [`app/routes/home.tsx`](../../app/routes/home.tsx) e [`app/routes/ask.tsx`](../../app/routes/ask.tsx) |
 | [`home-screen.tsx`](home-screen.tsx) | Tela `/`: título, compositor, sugestões, aviso de segurança e os links para Cadastrar e Entrar. | `app/routes/home.tsx` |
-| [`conversation-screen.tsx`](conversation-screen.tsx) | Tela `/ask/:id`: a thread, os estados de carga, de limite e de erro, e o compositor fixo embaixo. | `app/routes/ask.tsx` |
+| [`conversation-screen.tsx`](conversation-screen.tsx) | Tela `/ask/:id`: a thread, os estados de carga, de limite e de erro, o compositor fixo embaixo e o atendimento humano (oferta, diálogo, barra de status e compositor para a equipe). | `app/routes/ask.tsx` |
 | [`suggestion-chips.tsx`](suggestion-chips.tsx) | As quatro sugestões prontas num `ToggleGroup`. | `home-screen.tsx` e `conversation-screen.tsx` |
+| [`handoff-store.ts`](handoff-store.ts) | Store do atendimento humano: os atendimentos da conversa, com status, posição, motivo e mensagens, o atendimento ativo, a disponibilidade e os estados de envio. | `useHandoff.ts`, `useAskConversation.ts`, `conversation-screen.tsx`, `useSignOut` e `src/test/setup.ts` |
+| [`useHandoff.ts`](useHandoff.ts) | Controlador do atendimento: lê a disponibilidade, pede, escreve e encerra, e mantém o fluxo `GET /v1/conversations/{id}/handoff/events` com retomada pelo `Last-Event-ID`. | `app/routes/ask.tsx` |
+| [`handoff-block.tsx`](handoff-block.tsx) | O bloco de um atendimento na thread: o divisor de início, as mensagens do visitante e da equipe e o divisor de encerramento com o motivo. | `conversation-screen.tsx`, pelo `renderHandoff` do `ChatThread` |
 | [`model.test.ts`](model.test.ts) | Testes de `model.ts`. | Vitest |
+| [`handoff.test.tsx`](handoff.test.tsx) | Testes da oferta, do diálogo, da mensagem da equipe, do bloco na thread e da retomada sem duplicar. | Vitest |
 | [`ask.test.tsx`](ask.test.tsx) | Testes do hook, com `fetch` simulado, e da região ao vivo do `ChatThread`. | Vitest |
 
 ## Como ler

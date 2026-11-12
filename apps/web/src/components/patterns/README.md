@@ -15,7 +15,11 @@ Os componentes de produto do Atrium: compõem as peças de [`ui`](../ui/README.m
 | [citation-chip.tsx](citation-chip.tsx) | Botão numerado no lugar de cada `[n]` do texto; leva o foco à fonte. Gancho da M8 | `AssistantMessage` | [Patterns/CitationChip](citation-chip.stories.tsx) |
 | [source-list.tsx](source-list.tsx) | Lista recolhível das fontes, com título e seção, que o chip pode focar | `AssistantMessage` | [Patterns/SourceList](source-list.stories.tsx) |
 | [outcome-badge.tsx](outcome-badge.tsx) | Selo do desfecho: respondida, abstenção, recusa médica, substituída e indisponível | `AssistantMessage` | [Patterns/OutcomeBadge](outcome-badge.stories.tsx) |
-| [composer.tsx](composer.tsx) | Campo da pergunta que cresce, Enviar, Parar e o aviso de saúde. Enter envia, Shift+Enter quebra a linha | Início (`/`) e conversa (`/ask/:id?`) | [Patterns/Composer](composer.stories.tsx) |
+| [composer.tsx](composer.tsx) | Campo da pergunta que cresce, Enviar, Parar e o aviso de saúde. Enter envia, Shift+Enter quebra a linha. Rótulo, texto de exemplo, dica e limite trocam no atendimento humano | Início (`/`), conversa (`/ask/:id?`) e o console (`/attendance`) | [Patterns/Composer](composer.stories.tsx) |
+| [attendant-message.tsx](attendant-message.tsx) | Mensagem da equipe no atendimento humano, à esquerda, com o rótulo "Equipe do Harborlight" e o ícone `Headset`, texto puro e o aviso no lugar da mensagem removida | O bloco do atendimento (`features/ask/handoff-block.tsx`) | [Patterns/AttendantMessage](attendant-message.stories.tsx) |
+| [handoff-offer.tsx](handoff-offer.tsx) | A oferta do atendimento abaixo da resposta que não ajudou, ou o texto com a mesa telefônica quando ninguém pode atender | `/ask/:id` | [Patterns/HandoffOffer](handoff-offer.stories.tsx) |
+| [handoff-dialog.tsx](handoff-dialog.tsx) | A confirmação com o texto da seção 29.9.5, antes de qualquer pedido à API | `/ask/:id` | [Patterns/HandoffDialog](handoff-dialog.stories.tsx) |
+| [handoff-status-bar.tsx](handoff-status-bar.tsx) | A barra acima do compositor: posição na fila ou atendimento em curso, Reconectando e o botão de sair | `/ask/:id` | [Patterns/HandoffStatusBar](handoff-status-bar.stories.tsx) |
 | [safety-notice.tsx](safety-notice.tsx) | Aviso fixo de que o Atrium é uma IA e não dá orientação médica | Início (`/`) | [Patterns/SafetyNotice](safety-notice.stories.tsx) |
 | [request-id-copy.tsx](request-id-copy.tsx) | O `request_id` de um erro, em fonte mono, com o botão de copiar | Error boundary das rotas, erro da conversa, `ChatErrorNotice` e as falhas da conta, da privacidade, do cadastro e do admin | [Patterns/RequestIdCopy](request-id-copy.stories.tsx) |
 
@@ -56,6 +60,15 @@ Os componentes de produto do Atrium: compõem as peças de [`ui`](../ui/README.m
 | [profile-button.tsx](profile-button.tsx) | Nome de quem entrou e o menu com Conta, Sair e a preferência de movimento | `SidebarBody` | [Patterns/ProfileButton](profile-button.stories.tsx) |
 | [guest-header.tsx](guest-header.tsx) | Cabeçalho sem sessão com Entrar, Criar conta e Cadastrar com IA; no celular, um disclosure de navegação | `app/shell.tsx`, sem sessão | [Patterns/GuestHeader](guest-header.stories.tsx) |
 | [search-dialog.tsx](search-dialog.tsx) | Busca do `⌘K`: filtra as páginas da navegação pelo nome | `app/shell.tsx`, carregado sob demanda | [Patterns/SearchDialog](search-dialog.stories.tsx) |
+
+### Console de atendimento
+
+| Arquivo | O que faz | Quem usa | História |
+|---|---|---|---|
+| [presence-toggle.tsx](presence-toggle.tsx) | Disponível ou Ausente, num `ToggleGroup` de escolha única | `/attendance` | [Patterns/PresenceToggle](presence-toggle.stories.tsx) |
+| [queue-list.tsx](queue-list.tsx) | A fila sem conteúdo: rótulo, espera, motivo da oferta, Devolvido, Visitante ausente e Assumir. Também `waitText` e `triggerText` | `/attendance` e `/admin/attendance` | [Patterns/QueueList](queue-list.stories.tsx) |
+| [handoff-thread.tsx](handoff-thread.tsx) | A conversa com o Atrium e as mensagens do atendimento, em texto puro, com Remover conteúdo | `/attendance` e o `Sheet` de `/admin/attendance` | [Patterns/HandoffThread](handoff-thread.stories.tsx) |
+| [redact-dialog.tsx](redact-dialog.tsx) | A remoção de conteúdo com a categoria num `ToggleGroup` de escolha única | `/attendance` | [Patterns/RedactDialog](redact-dialog.stories.tsx) |
 
 ## Como ler
 

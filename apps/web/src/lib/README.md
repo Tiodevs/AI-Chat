@@ -6,7 +6,7 @@ A camada de transporte do frontend: o leitor do fluxo SSE, o `cn` das classes e,
 
 | Arquivo | O que faz | Quem usa |
 |---|---|---|
-| [sse.ts](sse.ts) | `postEventStream` envia o `POST` da pergunta com `fetch`; `readEventStream` lê o corpo aos pedaços e entrega um evento SSE de cada vez; `takeEvents` corta o texto acumulado em eventos completos e devolve o resto | `features/ask/useAskConversation.ts` |
+| [sse.ts](sse.ts) | `postEventStream` envia o `POST` da pergunta com `fetch`; `readEventStream` lê o corpo aos pedaços e entrega um evento SSE de cada vez, com o `id:`; `takeEvents` corta o texto acumulado em eventos completos e devolve o resto; `openEventStream` mantém um fluxo `GET` longo do atendimento humano, com o `Last-Event-ID` e a reconexão | `features/ask/useAskConversation.ts`, `features/ask/useHandoff.ts` e `features/attendance/useAttendance.ts` |
 | [sse.test.ts](sse.test.ts) | Testes do leitor: evento partido entre leituras, comentário `: keepalive` e último evento sem a linha em branco | Vitest, projeto `dom` |
 | [utils.ts](utils.ts) | Reexporta o `cn` do pacote `cn`, que junta classes do Tailwind e resolve conflitos, como o `clsx` com o `tailwind-merge` | `app/shell.tsx`, os componentes de `components/patterns` e a visão geral do admin. Os de `components/ui` importam do pacote direto |
 | [api/](api/README.md) | O cliente `api` (`openapi-fetch`) e os tipos gerados do OpenAPI | Os hooks de `features` |

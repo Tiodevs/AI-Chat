@@ -543,10 +543,10 @@ A navegação ganha o grupo **Atendimento**, com Fila e atendimentos para `atten
 **Fila e atendimentos `/attendance`:**
 
 - **Topo:** o `PresenceToggle`, um `ToggleGroup` com Disponível e Ausente, e três `StatTile`: Na fila, Comigo e Equipe disponível.
-- **Fila:** a `QueueList`, com o `PseudonymBadge` do rótulo, a espera relativa, atualizada a cada 15 segundos, o motivo da oferta num `Badge` e as marcas Devolvido e Visitante ausente. O botão Assumir fica desabilitado com 3 atendimentos, com o motivo num tooltip.
-- **Atendimento:** até 3 em `Tabs`. O `HandoffThread` mostra a conversa da seção 29.9.4 e o compositor, com a ação Enviar orientação de emergência. Cada mensagem do atendimento tem a ação Remover conteúdo, que abre um `Dialog` com a categoria num `RadioGroup`.
+- **Fila:** a `QueueList`, com o rótulo, a espera relativa, atualizada a cada 15 segundos, o motivo da oferta num `Badge` e as marcas Devolvido e Visitante ausente. O botão Assumir fica desabilitado com 3 atendimentos, e o motivo aparece em texto acima da lista, que o leitor de tela lê sem depender do foco no botão.
+- **Atendimento:** até 3 em `Tabs`. O `HandoffThread` mostra a conversa da seção 29.9.4 e o compositor, com a ação Enviar orientação de emergência. Cada mensagem do atendimento tem a ação Remover conteúdo, que abre um `Dialog` com a categoria num `ToggleGroup` de escolha única, que o Radix expõe como `radiogroup`.
 - **Ações:** Devolver à fila e Encerrar, que pede o motivo num `Select` e confirma num `AlertDialog`.
-- **Avisos:** a contagem de novidades na aba e no título, como "(2) Atendimento · Atrium", sem conteúdo. Som opcional, desligado por padrão, com a preferência no `localStorage`.
+- **Avisos:** a contagem de novidades na aba e no título, como "(2) Atendimento · Atrium", sem conteúdo: os atendimentos na fila mais as mensagens do visitante ainda não vistas. O som opcional, desligado por padrão, ainda não existe e fica para depois da Etapa 17.7.
 - **Estados:** "Nenhum visitante na fila." e, como ausente, "Você está como ausente. Marque Disponível para receber atendimentos.". O 409 `handoff_taken` mostra "Outra pessoa já assumiu este atendimento." e relê a fila.
 - **Compromisso:** sem o aceite vigente, Assumir leva a `/attendance/commitment`, com o texto da seção 29.3, a caixa "Li e aceito o compromisso" e o botão Aceitar e continuar.
 
@@ -644,7 +644,7 @@ Os testes seguem a seção 21.1: sem Gemini, sem LangSmith, com o PostgreSQL da 
 
 ### 29.14 Configuração e constantes
 
-`HANDOFF_ENABLED` liga o serviço e vale `false` por padrão. Em production, ele só liga depois da Etapa 17.8. As demais regras são constantes do domínio, em `domain/handoff.py`, testadas com o resto da seção:
+`HANDOFF_ENABLED` liga o serviço e vale `false` por padrão. Em production, ele só liga depois da Etapa 17.8. No `docker-compose.yml`, ele liga por padrão, e o serviço `api` roda `python -m app.scripts.attendance_dev seed`, que cria a atendente e a visitante de teste da máquina local. As demais regras são constantes do domínio, em `domain/handoff.py`, testadas com o resto da seção:
 
 | Constante | Valor |
 |---|---|

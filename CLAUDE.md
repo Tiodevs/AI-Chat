@@ -41,4 +41,5 @@ E2E: `pnpm exec playwright test`. A CI (`.github/workflows/ci.yml`) roda tudo is
 - `.claude/rules/camadas.md`: camadas da API (SDD 6.2). Carrega ao tocar `apps/api/**/*.py`.
 - `.claude/rules/design-system.md`: design system (SDD 14.8). Carrega ao tocar `.tsx` e `.css` de `apps/web`.
 - `.claude/rules/gsap.md`: movimento com GSAP (SDD 16.5). Carrega ao tocar `.ts` e `.tsx` de `apps/web`.
+- `.claude/rules/atendimento.md`: atendimento humano (SDD 29.8 e 29.9). Carrega ao tocar os arquivos do atendimento na API e no frontend.
 - `.claude/skills/definicao-de-pronto/`: DP-1 a DP-9. Use ao implementar, revisar ou encerrar uma etapa e ao abrir a PR dela.
