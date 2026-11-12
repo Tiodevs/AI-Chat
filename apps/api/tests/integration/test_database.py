@@ -151,7 +151,31 @@ EXPECTED_COLUMNS: dict[str, set[str]] = {
         "langsmith_run_id",
         "request_id",
         "created_at",
+        "handoff_id",
+        "seq",
+        "author_user_id",
+        "redaction",
+        "redacted_at",
     },
+    "handoffs": {
+        "id",
+        "conversation_id",
+        "status",
+        "trigger",
+        "trigger_message_id",
+        "attendant_id",
+        "close_reason",
+        "requested_at",
+        "queued_at",
+        "assigned_at",
+        "closed_at",
+        "last_activity_at",
+        "visitor_seen_at",
+        "last_seq",
+        "content_purged_at",
+    },
+    "attendant_presence": {"user_id", "status", "last_seen_at"},
+    "attendant_acknowledgements": {"user_id", "version", "accepted_at"},
     "feedback": {"message_id", "rating", "created_at"},
     "consent_records": {
         "id",
@@ -226,6 +250,32 @@ EXPECTED_CONSTRAINTS: dict[str, set[str]] = {
         "messages_outcome",
         "messages_tokens",
         "messages_conversation_id_fkey",
+        "messages_handoff_id_fkey",
+        "messages_attendant_handoff",
+        "messages_handoff_seq",
+        "messages_redaction",
+        "messages_handoff_id_seq_key",
+    },
+    "handoffs": {
+        "handoffs_pkey",
+        "handoffs_status",
+        "handoffs_trigger",
+        "handoffs_close_reason",
+        "handoffs_assigned_attendant",
+        "handoffs_closed_reason",
+        "handoffs_last_seq",
+        "handoffs_conversation_id_fkey",
+        "handoffs_trigger_message_id_fkey",
+        "handoffs_attendant_id_fkey",
+    },
+    "attendant_presence": {
+        "attendant_presence_pkey",
+        "attendant_presence_status",
+        "attendant_presence_user_id_fkey",
+    },
+    "attendant_acknowledgements": {
+        "attendant_acknowledgements_pkey",
+        "attendant_acknowledgements_user_id_fkey",
     },
     "feedback": {"feedback_pkey", "feedback_rating", "feedback_message_id_fkey"},
     "consent_records": {
@@ -302,7 +352,7 @@ def test_ready_fails_without_the_vector_extension(
 
 
 async def _assert_schema(database_url: str) -> None:
-    """Confere a extensão, a revisão `0009_message_request_id`, as colunas e as restrições."""
+    """Confere a extensão, a revisão `0010_handoffs`, as colunas e as restrições."""
     engine = create_async_engine(database_url)
     try:
         async with engine.connect() as connection:
@@ -311,7 +361,7 @@ async def _assert_schema(database_url: str) -> None:
             )
             assert extension == 1
             revision = await connection.scalar(text("SELECT version_num FROM alembic_version"))
-            assert revision == "0009_message_request_id"
+            assert revision == "0010_handoffs"
             await _assert_columns(connection)
             await _assert_constraints(connection)
         await _exercise_rows(engine)
