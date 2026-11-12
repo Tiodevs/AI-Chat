@@ -6,6 +6,7 @@
 <title>Atrium · IA de atendimento, segura e de código aberto</title>
 <meta name="description" content="Atrium é um assistente de código aberto que responde visitantes de um hospital só com informações publicadas, mostra a fonte de cada resposta e sabe quando não deve responder.">
 <meta name="color-scheme" content="dark">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='28 28 200 200'%3E%3Cpath fill='%2334c3dd' fill-rule='evenodd' d='M76 28h104a48 48 0 0 1 48 48v104a48 48 0 0 1-48 48h-20v-56a12 12 0 0 0-12-12h-40a12 12 0 0 0-12 12v56H76a48 48 0 0 1-48-48V76a48 48 0 0 1 48-48Zm32 44a12 12 0 0 0-12 12v24a12 12 0 0 0 12 12h40a12 12 0 0 0 12-12V84a12 12 0 0 0-12-12Z'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&family=Instrument+Serif:ital@1&display=swap">
@@ -20,6 +21,8 @@
  * suave no texto e ciano na marca. As cores dos desfechos são as da seção
  * 14.2 do SDD. A página acrescenta duas coisas que o produto não tem: uma cor de destaque (--accent) e a Instrument
  * Serif em itálico nas palavras de ênfase dos títulos.
+ * A marca é um símbolo próprio da página (#mark): o quadrado do produto
+ * virou a planta de um átrio, que também se lê como A.
  * Movimento: GSAP, só em transform e opacity, desligado com
  * prefers-reduced-motion.
  */
@@ -88,7 +91,7 @@ code{font-family:var(--font-mono);font-size:.88em}
 .topbar{position:fixed;top:14px;left:0;right:0;z-index:50;display:flex;justify-content:center;padding-inline:var(--gutter);pointer-events:none}
 .topbar-in{pointer-events:auto;display:flex;align-items:center;gap:6px;max-width:100%;padding:6px 6px 6px 14px;border:1px solid var(--border-strong);border-radius:999px;background:color-mix(in srgb, var(--shell) 72%, transparent);-webkit-backdrop-filter:blur(16px) saturate(140%);backdrop-filter:blur(16px) saturate(140%)}
 .brand{display:inline-flex;align-items:center;gap:9px;margin-right:10px;font-weight:600;font-size:15px;color:var(--foreground-strong);text-decoration:none}
-.logo{display:grid;place-items:center;width:26px;height:26px;border-radius:7px;background:var(--foreground-strong);color:var(--shell);font:600 13px/1 var(--font-sans)}
+.logo{width:26px;height:26px;flex:none;fill:currentColor;color:var(--foreground-strong)}
 .nav{display:flex}
 .nav a{font-size:13.5px;color:var(--muted-foreground);text-decoration:none;padding:8px 12px;border-radius:999px;transition:color .18s, background-color .18s}
 .nav a:hover{color:var(--foreground-strong);background:var(--muted)}
@@ -97,7 +100,9 @@ code{font-family:var(--font-mono);font-size:.88em}
 
 /* Seções */
 section{position:relative;scroll-margin-top:84px}
-.pad{padding-block:clamp(64px, 7vw, 104px)}
+.pad{padding-block:clamp(44px, 4.8vw, 72px)}
+.pad-top{padding-top:clamp(44px, 4.8vw, 72px)}
+.pad-bottom{padding-bottom:clamp(44px, 4.8vw, 72px)}
 .eyebrow{display:flex;align-items:center;gap:12px;margin-bottom:22px;font:500 12.5px/1.3 var(--font-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted-foreground)}
 .eyebrow span{display:grid;place-items:center;min-width:34px;height:22px;padding:0 8px;border-radius:999px;background:var(--accent);color:var(--accent-foreground);letter-spacing:.02em;font-weight:600}
 h2{font-size:clamp(30px, 3.5vw, 50px);line-height:1.06;letter-spacing:-.035em;font-weight:600}
@@ -108,65 +113,28 @@ h2 em{font-size:1.06em}
 @media (max-width: 900px){.head{grid-template-columns:minmax(0, 1fr)}}
 .line{padding-bottom:.1em;margin-bottom:-.1em}
 
-/* Capa */
-.hero{overflow:hidden;padding-top:clamp(104px, 10vw, 148px)}
+/* Capa: o texto em cima e, no pé da primeira tela, a metade de cima de um
+   print do painel. */
+.hero{display:flex;flex-direction:column;min-height:100svh;overflow:hidden;padding-top:clamp(96px, 9vw, 132px)}
 .hero-bg{position:absolute;inset:0;pointer-events:none}
 .hero-bg::before{content:"";position:absolute;inset:0;background-image:linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px);background-size:72px 72px;-webkit-mask-image:radial-gradient(ellipse 75% 55% at 50% 12%, #000 0%, transparent 72%);mask-image:radial-gradient(ellipse 75% 55% at 50% 12%, #000 0%, transparent 72%);opacity:.5}
 .orb{position:absolute;border-radius:50%;filter:blur(90px)}
 .orb-a{width:min(620px, 80vw);aspect-ratio:1;left:50%;top:-12%;margin-left:max(-310px, -40vw);background:var(--accent);opacity:.16}
 .orb-b{width:min(460px, 60vw);aspect-ratio:1;right:-8%;top:46%;background:var(--accent);opacity:.09}
-.hero .wrap{position:relative;display:flex;flex-direction:column;align-items:center;text-align:center}
-.pill{display:inline-flex;align-items:center;gap:9px;margin-bottom:24px;padding:7px 14px 7px 10px;border:1px solid color-mix(in srgb, var(--accent) 40%, transparent);border-radius:999px;background:var(--accent-soft);font:500 12.5px/1.2 var(--font-mono);color:var(--accent);text-decoration:none}
+.hero .wrap{position:relative;display:flex;flex-direction:column;align-items:center;text-align:center;width:100%}
+.pill{display:inline-flex;align-items:center;gap:9px;margin-bottom:22px;padding:7px 14px 7px 10px;border:1px solid color-mix(in srgb, var(--accent) 40%, transparent);border-radius:999px;background:var(--accent-soft);font:500 12.5px/1.2 var(--font-mono);color:var(--accent);text-decoration:none}
 .pill .dot{position:relative;width:8px;height:8px;border-radius:50%;background:var(--accent)}
 .pill .dot::after{content:"";position:absolute;inset:-4px;border-radius:50%;border:1px solid var(--accent);opacity:.5}
-h1{max-width:16ch;font-size:clamp(38px, 5.2vw, 76px);line-height:1;letter-spacing:-.045em;font-weight:600}
+h1{max-width:16ch;font-size:clamp(38px, 5vw, 72px);line-height:1;letter-spacing:-.045em;font-weight:600}
 h1 em{font-size:1.07em;letter-spacing:-.03em}
 h1 .dim{color:var(--subtle-foreground)}
-.hero .lede{margin-top:clamp(20px, 2vw, 26px);max-width:58ch;font-size:clamp(16px, 1.3vw, 18px)}
+.hero .lede{margin-top:clamp(18px, 1.8vw, 24px);max-width:58ch;font-size:clamp(16px, 1.3vw, 18px)}
 .actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:28px}
 .hero .actions{justify-content:center}
-.meta{display:flex;flex-wrap:wrap;justify-content:center;gap:8px 22px;margin:22px 0 0;padding:0;list-style:none;font:500 12.5px/1.4 var(--font-mono);color:var(--subtle-foreground)}
-.meta li{display:inline-flex;align-items:center;gap:8px}
-.meta li::before{content:"";width:5px;height:5px;border-radius:50%;background:var(--accent)}
-
-/* Demonstração: uma janela do produto que roda sozinha */
-.demo{width:100%;max-width:860px;margin-top:clamp(40px, 4.5vw, 60px);text-align:left}
-.tabs{display:flex;justify-content:center;gap:6px;margin-bottom:18px;overflow-x:auto;scrollbar-width:none}
-.tabs::-webkit-scrollbar{display:none}
-@media (max-width: 640px){.tabs{justify-content:flex-start}}
-.tab{appearance:none;flex:none;padding:9px 16px;border:1px solid var(--border-strong);border-radius:999px;background:color-mix(in srgb, var(--shell) 70%, transparent);color:var(--muted-foreground);font:500 13.5px/1.2 var(--font-sans);cursor:pointer;transition:background-color .18s, color .18s, border-color .18s}
-.tab:hover{color:var(--foreground-strong);border-color:var(--muted-foreground)}
-.tab[aria-selected="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-foreground);font-weight:600}
-.stage{perspective:1600px}
-.window{position:relative;border:1px solid var(--border-strong);border-bottom:0;border-radius:20px 20px 0 0;background:var(--background);overflow:hidden;transform-origin:50% 0;box-shadow:0 -1px 0 color-mix(in srgb, var(--accent) 45%, transparent), 0 -40px 120px -30px color-mix(in srgb, var(--accent) 28%, transparent)}
-.window-bar{display:flex;align-items:center;gap:10px;padding:14px 20px;background:var(--shell);border-bottom:1px solid var(--border);font-weight:600;font-size:14px;color:var(--foreground-strong)}
-.window-bar .logo{width:24px;height:24px;border-radius:6px;font-size:12px}
-.window-bar span:last-child{margin-left:auto;font:500 11.5px var(--font-mono);color:var(--subtle-foreground)}
-.thread{display:flex;flex-direction:column;gap:16px;padding:24px clamp(18px, 4vw, 40px) 8px;min-height:290px}
-@media (max-width: 560px){.thread{min-height:380px}}
-.user-row{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
-.bubble{max-width:88%;padding:11px 16px;border-radius:16px 16px 4px 16px;background:var(--muted);color:var(--foreground-strong);font-size:15.5px}
-.privacy-note{font-size:12.5px;color:var(--subtle-foreground);text-align:right}
-.answer-area{position:relative;display:flex;flex-direction:column;gap:14px;align-items:flex-start}
-.waiting{position:absolute;top:2px;left:0;display:inline-flex;align-items:center;gap:8px;font-size:13.5px;color:var(--subtle-foreground)}
-.waiting i{width:6px;height:6px;border-radius:50%;background:var(--accent)}
-.answer{font-size:15.5px;line-height:1.7;color:var(--foreground);max-width:64ch}
-.cite{display:inline-grid;place-items:center;min-width:20px;height:20px;margin:0 3px;padding:0 5px;border-radius:999px;background:var(--accent);font:600 11px/1 var(--font-mono);color:var(--accent-foreground);vertical-align:1px}
-.badge{display:inline-flex;align-items:center;gap:7px;padding:5px 11px;border:1px solid var(--border-strong);border-radius:999px;font-size:12.5px;font-weight:500;color:var(--foreground)}
-.badge::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--tone, var(--muted-foreground))}
-[data-tone="success"]{--tone:var(--success)}
-[data-tone="danger"]{--tone:var(--danger)}
-[data-tone="warning"]{--tone:var(--warning)}
-.source{width:100%;max-width:520px;padding:12px 16px;border:1px solid var(--border);border-radius:12px;background:var(--card)}
-.source b{display:block;font-size:14px;font-weight:500;color:var(--foreground-strong)}
-.source small{font-size:12.5px;color:var(--subtle-foreground)}
-.composer{margin:10px clamp(18px, 4vw, 44px) 0;padding:16px 0 26px;border-top:1px solid var(--border)}
-.field{display:flex;align-items:center;gap:10px;min-height:50px;padding:7px 7px 7px 18px;border:1px solid var(--border-strong);border-radius:999px;background:var(--shell);font-size:15px}
-.typed{color:var(--foreground-strong);white-space:pre-wrap;min-width:0}
-.ph{color:var(--subtle-foreground);overflow:hidden;white-space:nowrap;text-overflow:ellipsis;min-width:0}
-.typed:not(:empty) + .ph{display:none}
-.send{margin-left:auto;flex:none;display:grid;place-items:center;height:36px;padding:0 16px;border-radius:999px;background:var(--accent);color:var(--accent-foreground);font-size:13.5px;font-weight:600}
-.hint{margin-top:10px;font-size:12.5px;color:var(--subtle-foreground)}
+.hero-shot{position:relative;flex:none;margin-top:auto;padding-top:clamp(36px, 4vw, 56px);padding-inline:var(--gutter)}
+.hero-shot-in{position:relative;max-width:1040px;height:clamp(170px, 30svh, 330px);margin-inline:auto;border:1px solid var(--border-strong);border-bottom:0;border-radius:18px 18px 0 0;background:var(--background);overflow:hidden;box-shadow:0 -1px 0 color-mix(in srgb, var(--accent) 45%, transparent), 0 -40px 120px -30px color-mix(in srgb, var(--accent) 30%, transparent)}
+.hero-shot-in::after{content:"";position:absolute;inset:auto 0 0;height:45%;background:linear-gradient(to bottom, transparent, var(--shell))}
+.hero-shot img{width:100%;height:auto}
 
 /* Faixa gigante */
 .band{overflow:hidden;border-block:1px solid var(--border-strong);background:var(--shell)}
@@ -181,19 +149,8 @@ h1 .dim{color:var(--subtle-foreground)}
 .spot::before{content:"";position:absolute;inset:0;z-index:-1;opacity:0;transition:opacity .28s;background:radial-gradient(420px circle at var(--mx, 50%) var(--my, 0%), var(--glow, var(--accent-soft)), transparent 65%)}
 .spot:hover::before{opacity:1}
 
-/* Como responde */
-.grid-3{display:grid;grid-template-columns:repeat(auto-fit, minmax(min(100%, 320px), 1fr));gap:16px}
-.out{display:flex;flex-direction:column;min-height:340px;padding:24px;border:1px solid var(--border);border-radius:24px;background:var(--card);min-width:0;--glow:color-mix(in srgb, var(--tone) 16%, transparent);transition:border-color .28s}
-.out:hover{border-color:color-mix(in srgb, var(--tone) 55%, transparent)}
-.out-top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:auto;padding-bottom:28px}
-.out-n{font:500 13px/1 var(--font-mono);color:var(--subtle-foreground)}
-.out h3{font-size:clamp(20px, 1.7vw, 24px);line-height:1.1;letter-spacing:-.03em;font-weight:600;margin-bottom:12px}
-.out p{font-size:15px;color:var(--muted-foreground)}
-.quote{margin-top:22px;padding:14px 16px;border-radius:14px 14px 14px 4px;background:var(--background);border:1px solid var(--border);font-size:14.5px;color:var(--foreground)}
-.out .quote{color:var(--foreground)}
-
 /* Declaração: as palavras acendem com a rolagem */
-.statement{font-size:clamp(24px, 2.8vw, 40px);line-height:1.18;letter-spacing:-.03em;font-weight:500;color:var(--foreground-strong);max-width:26ch;margin-bottom:clamp(56px, 6vw, 88px)}
+.statement{font-size:clamp(24px, 2.8vw, 40px);line-height:1.18;letter-spacing:-.03em;font-weight:500;color:var(--foreground-strong);max-width:26ch;margin-block:clamp(16px, 2vw, 32px) clamp(64px, 7vw, 104px)}
 .statement .mw{display:inline-block}
 
 /* Compromissos */
@@ -211,64 +168,32 @@ h1 .dim{color:var(--subtle-foreground)}
 .com ul{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 0;padding:0;list-style:none}
 .com li{padding:6px 12px;border:1px solid var(--border-strong);border-radius:999px;font-size:13px;color:var(--foreground)}
 
-/* Caminho de uma pergunta */
-.flow{display:grid;grid-template-columns:minmax(0, .9fr) minmax(0, 1.1fr);gap:clamp(40px, 6vw, 96px);align-items:start}
-@media (max-width: 960px){.flow{grid-template-columns:minmax(0, 1fr)}}
-.flow-head{position:sticky;top:110px}
-.flow-head h2{max-width:14ch;margin-bottom:20px}
-.flow-head .lede + .lede{margin-top:18px;font-size:15px}
-@media (max-width: 960px){.flow-head{position:static}}
-.steps{position:relative;margin:0;padding:0;list-style:none;display:grid;gap:12px}
-.rail{position:absolute;left:23px;top:24px;bottom:24px;width:2px;background:var(--border-strong)}
-.rail i{display:block;width:100%;height:100%;background:var(--accent);transform-origin:top}
-.gs .rail i{transform:scaleY(0)}
-.step{position:relative;display:grid;grid-template-columns:48px minmax(0, 1fr);gap:20px;transition:opacity .45s}
-.gs .step:not(.is-on){opacity:.32}
-.step .n{position:relative;z-index:1;display:grid;place-items:center;width:48px;height:48px;border:1px solid var(--border-strong);border-radius:50%;background:var(--shell);font:500 14px/1 var(--font-mono);color:var(--foreground-strong);transition:background-color .28s, color .28s, border-color .28s}
-.step.is-on .n{background:var(--accent);border-color:var(--accent);color:var(--accent-foreground)}
-.step .body{padding:18px 22px;border:1px solid var(--border);border-radius:20px;background:var(--card)}
-.step h3{font-size:17px;letter-spacing:-.02em;font-weight:600;margin-bottom:4px}
-.step p{font-size:14.5px;color:var(--muted-foreground)}
-.exit{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:12px;font-size:13px;color:var(--subtle-foreground)}
-.exit code{padding:2px 7px;border:1px solid var(--border);border-radius:6px;background:var(--background);color:var(--foreground)}
-
-/* Telas */
-.screens{display:grid;grid-template-columns:minmax(0, .62fr) minmax(0, 1.38fr);gap:clamp(24px, 4vw, 56px);align-items:start}
-@media (max-width: 960px){.screens{grid-template-columns:minmax(0, 1fr)}}
-.screen-list{display:grid;border-top:1px solid var(--border-strong)}
-.screen-btn{appearance:none;position:relative;text-align:left;padding:13px 0 13px 22px;border:0;border-bottom:1px solid var(--border-strong);background:transparent;color:var(--muted-foreground);font:inherit;cursor:pointer}
-.screen-btn::before{content:"";position:absolute;left:0;top:21px;width:8px;height:8px;border-radius:50%;background:var(--border-strong);transition:background-color .18s, transform .28s}
-.screen-btn b{display:block;font-size:17px;letter-spacing:-.02em;font-weight:600;color:var(--muted-foreground);transition:color .18s}
-.screen-btn span{display:none;margin-top:4px;font-size:14.5px;line-height:1.5}
-.screen-btn:hover b{color:var(--foreground-strong)}
-.screen-btn[aria-selected="true"] b{color:var(--foreground-strong)}
-.screen-btn[aria-selected="true"]::before{background:var(--accent);transform:scale(1.4)}
-.screen-btn[aria-selected="true"] span{display:block}
-@media (max-width: 960px){
-  .screen-list{display:flex;overflow-x:auto;scrollbar-width:none;gap:6px;border:0}
-  .screen-list::-webkit-scrollbar{display:none}
-  .screen-btn{flex:none;padding:9px 16px;border:1px solid var(--border-strong);border-radius:999px}
-  .screen-btn::before{display:none}
-  .screen-btn b{font-size:13.5px;font-weight:500}
-  .screen-btn[aria-selected="true"]{background:var(--accent);border-color:var(--accent)}
-  .screen-btn[aria-selected="true"] b{color:var(--accent-foreground)}
-  .screen-btn[aria-selected="true"] span{display:none}
-}
-.frame-wrap{position:relative}
-.frame-wrap::before{content:"";position:absolute;inset:8% 6% -4%;border-radius:50%;background:var(--accent);opacity:.14;filter:blur(80px)}
-.frame{position:relative;aspect-ratio:16/10;border:1px solid var(--border-strong);border-radius:20px;background:var(--background);overflow:hidden}
-.frame img{width:100%;height:100%;object-fit:cover;object-position:top}
+/* Telas: a lista rola e a moldura ao lado fica parada, trocando de tela.
+   Sem GSAP, com movimento reduzido ou em tela estreita, cada item mostra a
+   própria imagem. */
+.tour-list{margin:0;padding:0;list-style:none;display:grid;grid-template-columns:repeat(auto-fit, minmax(min(100%, 420px), 1fr));gap:40px 24px}
+.tour-n{font:500 12.5px/1 var(--font-mono);color:var(--accent)}
+.tour-item h3{margin-top:10px;font-size:clamp(22px, 2vw, 28px);line-height:1.1;letter-spacing:-.03em;font-weight:600}
+.tour-item p{margin-top:8px;font-size:15.5px;color:var(--muted-foreground);max-width:40ch}
+.tour-img{width:100%;height:auto;margin-top:18px;border:1px solid var(--border-strong);border-radius:14px}
+.tour-img.contain{width:auto;max-height:520px;margin-inline:auto}
+.tour-stage{display:none}
+.frame{position:relative;aspect-ratio:16/10;border:1px solid var(--border-strong);border-radius:18px;background:var(--background);overflow:hidden}
+.frame img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top}
 .frame img.contain{object-fit:contain}
-.frame-caption{position:relative;margin-top:14px;font-size:14px;color:var(--subtle-foreground)}
-
-/* Números */
-.stats{display:grid;grid-template-columns:repeat(3, minmax(0, 1fr));margin:0;border-top:1px solid var(--border-strong)}
-@media (max-width: 760px){.stats{grid-template-columns:repeat(2, minmax(0, 1fr))}}
-.stats div{padding:clamp(20px, 2.2vw, 30px) clamp(4px, 2vw, 28px) clamp(20px, 2.2vw, 30px) 0;border-bottom:1px solid var(--border-strong);min-width:0}
-.stats dd{margin:0;font:600 clamp(44px, 5.4vw, 76px)/.95 var(--font-sans);letter-spacing:-.05em;color:var(--foreground-strong);font-variant-numeric:tabular-nums;transition:color .28s}
-.stats div:hover dd{color:var(--accent)}
-.stats dt{margin-top:10px;font-size:14.5px;line-height:1.45;color:var(--muted-foreground);max-width:24ch}
-.fine{margin-top:18px;font:500 12.5px var(--font-mono);color:var(--subtle-foreground)}
+.tour-count{display:flex;align-items:center;gap:14px;margin-top:14px;font:500 12.5px/1 var(--font-mono);color:var(--subtle-foreground)}
+.tour-count b{color:var(--foreground-strong);font-weight:500}
+.tour-bar{flex:1;height:2px;background:var(--border-strong)}
+.tour-bar i{display:block;height:100%;background:var(--accent);transform-origin:left;transform:scaleX(0)}
+@media (min-width: 961px){
+  .gs .tour{display:grid;grid-template-columns:minmax(0, .62fr) minmax(0, 1.38fr);gap:clamp(32px, 5vw, 72px);align-items:start}
+  .gs .tour-list{grid-template-columns:minmax(0, 1fr);gap:0}
+  .gs .tour-item{display:flex;flex-direction:column;justify-content:center;min-height:38vh;padding-left:22px;border-left:2px solid var(--border-strong);opacity:.34;transition:opacity .45s, border-color .45s}
+  .gs .tour-item.is-active{opacity:1;border-left-color:var(--accent)}
+  .gs .tour-img{display:none}
+  .gs .tour-stage{display:block;position:sticky;top:max(96px, calc(50vh - 280px))}
+  .gs .tour-stage::before{content:"";position:absolute;inset:8% 6% 0;border-radius:50%;background:var(--accent);opacity:.14;filter:blur(80px)}
+}
 
 /* Stack */
 .marquee{overflow:hidden;-webkit-mask-image:linear-gradient(to right, transparent, #000 10%, #000 90%, transparent);mask-image:linear-gradient(to right, transparent, #000 10%, #000 90%, transparent)}
@@ -310,7 +235,7 @@ h1 .dim{color:var(--subtle-foreground)}
 .terminal pre{margin:0;padding:18px 20px;white-space:pre-wrap;overflow-wrap:anywhere;font:400 13px/1.8 var(--font-mono);color:var(--foreground)}
 .terminal pre .c{color:var(--subtle-foreground)}
 .terminal pre .p{color:var(--accent);user-select:none}
-.doc-links{margin-top:clamp(32px, 4vw, 56px);border-top:1px solid var(--border-strong)}
+.doc-links{border-top:1px solid var(--border-strong)}
 .doc-link{display:grid;grid-template-columns:minmax(0, 1fr) minmax(0, 1fr) 44px;gap:16px;align-items:center;padding:clamp(14px, 1.6vw, 20px) 0;border-bottom:1px solid var(--border-strong);text-decoration:none}
 .doc-link b{font-size:clamp(20px, 2vw, 26px);line-height:1.05;letter-spacing:-.035em;font-weight:600;color:var(--foreground-strong);transition:color .18s, transform .45s cubic-bezier(.2,.7,.2,1)}
 .doc-link span{font-size:15px;color:var(--muted-foreground)}
@@ -322,7 +247,7 @@ h1 .dim{color:var(--subtle-foreground)}
 
 /* Fecho */
 .closing{overflow:hidden;text-align:center;border-top:1px solid var(--border-strong)}
-.closing .wrap{display:flex;flex-direction:column;align-items:center;padding-top:clamp(64px, 7vw, 104px)}
+.closing .wrap{display:flex;flex-direction:column;align-items:center;padding-top:clamp(56px, 6vw, 88px)}
 .closing h2{max-width:16ch}
 .closing .lede{margin-top:18px}
 .closing .actions{justify-content:center}
@@ -339,17 +264,19 @@ footer p{max-width:70ch}
 </head>
 <body>
 
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="mark" viewBox="28 28 200 200"><path fill-rule="evenodd" d="M76 28h104a48 48 0 0 1 48 48v104a48 48 0 0 1-48 48h-20v-56a12 12 0 0 0-12-12h-40a12 12 0 0 0-12 12v56H76a48 48 0 0 1-48-48V76a48 48 0 0 1 48-48Zm32 44a12 12 0 0 0-12 12v24a12 12 0 0 0 12 12h40a12 12 0 0 0 12-12V84a12 12 0 0 0-12-12Z"/></symbol></svg>
+
 <div class="progress" id="progress" aria-hidden="true"></div>
 
 <header class="topbar" id="topbar">
   <div class="topbar-in">
-    <a class="brand" href="#topo"><span class="logo" aria-hidden="true">A</span>Atrium</a>
+    <a class="brand" href="#topo"><svg class="logo" aria-hidden="true"><use href="#mark"/></svg>Atrium</a>
     <nav class="nav" aria-label="Seções">
-      <a href="#como-responde">Como responde</a>
       <a href="#compromissos">Compromissos</a>
-      <a href="#por-dentro">Por dentro</a>
       <a href="#telas">Telas</a>
+      <a href="#documentacao">Documentação</a>
       <a href="#codigo-aberto">Código aberto</a>
+      <a href="#stack">Stack</a>
     </nav>
     <a class="btn btn-accent" href="https://github.com/Tiodevs/AI-Chat" rel="noopener">
       <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.52-1.33-1.28-1.69-1.28-1.69-1.05-.71.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.29 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.78 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.8 1.19 1.83 1.19 3.09 0 4.42-2.69 5.4-5.25 5.68.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .5Z"/></svg>
@@ -368,50 +295,18 @@ footer p{max-width:70ch}
     <h1 id="title" data-hero>IA de atendimento que <em>mostra a fonte</em> <span class="dim">e sabe quando não responder.</span></h1>
     <p class="lede" data-hero>O Atrium responde visitantes de um hospital usando só o que o hospital publicou. Cada resposta traz a fonte, perguntas médicas são recusadas e, quando a informação não existe, ele diz que não encontrou.</p>
     <div class="actions" data-hero>
-      <a class="btn btn-accent btn-lg magnetic" href="https://github.com/Tiodevs/AI-Chat" rel="noopener">
+      <a class="btn btn-accent btn-lg" href="https://github.com/Tiodevs/AI-Chat" rel="noopener">
         <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.52-1.33-1.28-1.69-1.28-1.69-1.05-.71.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.29 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.78 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.8 1.19 1.83 1.19 3.09 0 4.42-2.69 5.4-5.25 5.68.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .5Z"/></svg>
         Ver o código no GitHub
       </a>
-      <a class="btn btn-lg magnetic" href="https://atrium-gold.vercel.app" rel="noopener">
+      <a class="btn btn-lg" href="https://atrium-gold.vercel.app" rel="noopener">
         Abrir a demonstração
         <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7M8 7h9v9"/></svg>
       </a>
     </div>
-    <ul class="meta" data-hero>
-      <li>FastAPI + LangGraph</li>
-      <li>React 19 + GSAP</li>
-      <li>Postgres + pgvector</li>
-      <li>LGPD por design</li>
-    </ul>
-
-    <div class="demo" data-hero id="demo">
-      <div class="tabs" role="tablist" aria-label="Três situações de uma conversa">
-        <button class="tab" role="tab" type="button" aria-selected="true" aria-controls="demo-panel">Responde com a fonte</button>
-        <button class="tab" role="tab" type="button" aria-selected="false" aria-controls="demo-panel">Recusa orientação médica</button>
-        <button class="tab" role="tab" type="button" aria-selected="false" aria-controls="demo-panel">Admite que não sabe</button>
-      </div>
-      <div class="stage">
-        <div class="window" id="demo-panel" role="tabpanel">
-          <div class="window-bar"><span class="logo" aria-hidden="true">A</span><span>Atrium</span><span>Harborlight General Hospital</span></div>
-          <div class="thread">
-            <div class="user-row">
-              <div class="bubble" data-el="bubble">Onde posso estacionar?</div>
-              <div class="privacy-note" data-el="note" hidden></div>
-            </div>
-            <div class="answer-area">
-              <div class="waiting" data-el="wait" aria-hidden="true" style="visibility:hidden"><i></i><i></i><i></i>Preparando a resposta</div>
-              <p class="answer" data-el="answer">Você pode estacionar na Garagem da Harbor Street<span class="cite">2</span>. Há também serviço de manobrista na entrada principal, disponível das 06:00 às 20:00<span class="cite">2</span>. Os primeiros 30 minutos na garagem são gratuitos<span class="cite">2</span>.</p>
-              <span class="badge" data-el="badge" data-tone="success">Respondida</span>
-              <div class="source" data-el="source"><b>2. Estacionamento</b><small>Fonte: documento publicado pelo hospital</small></div>
-            </div>
-          </div>
-          <div class="composer" aria-hidden="true">
-            <div class="field"><span class="typed" data-el="typed"></span><span class="ph">Pergunte sobre visita, caminhos ou horários</span><span class="send" data-el="send">Enviar</span></div>
-            <p class="hint">Não envie sintomas nem nomes de medicamentos. O Atrium não dá orientação médica.</p>
-          </div>
-        </div>
-      </div>
-    </div>
+  </div>
+  <div class="hero-shot" data-hero id="hero-shot">
+    <div class="hero-shot-in"><img src="../assets/screenshots/admin-visao-geral.png" width="2160" height="1350" alt="Painel do Atrium com a visão geral: perguntas feitas, taxa de respostas, abstenções e o gráfico ao longo do tempo"></div>
   </div>
 </section>
 
@@ -424,46 +319,13 @@ footer p{max-width:70ch}
   </div>
 </div>
 
-<!-- Como responde -->
-<section id="como-responde">
-  <div class="wrap pad">
-    <header class="head">
-      <div>
-        <p class="eyebrow" data-reveal><span>01</span>Como responde</p>
-        <h2 data-split>A IA é a porta de entrada, mas <em>não trabalha solta.</em></h2>
-      </div>
-      <p class="lede" data-reveal>Muita gente procura um hospital com dúvidas simples: horário de visita, onde estacionar, por qual entrada chegar. O Atrium responde na hora, em português, e toda conversa termina em um de três caminhos.</p>
-    </header>
-    <div class="grid-3">
-      <article class="out spot" data-tone="success" data-reveal>
-        <div class="out-top"><span class="badge">Respondida</span><span class="out-n">01</span></div>
-        <h3>Responde só com o que foi publicado</h3>
-        <p>A resposta sai dos documentos do hospital, e cada afirmação aponta a fonte. Citações e telefones são conferidos contra o texto recuperado antes de a resposta valer.</p>
-        <p class="quote">“Os primeiros 30 minutos na garagem são gratuitos <span class="cite">2</span>.”</p>
-      </article>
-      <article class="out spot" data-tone="danger" data-reveal>
-        <div class="out-top"><span class="badge">Orientação médica recusada</span><span class="out-n">02</span></div>
-        <h3>Não dá orientação médica</h3>
-        <p>Perguntas sobre sintomas, diagnóstico ou remédios recebem uma recusa fixa, com o caminho da emergência. A mensagem da pessoa não é guardada.</p>
-        <p class="quote">“Não posso ajudar com sintomas, diagnóstico ou medicamento.”</p>
-      </article>
-      <article class="out spot" data-tone="warning" data-reveal>
-        <div class="out-top"><span class="badge">Não está nas informações publicadas</span><span class="out-n">03</span></div>
-        <h3>Não inventa</h3>
-        <p>Se nada nos documentos sustenta uma resposta, o Atrium diz que não encontrou e indica o telefone da central, em vez de arriscar um palpite.</p>
-        <p class="quote">“Não encontrei isso nas informações publicadas do Harborlight.”</p>
-      </article>
-    </div>
-  </div>
-</section>
-
 <!-- Compromissos -->
 <section id="compromissos">
-  <div class="wrap pad" style="padding-top:0">
+  <div class="wrap pad">
     <p class="statement" id="statement">O hospital é inventado. A engenharia ao redor dele tem forma de produção, e serve de referência para quem quer construir algo parecido.</p>
     <header class="head">
       <div>
-        <p class="eyebrow" data-reveal><span>02</span>Os quatro compromissos</p>
+        <p class="eyebrow" data-reveal><span>01</span>Os quatro compromissos</p>
         <h2 data-split>Um produto de IA para o público, feito com <em>responsabilidade.</em></h2>
       </div>
     </header>
@@ -496,120 +358,63 @@ footer p{max-width:70ch}
   </div>
 </section>
 
-<!-- Por dentro -->
-<section id="por-dentro">
-  <div class="wrap pad" style="padding-top:0">
-    <div class="flow">
-      <div class="flow-head">
-        <p class="eyebrow" data-reveal><span>03</span>Por dentro</p>
-        <h2 data-split>O caminho de uma pergunta até a <em>resposta com fonte.</em></h2>
-        <p class="lede" data-reveal>Cada passo tem uma saída segura. O modelo só escreve depois que a pergunta passou pelo portão e a busca achou contexto, e o que ele escreve ainda é conferido.</p>
-        <p class="lede" data-reveal><a href="https://github.com/Tiodevs/AI-Chat/blob/main/docs/guia/04-pergunta-de-ponta-a-ponta.md" rel="noopener">Ler o passo a passo no guia do código</a></p>
-      </div>
-      <ol class="steps" id="steps">
-        <li class="rail" aria-hidden="true"><i></i></li>
-        <li class="step"><span class="n">1</span><div class="body"><h3>Reescrever e classificar</h3><p>A pergunta é reescrita com o contexto da conversa e classificada por intenção.</p></div></li>
-        <li class="step"><span class="n">2</span><div class="body"><h3>Portão</h3><p>Só informação pública do hospital segue adiante.</p><p class="exit"><span class="badge" data-tone="danger">Recusa fixa</span> orientação médica <code>refused</code></p><p class="exit"><span class="badge">Resposta de escopo</span> fora de tema ou baixa confiança <code>off_topic</code></p></div></li>
-        <li class="step"><span class="n">3</span><div class="body"><h3>Busca híbrida</h3><p>O embedding da pergunta consulta o pgvector, e a busca por texto completo roda junto, sobre os documentos publicados.</p></div></li>
-        <li class="step"><span class="n">4</span><div class="body"><h3>Piso de similaridade</h3><p>Sem contexto bom o bastante, o modelo nem é chamado.</p><p class="exit"><span class="badge" data-tone="warning">Abstenção</span> com o telefone da central <code>abstained</code></p></div></li>
-        <li class="step"><span class="n">5</span><div class="body"><h3>Gerar em fluxo</h3><p>O modelo escreve a resposta com o contexto recuperado, e os tokens chegam à tela por SSE enquanto são gerados.</p></div></li>
-        <li class="step"><span class="n">6</span><div class="body"><h3>Conferência</h3><p>Citações e telefones precisam ter saído do contexto. Se não saíram, a resposta é trocada pela versão segura.</p><p class="exit"><span class="badge" data-tone="success">Resposta com fontes</span> <code>answered</code></p></div></li>
-      </ol>
-    </div>
-  </div>
-</section>
-
 <!-- Telas -->
 <section id="telas">
-  <div class="wrap pad" style="padding-top:0">
+  <div class="wrap pad">
     <header class="head">
       <div>
-        <p class="eyebrow" data-reveal><span>04</span>Telas</p>
+        <p class="eyebrow" data-reveal><span>02</span>Telas</p>
         <h2 data-split>O produto inteiro, do visitante <em>à operação.</em></h2>
       </div>
+      <p class="lede" data-reveal>Seis telas, cada uma com o que ela resolve para quem pergunta e para quem opera.</p>
     </header>
-    <div class="screens" data-reveal>
-      <div class="screen-list" role="tablist" aria-label="Telas do Atrium">
-        <button class="screen-btn" role="tab" type="button" aria-selected="true" data-src="conversa.png" data-alt="Conversa no Atrium: o visitante pergunta onde estacionar e recebe uma resposta com a fonte citada"><b>Conversa</b><span>A resposta chega em tempo real, com a fonte de cada afirmação.</span></button>
-        <button class="screen-btn" role="tab" type="button" aria-selected="false" data-src="home.png" data-alt="Página inicial com campo de pergunta e atalhos"><b>Início</b><span>Atalhos para as dúvidas comuns e o aviso permanente de que o Atrium é uma IA.</span></button>
-        <button class="screen-btn" role="tab" type="button" aria-selected="false" data-src="guardrail.png" data-alt="Pergunta sobre sintoma recebe recusa de orientação médica"><b>Limite ético</b><span>Uma pergunta sobre sintoma é recusada, e a mensagem não é guardada.</span></button>
-        <button class="screen-btn" role="tab" type="button" aria-selected="false" data-src="cadastro-ia.png" data-alt="Cadastro por conversa com a IA"><b>Cadastro com IA</b><span>Uma conversa guiada coleta os dados, e a pessoa confere tudo antes de confirmar.</span></button>
-        <button class="screen-btn" role="tab" type="button" aria-selected="false" data-src="admin-visao-geral.png" data-alt="Painel do admin com a visão geral de uso"><b>Visão geral</b><span>Quantas perguntas foram respondidas, recusadas ou ficaram sem resposta.</span></button>
-        <button class="screen-btn" role="tab" type="button" aria-selected="false" data-src="admin-qualidade.png" data-alt="Inspetor de qualidade com conversas pseudonimizadas"><b>Qualidade</b><span>Conversas pseudonimizadas, só de quem consentiu, para a equipe revisar.</span></button>
-        <button class="screen-btn" role="tab" type="button" aria-selected="false" data-src="mobile-conversa.png" data-contain data-alt="Conversa no celular"><b>No celular</b><span>A mesma experiência onde muitos visitantes fazem a pergunta.</span></button>
-      </div>
-      <div class="frame-wrap">
-        <div class="frame" id="frame"><img id="shot" src="../assets/screenshots/conversa.png" width="2160" height="1350" alt="Conversa no Atrium: o visitante pergunta onde estacionar e recebe uma resposta com a fonte citada"></div>
-        <p class="frame-caption" id="shot-caption">A resposta chega em tempo real, com a fonte de cada afirmação.</p>
+    <div class="tour" id="tour">
+      <ol class="tour-list">
+        <li class="tour-item is-active"><span class="tour-n">01</span><h3>Conversa</h3><p>A resposta chega em tempo real, com a fonte de cada afirmação.</p><img class="tour-img" loading="lazy" src="../assets/screenshots/conversa.png" width="2160" height="1350" alt="Conversa no Atrium: o visitante pergunta onde estacionar e recebe uma resposta com a fonte citada"></li>
+        <li class="tour-item"><span class="tour-n">02</span><h3>Início</h3><p>Atalhos para as dúvidas comuns e o aviso permanente de que o Atrium é uma IA.</p><img class="tour-img" loading="lazy" src="../assets/screenshots/home.png" width="2160" height="1350" alt="Página inicial com campo de pergunta e atalhos"></li>
+        <li class="tour-item"><span class="tour-n">03</span><h3>Limite ético</h3><p>Uma pergunta sobre sintoma é recusada, e a mensagem não é guardada.</p><img class="tour-img" loading="lazy" src="../assets/screenshots/guardrail.png" width="2160" height="1350" alt="Pergunta sobre sintoma recebe recusa de orientação médica"></li>
+        <li class="tour-item"><span class="tour-n">04</span><h3>Cadastro com IA</h3><p>Uma conversa guiada coleta os dados, e a pessoa confere tudo antes de confirmar.</p><img class="tour-img" loading="lazy" src="../assets/screenshots/cadastro-ia.png" width="2160" height="1350" alt="Cadastro por conversa com a IA"></li>
+        <li class="tour-item"><span class="tour-n">05</span><h3>Qualidade</h3><p>Conversas pseudonimizadas, só de quem consentiu, para a equipe revisar.</p><img class="tour-img" loading="lazy" src="../assets/screenshots/admin-qualidade.png" width="2160" height="1350" alt="Inspetor de qualidade com conversas pseudonimizadas"></li>
+        <li class="tour-item"><span class="tour-n">06</span><h3>No celular</h3><p>A mesma experiência onde muitos visitantes fazem a pergunta.</p><img class="tour-img contain" loading="lazy" src="../assets/screenshots/mobile-conversa.png" alt="Conversa no celular"></li>
+      </ol>
+      <div class="tour-stage" aria-hidden="true">
+        <div class="frame" id="frame"></div>
+        <p class="tour-count"><b id="tour-now">01</b><span class="tour-bar"><i id="tour-bar"></i></span><span>06</span></p>
       </div>
     </div>
   </div>
 </section>
 
-<!-- Números -->
-<section id="numeros">
-  <div class="wrap pad" style="padding-top:0">
+<!-- Documentação -->
+<section id="documentacao">
+  <div class="wrap pad">
     <header class="head">
       <div>
-        <p class="eyebrow" data-reveal><span>05</span>Qualidade em números</p>
-        <h2 data-split>Testado como produção, <em>documentado como aula.</em></h2>
+        <p class="eyebrow" data-reveal><span>03</span>Documentação</p>
+        <h2 data-split>A especificação vem <em>antes do código.</em></h2>
       </div>
-      <p class="lede" data-reveal>Os testes automáticos nunca chamam o modelo de verdade: usam provedores falsos e determinísticos. A qualidade das respostas é medida à parte, com um conjunto de avaliação.</p>
+      <p class="lede" data-reveal>O que o sistema faz, por que foi feito assim e como o código cumpre cada regra, tudo escrito no mesmo repositório.</p>
     </header>
-    <dl class="stats" id="stats">
-      <div data-reveal><dd data-count="372">372</dd><dt>testes na API, com Pytest</dt></div>
-      <div data-reveal><dd data-count="129">129</dd><dt>testes no frontend, com Vitest</dt></div>
-      <div data-reveal><dd data-count="54">54</dd><dt>histórias no Storybook</dt></div>
-      <div data-reveal><dd data-count="14">14</dd><dt>decisões de arquitetura escritas (ADRs)</dt></div>
-      <div data-reveal><dd data-count="12">12</dd><dt>documentos no corpus fictício</dt></div>
-      <div data-reveal><dd data-count="11">11</dd><dt>casos de avaliação das respostas</dt></div>
-    </dl>
-    <p class="fine">Contagem feita no código em 2026-11-08.</p>
-  </div>
-</section>
-
-<!-- Stack -->
-<section id="stack">
-  <div class="wrap">
-    <header class="head">
-      <div>
-        <p class="eyebrow" data-reveal><span>06</span>Stack</p>
-        <h2 data-split>Ferramentas conhecidas, em <em>camadas bem separadas.</em></h2>
-      </div>
-    </header>
-  </div>
-  <div class="marquee" aria-hidden="true">
-    <div class="track" data-track="1">
-      <ul><li>React 19</li><li class="a">TypeScript</li><li>Vite</li><li>Tailwind CSS 4</li><li>shadcn/ui</li><li class="a">GSAP</li><li>Python 3.12</li><li>FastAPI</li><li>Pydantic</li><li class="a">SQLAlchemy 2</li><li>LangChain</li><li>LangGraph</li><li>Gemini</li></ul>
+    <div class="doc-links">
+      <a class="doc-link" data-reveal href="https://github.com/Tiodevs/AI-Chat/blob/main/docs/sdd.md" rel="noopener"><b>Especificação (SDD)</b><span>O que o sistema faz e por quê. Vem antes do código.</span><i aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M8 7h9v9"/></svg></i></a>
+      <a class="doc-link" data-reveal href="https://github.com/Tiodevs/AI-Chat/blob/main/docs/guia/README.md" rel="noopener"><b>Guia do código</b><span>Uma trilha de estudo em 14 partes, arquivo por arquivo.</span><i aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M8 7h9v9"/></svg></i></a>
+      <a class="doc-link" data-reveal href="https://github.com/Tiodevs/AI-Chat/blob/main/docs/engenharia/README.md" rel="noopener"><b>Engenharia do Atrium</b><span>Onde cada peça roda, a CI, a entrega e a observabilidade.</span><i aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M8 7h9v9"/></svg></i></a>
+      <a class="doc-link" data-reveal href="https://github.com/Tiodevs/AI-Chat/blob/main/docs/plano-de-acao.md" rel="noopener"><b>Plano de ação</b><span>As etapas, os critérios de aceite e o que falta fazer.</span><i aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M8 7h9v9"/></svg></i></a>
     </div>
-    <div class="track" data-track="-1">
-      <ul><li>PostgreSQL</li><li class="a">pgvector</li><li>Pytest</li><li>Vitest</li><li>Playwright</li><li class="a">Storybook</li><li>OpenTelemetry</li><li>Prometheus</li><li>Grafana</li><li class="a">LangSmith</li><li>GitHub Actions</li><li>Vercel</li><li>Railway</li></ul>
-    </div>
-  </div>
-  <div class="wrap pad" style="padding-top:0">
-    <dl class="layers">
-      <div data-reveal><dt>Frontend</dt><dd>React 19, TypeScript, Vite, Tailwind CSS 4, shadcn/ui sobre Radix, TanStack Query, React Router e GSAP</dd></div>
-      <div data-reveal><dt>API</dt><dd>Python 3.12, FastAPI, Pydantic, SQLAlchemy 2 assíncrono com asyncpg e Alembic</dd></div>
-      <div data-reveal><dt>IA</dt><dd>LangChain nas perguntas, LangGraph no cadastro e Gemini atrás de portas próprias</dd></div>
-      <div data-reveal><dt>Dados</dt><dd>PostgreSQL com pgvector, busca híbrida vetorial e por texto completo</dd></div>
-      <div data-reveal><dt>Testes</dt><dd>Pytest, Vitest, Testing Library, Playwright, axe e Storybook</dd></div>
-      <div data-reveal><dt>Observabilidade</dt><dd>structlog, OpenTelemetry, Prometheus, Grafana e LangSmith</dd></div>
-      <div data-reveal><dt>Entrega</dt><dd>GitHub Actions, Vercel no frontend e Railway na API, no banco e no monitoramento</dd></div>
-    </dl>
   </div>
 </section>
 
 <!-- Código aberto -->
 <section id="codigo-aberto">
-  <div class="wrap pad" style="padding-top:0">
+  <div class="wrap pad">
     <div class="oss-panel" id="oss-panel">
       <div class="oss">
         <div>
-          <p class="eyebrow"><span>07</span>Código aberto</p>
+          <p class="eyebrow"><span>04</span>Código aberto</p>
           <h2 data-split>Leia, rode, mude. <em>É seu também.</em></h2>
           <p class="lede" data-reveal>O Atrium é distribuído sob a licença MIT: você pode usar, copiar, modificar e distribuir o código, mantendo o aviso de copyright. A especificação, as decisões e o plano de construção estão no mesmo repositório.</p>
           <div class="actions" data-reveal>
-            <a class="btn btn-dark magnetic" href="https://github.com/Tiodevs/AI-Chat/blob/main/CONTRIBUTING.md" rel="noopener">Guia de contribuição</a>
+            <a class="btn btn-dark" href="https://github.com/Tiodevs/AI-Chat/blob/main/CONTRIBUTING.md" rel="noopener">Guia de contribuição</a>
             <a class="btn btn-ink" href="https://github.com/Tiodevs/AI-Chat/issues" rel="noopener">Ver as issues</a>
             <a class="btn btn-ink" href="https://github.com/Tiodevs/AI-Chat/blob/main/LICENSE" rel="noopener">Licença MIT</a>
           </div>
@@ -634,13 +439,37 @@ footer p{max-width:70ch}
         </div>
       </div>
     </div>
+  </div>
+</section>
 
-    <div class="doc-links">
-      <a class="doc-link" data-reveal href="https://github.com/Tiodevs/AI-Chat/blob/main/docs/sdd.md" rel="noopener"><b>Especificação (SDD)</b><span>O que o sistema faz e por quê. Vem antes do código.</span><i aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M8 7h9v9"/></svg></i></a>
-      <a class="doc-link" data-reveal href="https://github.com/Tiodevs/AI-Chat/blob/main/docs/guia/README.md" rel="noopener"><b>Guia do código</b><span>Uma trilha de estudo em 14 partes, arquivo por arquivo.</span><i aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M8 7h9v9"/></svg></i></a>
-      <a class="doc-link" data-reveal href="https://github.com/Tiodevs/AI-Chat/blob/main/docs/engenharia/README.md" rel="noopener"><b>Engenharia do Atrium</b><span>Onde cada peça roda, a CI, a entrega e a observabilidade.</span><i aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M8 7h9v9"/></svg></i></a>
-      <a class="doc-link" data-reveal href="https://github.com/Tiodevs/AI-Chat/blob/main/docs/plano-de-acao.md" rel="noopener"><b>Plano de ação</b><span>As etapas, os critérios de aceite e o que falta fazer.</span><i aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M8 7h9v9"/></svg></i></a>
+<!-- Stack -->
+<section id="stack">
+  <div class="wrap pad-top">
+    <header class="head">
+      <div>
+        <p class="eyebrow" data-reveal><span>05</span>Stack</p>
+        <h2 data-split>Ferramentas conhecidas, em <em>camadas bem separadas.</em></h2>
+      </div>
+    </header>
+  </div>
+  <div class="marquee" aria-hidden="true">
+    <div class="track" data-track="1">
+      <ul><li>React 19</li><li class="a">TypeScript</li><li>Vite</li><li>Tailwind CSS 4</li><li>shadcn/ui</li><li class="a">GSAP</li><li>Python 3.12</li><li>FastAPI</li><li>Pydantic</li><li class="a">SQLAlchemy 2</li><li>LangChain</li><li>LangGraph</li><li>Gemini</li></ul>
     </div>
+    <div class="track" data-track="-1">
+      <ul><li>PostgreSQL</li><li class="a">pgvector</li><li>Pytest</li><li>Vitest</li><li>Playwright</li><li class="a">Storybook</li><li>OpenTelemetry</li><li>Prometheus</li><li>Grafana</li><li class="a">LangSmith</li><li>GitHub Actions</li><li>Vercel</li><li>Railway</li></ul>
+    </div>
+  </div>
+  <div class="wrap pad-bottom">
+    <dl class="layers">
+      <div data-reveal><dt>Frontend</dt><dd>React 19, TypeScript, Vite, Tailwind CSS 4, shadcn/ui sobre Radix, TanStack Query, React Router e GSAP</dd></div>
+      <div data-reveal><dt>API</dt><dd>Python 3.12, FastAPI, Pydantic, SQLAlchemy 2 assíncrono com asyncpg e Alembic</dd></div>
+      <div data-reveal><dt>IA</dt><dd>LangChain nas perguntas, LangGraph no cadastro e Gemini atrás de portas próprias</dd></div>
+      <div data-reveal><dt>Dados</dt><dd>PostgreSQL com pgvector, busca híbrida vetorial e por texto completo</dd></div>
+      <div data-reveal><dt>Testes</dt><dd>Pytest, Vitest, Testing Library, Playwright, axe e Storybook</dd></div>
+      <div data-reveal><dt>Observabilidade</dt><dd>structlog, OpenTelemetry, Prometheus, Grafana e LangSmith</dd></div>
+      <div data-reveal><dt>Entrega</dt><dd>GitHub Actions, Vercel no frontend e Railway na API, no banco e no monitoramento</dd></div>
+    </dl>
   </div>
 </section>
 
@@ -650,8 +479,8 @@ footer p{max-width:70ch}
     <h2 data-split>IA no atendimento pode ser útil, segura e <em>honesta.</em></h2>
     <p class="lede" data-reveal>Veja como cada regra desta página vira código, teste e documento.</p>
     <div class="actions" data-reveal>
-      <a class="btn btn-accent btn-lg magnetic" href="https://github.com/Tiodevs/AI-Chat" rel="noopener">Ver o código no GitHub</a>
-      <a class="btn btn-lg magnetic" href="https://atrium-gold.vercel.app" rel="noopener">Abrir a demonstração <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7M8 7h9v9"/></svg></a>
+      <a class="btn btn-accent btn-lg" href="https://github.com/Tiodevs/AI-Chat" rel="noopener">Ver o código no GitHub</a>
+      <a class="btn btn-lg" href="https://atrium-gold.vercel.app" rel="noopener">Abrir a demonstração <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7M8 7h9v9"/></svg></a>
     </div>
   </div>
   <div class="wordmark" id="wordmark" aria-hidden="true"><span>A</span><span>t</span><span>r</span><span>i</span><span>u</span><span>m</span></div>
@@ -674,8 +503,8 @@ footer p{max-width:70ch}
   "use strict";
 
   /* Os tokens de movimento da seção 16.2 do SDD, os mesmos de
-     apps/web/src/motion/tokens.ts, usados na janela do produto. `display`
-     é só desta página: os movimentos largos de título e de rolagem. */
+     apps/web/src/motion/tokens.ts. `display` é só desta página: os
+     movimentos largos de título e de rolagem. */
   var motion = {
     duration: { instant: 0.12, fast: 0.18, base: 0.28, slow: 0.45, chart: 0.8 },
     ease: { enter: "power2.out", exit: "power2.in", move: "power3.inOut", confirm: "back.out(2)" },
@@ -694,153 +523,6 @@ footer p{max-width:70ch}
 
   function $(sel, root) { return (root || document).querySelector(sel); }
   function $$(sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
-
-  /* ---------- Demonstração da capa ---------- */
-
-  /* Os textos das respostas fixas são os de apps/api/app/prompts/qa.py, e
-     os rótulos, os de apps/web/src/i18n/pt.ts. */
-  var scenarios = [
-    {
-      question: "Onde posso estacionar?",
-      answer: ["Você pode estacionar na Garagem da Harbor Street", 2, ". Há também serviço de manobrista na entrada principal, disponível das 06:00 às 20:00", 2, ". Os primeiros 30 minutos na garagem são gratuitos", 2, "."],
-      badge: { tone: "success", label: "Respondida" },
-      source: { title: "2. Estacionamento", detail: "Fonte: documento publicado pelo hospital" }
-    },
-    {
-      question: "Estou com dor no peito, que remédio eu tomo?",
-      note: "Para proteger sua privacidade, não guardamos esta mensagem.",
-      answer: ["Não posso ajudar com sintomas, diagnóstico ou medicamento. Se for uma emergência, ligue para o número local de emergência. A entrada de emergência do Harborlight fica no lado oeste e funciona 24 horas."],
-      badge: { tone: "danger", label: "Orientação médica recusada" }
-    },
-    {
-      question: "O hospital tem heliponto para visitantes?",
-      answer: ["Não encontrei isso nas informações publicadas do Harborlight. Você pode ligar para a mesa telefônica no (555) 014-2600."],
-      badge: { tone: "warning", label: "Não está nas informações publicadas" }
-    }
-  ];
-
-  var demo = $("#demo");
-  var el = {};
-  $$("[data-el]", demo).forEach(function (node) { el[node.getAttribute("data-el")] = node; });
-  var tabs = $$(".tab", demo);
-  var demoTl = null;
-  var autoplay = true;
-  var demoVisible = true;
-
-  /* Monta o estado final de uma situação. A animação parte dele. */
-  function render(index) {
-    var s = scenarios[index];
-    el.bubble.textContent = s.question;
-    el.note.hidden = !s.note;
-    el.note.textContent = s.note || "";
-    el.answer.textContent = "";
-    s.answer.forEach(function (part) {
-      if (typeof part === "number") {
-        var cite = document.createElement("span");
-        cite.className = "cite w";
-        cite.textContent = String(part);
-        el.answer.appendChild(cite);
-        return;
-      }
-      part.split(/(\s+)/).forEach(function (piece) {
-        if (!piece) return;
-        if (/^\s+$/.test(piece)) { el.answer.appendChild(document.createTextNode(" ")); return; }
-        var word = document.createElement("span");
-        word.className = "w";
-        word.textContent = piece;
-        el.answer.appendChild(word);
-      });
-    });
-    el.badge.setAttribute("data-tone", s.badge.tone);
-    el.badge.textContent = s.badge.label;
-    el.source.hidden = !s.source;
-    if (s.source) {
-      el.source.innerHTML = "";
-      var title = document.createElement("b");
-      title.textContent = s.source.title;
-      var detail = document.createElement("small");
-      detail.textContent = s.source.detail;
-      el.source.appendChild(title);
-      el.source.appendChild(detail);
-    }
-    el.typed.textContent = "";
-    tabs.forEach(function (tab, i) { tab.setAttribute("aria-selected", i === index ? "true" : "false"); });
-  }
-
-  function play(index) {
-    if (demoTl) { demoTl.kill(); demoTl = null; }
-    render(index);
-    if (!animate) return;
-
-    var s = scenarios[index];
-    var words = $$(".w", el.answer);
-    var tail = [el.badge].concat(s.source ? [el.source] : []);
-    var typing = { n: 0 };
-
-    gsap.set([el.bubble, el.note, el.wait].concat(words, tail), { autoAlpha: 0 });
-    gsap.set(el.send, { scale: 1 });
-
-    demoTl = gsap.timeline({
-      paused: !demoVisible,
-      onComplete: function () { if (autoplay) play((index + 1) % scenarios.length); }
-    });
-    demoTl
-      .to(typing, {
-        n: s.question.length,
-        duration: Math.max(0.6, s.question.length * 0.032),
-        ease: "none",
-        onUpdate: function () { el.typed.textContent = s.question.slice(0, Math.round(typing.n)); }
-      }, 0.4)
-      .to(el.send, { scale: 0.9, duration: motion.duration.instant, ease: motion.ease.enter, yoyo: true, repeat: 1 }, "+=0.25")
-      .add(function () { el.typed.textContent = ""; })
-      .fromTo(el.bubble, { autoAlpha: 0, y: motion.distance.enter }, { autoAlpha: 1, y: 0, duration: motion.duration.base, ease: motion.ease.enter })
-      .to(el.note, { autoAlpha: 1, duration: motion.duration.base, ease: motion.ease.enter }, "<0.1")
-      .to(el.wait, { autoAlpha: 1, duration: motion.duration.fast, ease: motion.ease.enter }, "+=0.1")
-      .fromTo($$("i", el.wait), { opacity: 0.3 }, { opacity: 1, duration: 0.3, stagger: { each: 0.12, repeat: 2, yoyo: true }, ease: "none" }, "<")
-      .to(el.wait, { autoAlpha: 0, duration: motion.duration.fast, ease: motion.ease.exit })
-      .to(words, { autoAlpha: 1, duration: motion.duration.instant, ease: "none", stagger: 0.045 })
-      .fromTo(tail, { autoAlpha: 0, y: motion.distance.enter }, { autoAlpha: 1, y: 0, duration: motion.duration.base, ease: motion.ease.enter, stagger: 0.12 }, "+=0.15")
-      .to({}, { duration: 3.4 });
-  }
-
-  tabs.forEach(function (tab, i) {
-    tab.addEventListener("click", function () {
-      /* Quem escolhe uma situação fica nela: o ciclo automático para. */
-      autoplay = false;
-      play(i);
-    });
-  });
-
-  /* ---------- Telas ---------- */
-
-  var shot = $("#shot");
-  var caption = $("#shot-caption");
-  var screenBtns = $$(".screen-btn");
-  var base = "../assets/screenshots/";
-
-  function showScreen(btn) {
-    screenBtns.forEach(function (b) { b.setAttribute("aria-selected", b === btn ? "true" : "false"); });
-    function swap() {
-      shot.classList.toggle("contain", btn.hasAttribute("data-contain"));
-      shot.alt = btn.getAttribute("data-alt");
-      caption.textContent = $("span", btn).textContent;
-      shot.src = base + btn.getAttribute("data-src");
-    }
-    if (!animate) { swap(); return; }
-    gsap.killTweensOf(shot);
-    gsap.to(shot, {
-      autoAlpha: 0, scale: 0.985, duration: motion.duration.fast, ease: motion.ease.exit,
-      onComplete: function () {
-        shot.onload = function () {
-          gsap.fromTo(shot, { autoAlpha: 0, scale: 1.03 }, { autoAlpha: 1, scale: 1, duration: 0.7, ease: motion.display.ease, clearProps: "transform" });
-        };
-        swap();
-      }
-    });
-  }
-  screenBtns.forEach(function (btn) {
-    btn.addEventListener("click", function () { if (btn.getAttribute("aria-selected") !== "true") showScreen(btn); });
-  });
 
   /* ---------- Copiar os comandos ---------- */
 
@@ -873,9 +555,9 @@ footer p{max-width:70ch}
     });
   }
 
-  /* ---------- Sem animação: estado final e fim ---------- */
+  /* ---------- Sem animação: a página já está no estado final ---------- */
 
-  if (!animate) { render(0); return; }
+  if (!animate) return;
 
   /* ---------- Com GSAP ---------- */
 
@@ -899,35 +581,68 @@ footer p{max-width:70ch}
     }, vars));
   }
 
+  /* As telas: em tela larga, a lista rola e a moldura parada mostra a tela
+     do item que está no meio da janela. */
+  function setupTour() {
+    var items = $$(".tour-item");
+    var frame = $("#frame");
+    var now = $("#tour-now");
+    var bar = $("#tour-bar");
+    var shots = items.map(function (item, i) {
+      var source = $(".tour-img", item);
+      var img = document.createElement("img");
+      img.src = source.getAttribute("src");
+      img.alt = "";
+      if (source.classList.contains("contain")) img.className = "contain";
+      frame.appendChild(img);
+      gsap.set(img, { autoAlpha: i === 0 ? 1 : 0 });
+      return img;
+    });
+    var current = 0;
+
+    function show(index) {
+      if (index === current) return;
+      items[current].classList.remove("is-active");
+      items[index].classList.add("is-active");
+      gsap.to(shots[current], { autoAlpha: 0, duration: motion.duration.slow, ease: motion.ease.exit, overwrite: true });
+      gsap.fromTo(shots[index], { autoAlpha: 0, scale: 1.03 }, { autoAlpha: 1, scale: 1, duration: 0.7, ease: motion.display.ease, overwrite: true });
+      now.textContent = (index < 9 ? "0" : "") + (index + 1);
+      current = index;
+    }
+
+    gsap.matchMedia().add("(min-width: 961px)", function () {
+      items.forEach(function (item, i) {
+        ScrollTrigger.create({
+          trigger: item, start: "top 55%", end: "bottom 55%",
+          onToggle: function (self) { if (self.isActive) show(i); }
+        });
+      });
+      gsap.fromTo(bar, { scaleX: 1 / items.length }, {
+        scaleX: 1, ease: "none",
+        scrollTrigger: { trigger: ".tour-list", start: "top 55%", end: "bottom 55%", scrub: 0.3 }
+      });
+    });
+  }
+
   function start() {
     /* Entrada da capa: uma timeline, sem encadear delay. */
-    var heroRest = $$(".hero [data-hero]").filter(function (node) { return node.id !== "title" && node !== demo; });
-    var intro = gsap.timeline();
-    intro
+    var shot = $("#hero-shot");
+    var heroRest = $$(".hero [data-hero]").filter(function (node) { return node.id !== "title" && node !== shot; });
+    gsap.timeline()
       .add(riseLines("#title"), 0.1)
       .from(heroRest, { autoAlpha: 0, y: motion.display.distance, duration: 0.8, ease: motion.display.ease, stagger: 0.08, clearProps: "all" }, 0.35)
-      .from(demo, { autoAlpha: 0, y: 60, duration: 1.1, ease: motion.display.ease, clearProps: "opacity,visibility" }, 0.6)
-      .from("#topbar", { autoAlpha: 0, yPercent: -120, duration: 0.8, ease: motion.display.ease }, 0.4)
-      .add(function () { play(0); }, 1);
+      .from(shot, { autoAlpha: 0, yPercent: 30, duration: 1.2, ease: motion.display.ease, clearProps: "all" }, 0.55)
+      .from("#topbar", { autoAlpha: 0, yPercent: -120, duration: 0.8, ease: motion.display.ease }, 0.4);
     root.classList.remove("pending");
 
     /* As luzes da capa flutuam devagar. */
     gsap.to(".orb-a", { xPercent: 14, yPercent: 10, scale: 1.12, duration: 9, ease: "sine.inOut", repeat: -1, yoyo: true });
     gsap.to(".orb-b", { xPercent: -18, yPercent: -12, scale: 0.9, duration: 11, ease: "sine.inOut", repeat: -1, yoyo: true });
 
-    /* A janela começa inclinada e assenta conforme a rolagem. */
-    gsap.fromTo("#demo-panel", { rotateX: 18, scale: 0.92 }, {
-      rotateX: 0, scale: 1, ease: "none",
-      scrollTrigger: { trigger: demo, start: "top 92%", end: "top 30%", scrub: 0.6 }
-    });
-
-    /* A demonstração pausa fora da tela. */
-    ScrollTrigger.create({
-      trigger: demo, start: "top bottom", end: "bottom top",
-      onToggle: function (self) {
-        demoVisible = self.isActive;
-        if (demoTl) { if (demoVisible) demoTl.play(); else demoTl.pause(); }
-      }
+    /* O print da capa sobe um pouco com a rolagem e mostra mais do painel. */
+    gsap.to("#hero-shot img", {
+      yPercent: -14, ease: "none",
+      scrollTrigger: { trigger: ".hero", start: "top top", end: "bottom top", scrub: 0.5 }
     });
 
     /* Barra de progresso e navegação que some ao descer e volta ao subir. */
@@ -986,36 +701,10 @@ footer p{max-width:70ch}
     });
     gsap.fromTo($$(".mw", statement), { opacity: 0.16 }, {
       opacity: 1, ease: "none", stagger: 0.1,
-      scrollTrigger: { trigger: statement, start: "top 82%", end: "bottom 45%", scrub: 0.4 }
+      scrollTrigger: { trigger: statement, start: "top 85%", end: "bottom 50%", scrub: 0.4 }
     });
 
-    /* O caminho da pergunta: o trilho enche com a rolagem e cada passo acende. */
-    var steps = $("#steps");
-    gsap.to($(".rail i", steps), {
-      scaleY: 1, ease: "none",
-      scrollTrigger: { trigger: steps, start: "top 68%", end: "bottom 60%", scrub: 0.4 }
-    });
-    $$(".step", steps).forEach(function (step) {
-      ScrollTrigger.create({ trigger: step, start: "top 68%", end: "max", toggleClass: { targets: step, className: "is-on" } });
-    });
-
-    /* A moldura das telas sobe um pouco mais devagar que a página. */
-    gsap.fromTo("#frame", { yPercent: 6 }, { yPercent: -4, ease: "none", scrollTrigger: { trigger: "#frame", start: "top bottom", end: "bottom top", scrub: 0.6 } });
-
-    /* Os números contam uma vez. */
-    ScrollTrigger.create({
-      trigger: "#stats", start: "top 85%", once: true,
-      onEnter: function () {
-        $$("[data-count]").forEach(function (node, i) {
-          var target = Number(node.getAttribute("data-count"));
-          var counter = { v: 0 };
-          gsap.to(counter, {
-            v: target, duration: 1.6, delay: i * 0.08, ease: motion.display.ease,
-            onUpdate: function () { node.textContent = String(Math.round(counter.v)); }
-          });
-        });
-      }
-    });
+    setupTour();
 
     /* As duas faixas da stack andam em sentidos opostos. */
     $$("[data-track]").forEach(function (track) {
@@ -1029,27 +718,13 @@ footer p{max-width:70ch}
     });
 
     /* O painel de código aberto cresce até a largura cheia. */
-    gsap.fromTo("#oss-panel", { scale: 0.9 }, { scale: 1, ease: "none", scrollTrigger: { trigger: "#oss-panel", start: "top 95%", end: "top 45%", scrub: 0.5 } });
+    gsap.fromTo("#oss-panel", { scale: 0.92 }, { scale: 1, ease: "none", scrollTrigger: { trigger: "#oss-panel", start: "top 95%", end: "top 45%", scrub: 0.5 } });
 
     /* A marca do fecho sobe letra por letra. */
     gsap.from($$("#wordmark span"), {
       yPercent: 105, duration: 1.2, ease: motion.display.ease, stagger: 0.07,
       scrollTrigger: { trigger: "#wordmark", start: "top 92%", once: true }
     });
-
-    /* Botões que puxam para o cursor. */
-    if (finePointer) {
-      $$(".magnetic").forEach(function (button) {
-        var toX = gsap.quickTo(button, "x", { duration: 0.4, ease: "power3.out" });
-        var toY = gsap.quickTo(button, "y", { duration: 0.4, ease: "power3.out" });
-        button.addEventListener("pointermove", function (event) {
-          var box = button.getBoundingClientRect();
-          toX((event.clientX - box.left - box.width / 2) * 0.28);
-          toY((event.clientY - box.top - box.height / 2) * 0.38);
-        });
-        button.addEventListener("pointerleave", function () { toX(0); toY(0); });
-      });
-    }
 
     /* Fontes e imagens mudam alturas depois do carregamento. */
     window.addEventListener("load", function () { ScrollTrigger.refresh(); });
