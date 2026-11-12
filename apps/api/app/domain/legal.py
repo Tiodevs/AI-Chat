@@ -9,6 +9,10 @@ cadastro calculam `needs_legal_acceptance` com ela.
 # na próxima entrada do membro (seção 11.11).
 LEGAL_DOCUMENT_VERSION = "2026-10-25.1"
 
+# Versão do compromisso de confidencialidade da equipe (seção 29.3). Uma versão nova pede o
+# aceite de novo antes de assumir o próximo atendimento. O texto fica em `src/i18n/pt.ts`.
+ATTENDANT_TERMS_VERSION = "2026-11-12.1"
+
 
 def needs_legal_acceptance(accepted_version: str | None) -> bool:
     """Verdadeiro quando não há aceite da versão vigente.

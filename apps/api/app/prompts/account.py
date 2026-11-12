@@ -12,6 +12,10 @@ PERSONALIZATION_REQUIRED = "Ative a personalização em Privacidade para informa
 PURPOSE_NOT_CHANGEABLE = "Este consentimento não pode ser alterado por aqui."
 # 403 de `DELETE /v1/me` para um admin (seção 10.5).
 ADMIN_CANNOT_DELETE = "Um admin não pode excluir a própria conta pela API."
+# 403 de `DELETE /v1/me` para quem tem o papel `attendant` (seção 29.3).
+ATTENDANT_CANNOT_DELETE = (
+    "Uma conta da equipe de atendimento não pode ser excluída. Peça a revogação do papel antes."
+)
 # `message` do 422 de `PATCH /v1/me`; cada campo traz a própria mensagem em `field_errors`.
 PROFILE_NOT_CHANGED = "Não foi possível salvar o perfil."
 # 404 quando a conta da sessão não existe mais.

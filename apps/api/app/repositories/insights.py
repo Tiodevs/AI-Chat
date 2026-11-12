@@ -88,7 +88,7 @@ class InsightsRepository:
         """Perguntas do período, de todas as conversas, elegíveis ou não (seção 12)."""
         value = await self._session.scalar(
             text(
-                "SELECT count(*) FROM messages WHERE role = 'user' "
+                "SELECT count(*) FROM messages WHERE role = 'user' AND handoff_id IS NULL "
                 "AND created_at >= :start AND created_at < :end"
             ),
             {"start": window.start, "end": window.end},
@@ -141,6 +141,8 @@ class InsightsRepository:
                 "count(*) FILTER (WHERE role = 'user'), "
                 "count(*) FILTER (WHERE role = 'assistant' AND outcome = 'answered') "
                 "FROM messages WHERE created_at >= :start AND created_at < :end "
+                # A visão geral conta só a conversa com a IA (seção 29.7).
+                "AND handoff_id IS NULL "
                 "GROUP BY day"
             ),
             {"start": window.start, "end": window.end},
@@ -253,7 +255,8 @@ class InsightsRepository:
                 "count(feedback.message_id) FILTER (WHERE feedback.rating = -1) AS not_helpful "
                 "FROM messages AS message "
                 "LEFT JOIN feedback ON feedback.message_id = message.id "
-                "WHERE message.conversation_id = conversation.id"
+                "WHERE message.conversation_id = conversation.id "
+                "AND message.handoff_id IS NULL"
                 # Uma agregação sem `GROUP BY` sempre devolve uma linha, mesmo sem mensagens.
                 # O `max` nulo marca a conversa vazia, que fica de fora.
                 ") AS stats ON stats.last_activity_at IS NOT NULL "
@@ -316,7 +319,10 @@ class InsightsRepository:
                 "feedback.rating "
                 "FROM messages AS message "
                 "LEFT JOIN feedback ON feedback.message_id = message.id "
-                "WHERE message.conversation_id = :id ORDER BY message.created_at, message.role"
+                # O inspetor mostra só a conversa com a IA: o consentimento de melhoria não
+                # cobre a conversa com a equipe (seção 29.7).
+                "WHERE message.conversation_id = :id AND message.handoff_id IS NULL "
+                "ORDER BY message.created_at, message.role"
             ),
             {"id": conversation_id},
         )

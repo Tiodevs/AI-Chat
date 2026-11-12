@@ -7,6 +7,8 @@ entidades são os repositórios de `app.repositories`. As tabelas seguem a seç�
 banco real nasce das migrações em `alembic/versions`.
 """
 
+from app.models.attendant_acknowledgement import AttendantAcknowledgement
+from app.models.attendant_presence import AttendantPresence
 from app.models.audit_event import AuditEvent
 from app.models.auth_session import AuthSession
 from app.models.base import Base
@@ -18,6 +20,7 @@ from app.models.document import Document
 from app.models.document_version import DocumentVersion
 from app.models.feedback import Feedback
 from app.models.guest_key import GuestKey
+from app.models.handoff import Handoff
 from app.models.message import Message
 from app.models.rate_limit_window import RateLimitWindow
 from app.models.registration_session import RegistrationSession
@@ -26,6 +29,8 @@ from app.models.token_usage_day import TokenUsageDay
 from app.models.user import User
 
 __all__ = [
+    "AttendantAcknowledgement",
+    "AttendantPresence",
     "AuditEvent",
     "AuthSession",
     "Base",
@@ -37,6 +42,7 @@ __all__ = [
     "DocumentVersion",
     "Feedback",
     "GuestKey",
+    "Handoff",
     "Message",
     "RateLimitWindow",
     "RegistrationSession",

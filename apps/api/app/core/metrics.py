@@ -76,6 +76,35 @@ INGESTION_VERSIONS = Counter(
 # Notas do visitante (`helpful` ou `not_helpful`), contadas por `app/services/conversations.py`.
 FEEDBACK = Counter("atrium_feedback", "Feedback do visitante", ["rating"], registry=REGISTRY)
 
+# Atendimento humano (seção 29.12). Pedidos por `trigger` e encerramentos por `close_reason`,
+# contados por `services/handoff.py`, `services/attendance.py` e `services/handoff_sweep.py`.
+HANDOFF_REQUESTS = Counter(
+    "atrium_handoff_requests", "Pedidos de atendimento", ["trigger"], registry=REGISTRY
+)
+HANDOFF_CLOSED = Counter(
+    "atrium_handoff_closed", "Atendimentos encerrados", ["close_reason"], registry=REGISTRY
+)
+# Espera na fila até alguém assumir, observada por `services/attendance.py`.
+HANDOFF_WAIT = Histogram(
+    "atrium_handoff_wait_seconds",
+    "Espera na fila até assumir",
+    buckets=(5, 15, 30, 60, 120, 300, 600, 900),
+    registry=REGISTRY,
+)
+# Mensagens por `role` (`user` ou `attendant`) e identificadores removidos por `kind`.
+HANDOFF_MESSAGES = Counter(
+    "atrium_handoff_messages", "Mensagens do atendimento", ["role"], registry=REGISTRY
+)
+HANDOFF_REDACTIONS = Counter(
+    "atrium_handoff_redactions", "Identificadores removidos", ["kind"], registry=REGISTRY
+)
+# Fluxos SSE abertos por `stream` (`ask`, `handoff` ou `attendance`), neste processo.
+SSE_STREAMS = Gauge("atrium_sse_streams", "Fluxos SSE abertos", ["stream"], registry=REGISTRY)
+# 1 com a conexão do `LISTEN` aberta, 0 fora do ar. Quem grava: `app/adapters/realtime.py`.
+REALTIME_LISTENER_UP = Gauge(
+    "atrium_realtime_listener_up", "1 com o ouvinte do LISTEN conectado", registry=REGISTRY
+)
+
 # Os valores de `event` da seção 18.3. Nenhum módulo lê esta constante hoje.
 REGISTRATION_EVENT_NAMES = frozenset(
     {"started", "extracted", "optional_skipped", "password_set", "completed", "abandoned"}
@@ -92,6 +121,9 @@ class DatabaseSnapshot:
 
     dsr_open: int = 0
     dsr_overdue: int = 0
+    # A fila e a equipe presente vêm do banco para valerem com mais de uma réplica (29.12).
+    handoff_queue: int = 0
+    handoff_attendants_available: int = 0
     retention_deleted: dict[str, int] = field(default_factory=dict)
     retention_last_run_seconds: float | None = None
     loaded: bool = False
@@ -116,6 +148,14 @@ class DatabaseCollector:
         dsr.add_metric(["false"], SNAPSHOT.dsr_open)
         dsr.add_metric(["true"], SNAPSHOT.dsr_overdue)
         yield dsr
+        yield GaugeMetricFamily(
+            "atrium_handoff_queue", "Atendimentos na fila", value=SNAPSHOT.handoff_queue
+        )
+        yield GaugeMetricFamily(
+            "atrium_handoff_attendants_available",
+            "Pessoas da equipe presentes",
+            value=SNAPSHOT.handoff_attendants_available,
+        )
         deleted = CounterMetricFamily(
             "atrium_retention_deleted", "Registros eliminados pela retenção", labels=["rule"]
         )

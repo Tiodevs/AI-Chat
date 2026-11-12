@@ -64,6 +64,7 @@ from app.domain.auth import (
 from app.domain.errors import (
     Conflict,
     DuplicateMessage,
+    HandoffActive,
     NotFound,
     RateLimited,
     Unauthenticated,
@@ -71,6 +72,7 @@ from app.domain.errors import (
 )
 from app.domain.feedback import USER_HELPFUL, user_helpful_score
 from app.domain.grounding import Citation
+from app.domain.history import ai_messages
 from app.domain.outcomes import Outcome
 from app.domain.pseudonym import subject_pseudonym
 from app.domain.questions import (
@@ -104,6 +106,7 @@ from app.prompts.conversations import (
     RATE_LIMITED,
     STREAM_FAILED,
 )
+from app.prompts.handoff import ACTIVE_HERE
 from app.repositories.auth_sessions import AuthSessionRepository
 from app.repositories.conversations import (
     ConversationRecord,
@@ -111,6 +114,7 @@ from app.repositories.conversations import (
     DuplicateClientMessage,
     MessageRecord,
 )
+from app.repositories.handoffs import HandoffRecord, HandoffRepository
 from app.repositories.rate_limits import RateLimitRepository
 from app.services.conversation_events import (
     AskEvent,
@@ -279,8 +283,10 @@ class ConversationService:
         *,
         session_secret: str | None,
         guest_secret: str | None,
-    ) -> tuple[ConversationRecord, list[MessageRecord]]:
-        """A conversa com as mensagens, só para o dono.
+    ) -> tuple[ConversationRecord, list[MessageRecord], list[HandoffRecord]]:
+        """A conversa com as mensagens e os atendimentos humanos, só para o dono.
+
+        As mensagens incluem as do atendimento, com `handoff_id` (seção 29.10).
 
         Erros: 401 sem sessão nem chave de convidado válidas e 404 para id desconhecido ou
         para quem não é o dono, sem revelar que o id existe (Etapa 15.1, seção 29.8). A
@@ -289,15 +295,17 @@ class ConversationService:
         actor = await self._actor(session_secret, guest_secret)
         conversation: ConversationRecord | None
         messages: list[MessageRecord]
+        handoffs: list[HandoffRecord] = []
         async with open_session(self._database_url) as session, UnitOfWork(session):
             repository = ConversationRepository(session)
             conversation = await repository.get_conversation(conversation_id)
             messages = []
-            if conversation is not None:
+            if conversation is not None and _owns(actor, conversation):
                 messages = await repository.list_messages(conversation_id)
+                handoffs = await HandoffRepository(session).list_for_conversation(conversation_id)
         if conversation is None or not _owns(actor, conversation):
             raise NotFound(CONVERSATION_NOT_FOUND)
-        return conversation, messages
+        return conversation, messages, handoffs
 
     async def prepare_ask(
         self,
@@ -316,7 +324,8 @@ class ConversationService:
            para quem chama sem HTTP.
         2. Exige a chave HMAC dos baldes.
         3. Resolve quem pede pela sessão e pela chave de convidado (401).
-        4. Numa transação: conversa e dono (404 para os dois), reenvio do mesmo
+        4. Numa transação: conversa e dono (404 para os dois), atendimento humano ativo (409
+           `handoff_active`, seção 29.5), reenvio do mesmo
            `client_message_id` e, se não for reenvio, o balde de perguntas e o histórico.
         5. Fora da transação, levanta o 409 do reenvio, com o `message_id` já gravado, ou o
            429 do limite. O contador incrementado fica confirmado.
@@ -343,6 +352,12 @@ class ConversationService:
             conversation = await repository.get_conversation(conversation_id)
             if conversation is None or not _owns(actor, conversation):
                 raise NotFound(CONVERSATION_NOT_FOUND)
+            # Com a conversa na equipe, a pergunta não grava nada nem chama o modelo (FR-21).
+            active = await HandoffRepository(session).active_for_conversation(conversation_id)
+            if active is not None:
+                raise HandoffActive(
+                    ACTIVE_HERE, handoff_id=active.id, conversation_id=conversation_id
+                )
             # A chave de idempotência é o par (conversa, `client_message_id`).
             existing = await repository.find_user_message(conversation_id, client_message_id)
             if existing is not None:
@@ -615,10 +630,11 @@ def _turns(rows: Sequence[MessageRecord]) -> tuple[ConversationTurn, ...]:
     """As mensagens gravadas como turnos do histórico, na ordem da conversa.
 
     O conteúdo vem do banco, então uma pergunta de saúde aparece só como o marcador. Uma
-    resposta `cancelled` entra com o conteúdo vazio. Outros papéis são ignorados.
+    resposta `cancelled` entra com o conteúdo vazio. As mensagens do atendimento humano saem
+    antes, por `ai_messages` (FR-21), e outros papéis são ignorados.
     """
     turns: list[ConversationTurn] = []
-    for row in rows:
+    for row in ai_messages(rows):
         if row.role == "user":
             turns.append(ConversationTurn(role="user", content=row.content))
         elif row.role == "assistant":

@@ -1,7 +1,7 @@
 """Ponto de entrada da API: monta o app FastAPI e o expõe em `app`. Seção 6 do SDD.
 
 É a raiz da camada de controle (seção 6.2). Junta os middlewares de `app.core.middleware`, o
-CORS do Starlette, os tratadores de erro de `app.core.errors` e os 13 roteadores de
+CORS do Starlette, os tratadores de erro de `app.core.errors` e os 16 roteadores de
 `app.controllers`. O Uvicorn importa `app.main:app`, no `CMD` do `Dockerfile` e no
 `uv run uvicorn` local. Os testes chamam `create_app()` para ter um app novo com a
 configuração do momento.
@@ -11,6 +11,8 @@ de composição e os controladores importam serviços e adaptadores dentro das f
 `/health` responde mesmo sem banco, e `tests/unit/test_health.py` confere isso.
 """
 
+import asyncio
+import contextlib
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
@@ -21,11 +23,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from app import __version__
 from app.controllers.account import router as account_router
 from app.controllers.admin_documents import router as admin_documents_router
+from app.controllers.admin_handoffs import router as admin_handoffs_router
 from app.controllers.admin_insights import router as admin_insights_router
 from app.controllers.admin_privacy import router as admin_privacy_router
 from app.controllers.admin_probe import router as admin_probe_router
+from app.controllers.attendance import router as attendance_router
 from app.controllers.auth import router as auth_router
 from app.controllers.conversations import router as conversations_router
+from app.controllers.handoff import router as handoff_router
 from app.controllers.health import router as health_router
 from app.controllers.legal import router as legal_router
 from app.controllers.metrics import router as metrics_router
@@ -53,12 +58,17 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     3. Marca como `failed` as versões de documento presas em `processing` há mais de 15
        minutos (seção 7.3). Uma falha aqui só gera o log `ingestion.stale_check_failed`: a API
        sobe com o banco fora, e o `/ready` mostra o problema.
-    4. No desligamento, fecha o pool e espera os rastros pendentes do LangSmith, para não
-       perder rastros num deploy (seção 18.4).
+    4. Abre o ouvinte `LISTEN atrium_handoff` do atendimento humano, fora do pool, e a
+       varredura de 30 segundos (seções 29.5 e 29.6, ADR-016). Os dois rodam mesmo com
+       `HANDOFF_ENABLED` desligado: a varredura então encerra a fila que sobrou.
+    5. No desligamento, para a varredura e o ouvinte, fecha o pool e espera os rastros
+       pendentes do LangSmith, para não perder rastros num deploy (seção 18.4).
     """
     # 1. Mesmo objeto que `get_ai_runtime` entrega às rotas, então um circuito só por processo.
     settings = get_settings()
     ensure_ai_runtime(app.state, settings)
+    broker = None
+    sweeper: asyncio.Task[None] | None = None
     if settings.database_url:
         from app.adapters.clock import SystemClock
         from app.db.session import start_pool
@@ -71,10 +81,32 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             await fail_stale_processing_versions(settings.database_url, SystemClock())
         except Exception:
             structlog.get_logger("atrium").warning("ingestion.stale_check_failed")
+        # 4. Um broker que o teste já pôs em `app.state` fica.
+        from app.adapters.realtime import PostgresNotifyBroker
+        from app.services.handoff_sweep import HandoffSweeper
+
+        if getattr(app.state, "realtime_broker", None) is None:
+            broker = PostgresNotifyBroker(settings.database_url)
+            broker.start()
+            app.state.realtime_broker = broker
+        sweeper = asyncio.create_task(
+            HandoffSweeper(
+                database_url=settings.database_url,
+                clock=SystemClock(),
+                enabled=settings.handoff_enabled,
+                broker=app.state.realtime_broker,
+            ).run()
+        )
     try:
         yield
     finally:
-        # 4. O Uvicorn chega aqui no desligamento, depois de encerrar os pedidos em curso.
+        # 5. O Uvicorn chega aqui no desligamento, depois de encerrar os pedidos em curso.
+        if sweeper is not None:
+            sweeper.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await sweeper
+        if broker is not None:
+            await broker.close()
         if settings.database_url:
             from app.db.session import close_pool
 
@@ -141,10 +173,13 @@ def create_app() -> FastAPI:
     app.include_router(account_router)
     app.include_router(registration_router)
     app.include_router(conversations_router)
+    app.include_router(handoff_router)
+    app.include_router(attendance_router)
     app.include_router(admin_probe_router)
     app.include_router(admin_documents_router)
     app.include_router(admin_insights_router)
     app.include_router(admin_privacy_router)
+    app.include_router(admin_handoffs_router)
     return app
 
 

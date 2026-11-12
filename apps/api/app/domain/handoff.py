@@ -11,7 +11,9 @@ transição fora dele levanta `Conflict`. As constantes são as da seção 29.14
 
 import hashlib
 import hmac
+import json
 from collections.abc import Iterable
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import StrEnum
 from uuid import UUID
@@ -147,6 +149,11 @@ STAFF_MESSAGE_PURPOSE = "handoff_staff_message"
 # O canal do `LISTEN/NOTIFY` (ADR-016).
 NOTIFY_CHANNEL = "atrium_handoff"
 
+# O que fica gravado no lugar do texto. A remoção pela equipe mostra ao visitante a frase da
+# seção 29.9.6, escolhida pela `redaction`; a retenção mostra este marcador (seção 29.9.9).
+REDACTED_MARKER = "[mensagem removida]"
+RETENTION_MARKER = "[conteúdo do atendimento apagado]"
+
 # As transições do diagrama da seção 29.5. `closed` não sai para lugar nenhum.
 _TRANSITIONS = frozenset(
     {
@@ -274,6 +281,42 @@ def handoff_label_code(handoff_id: UUID, key: str) -> str:
         return handoff_id.hex[:LABEL_CHARS]
     digest = hmac.new(key.encode("utf-8"), str(handoff_id).encode("utf-8"), hashlib.sha256)
     return digest.hexdigest()[:LABEL_CHARS]
+
+
+@dataclass(frozen=True, slots=True)
+class StaffMember:
+    """A pessoa da equipe de um pedido: o id e o papel, `attendant` ou `admin` (seção 29.3).
+
+    Mora no domínio para os controladores a receberem sem carregar o SQLAlchemy.
+    """
+
+    user_id: UUID
+    role: str
+
+
+@dataclass(frozen=True, slots=True)
+class HandoffNotice:
+    """Um aviso entre processos: o atendimento que mudou, o `seq` e o tipo (ADR-016).
+
+    O fluxo que recebe o aviso nunca confia nele: lê do banco com a própria autorização.
+    """
+
+    handoff_id: UUID
+    seq: int
+    kind: NoticeKind
+
+
+def parse_notice(payload: str) -> HandoffNotice | None:
+    """Lê a carga de um `NOTIFY` de volta. Uma carga fora do formato devolve `None`."""
+    try:
+        data = json.loads(payload)
+        return HandoffNotice(
+            handoff_id=UUID(str(data["handoff_id"])),
+            seq=int(data["seq"]),
+            kind=NoticeKind(str(data["kind"])),
+        )
+    except (ValueError, KeyError, TypeError):
+        return None
 
 
 def notify_payload(handoff_id: UUID, seq: int, kind: NoticeKind) -> str:

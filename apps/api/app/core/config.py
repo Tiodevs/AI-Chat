@@ -76,6 +76,9 @@ class Settings(BaseSettings):
     edge_secret: str = ""
     privacy_contact_email: str = ""
     log_level: str = "INFO"
+    # O atendimento humano da seção 29. Desligado por padrão; em production, só depois da
+    # Etapa 17.8 (seção 29.14).
+    handoff_enabled: bool = False
     # Os rastros só saem com `langsmith_tracing` verdadeiro e `langsmith_api_key` preenchida.
     langsmith_tracing: bool = False
     langsmith_api_key: str = ""

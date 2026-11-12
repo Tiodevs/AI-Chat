@@ -29,6 +29,7 @@ class RetentionRule(StrEnum):
     RATE_LIMIT_WINDOWS = "rate_limit_windows"
     AUDIT_EVENTS = "audit_events"
     PRIVACY_REQUESTS = "privacy_requests"
+    HANDOFF_CONTENT = "handoff_content"
 
 
 # Prazo de cada regra. O repositório compara com um marco diferente por regra: `last_seen_at`
@@ -46,6 +47,8 @@ RETENTION: dict[RetentionRule, timedelta] = {
     RetentionRule.RATE_LIMIT_WINDOWS: timedelta(hours=48),
     RetentionRule.AUDIT_EVENTS: timedelta(days=730),
     RetentionRule.PRIVACY_REQUESTS: timedelta(days=730),
+    # O texto do atendimento humano, 90 dias depois de `closed_at` (seção 29.9.9).
+    RetentionRule.HANDOFF_CONTENT: timedelta(days=90),
 }
 
 

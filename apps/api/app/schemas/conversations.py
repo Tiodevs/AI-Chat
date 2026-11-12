@@ -76,22 +76,38 @@ class CitationResponse(BaseModel):
 
 
 # Uma mensagem de `GET /v1/conversations/{id}`. Pergunta tem `outcome` nulo e citações vazias.
+# Uma mensagem do atendimento humano tem `handoff_id`, e `role` pode ser `attendant`, a equipe;
+# `redaction` diz por que o texto virou marcador (seção 29.10).
 class MessageResponse(BaseModel):
     id: UUID
-    role: Literal["user", "assistant"]
+    role: Literal["user", "assistant", "attendant"]
     content: str
     client_message_id: UUID | None
     citations: list[CitationResponse]
     outcome: str | None
     created_at: datetime
+    handoff_id: UUID | None = None
+    redaction: str | None = None
 
 
-# Resposta de `GET /v1/conversations/{id}`: a conversa do dono, com as mensagens em ordem. A
-# visão consulta esta rota quando o fluxo cai antes do primeiro evento (seção 7.1).
+# O resumo de um atendimento humano da conversa, sem quem atendeu (seção 29.10, D-9).
+class HandoffSummaryResponse(BaseModel):
+    id: UUID
+    status: Literal["queued", "assigned", "closed"]
+    close_reason: str | None
+    requested_at: datetime
+    assigned_at: datetime | None
+    closed_at: datetime | None
+
+
+# Resposta de `GET /v1/conversations/{id}`: a conversa do dono, com as mensagens em ordem e os
+# atendimentos humanos dela. A visão consulta esta rota quando o fluxo cai antes do primeiro
+# evento (seção 7.1).
 class ConversationResponse(BaseModel):
     id: UUID
     created_at: datetime
     messages: list[MessageResponse]
+    handoffs: list[HandoffSummaryResponse] = Field(default_factory=list)
 
 
 # Resposta 201 do feedback: a mensagem e a nota gravadas.

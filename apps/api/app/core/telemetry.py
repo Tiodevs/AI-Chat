@@ -4,7 +4,8 @@ Camada de núcleo. `traced_span` abre um span filho do span corrente, que no ped
 que o `opentelemetry-instrument` cria, e só grava os atributos da tabela da seção 18.2, mais
 `request_id` e `langsmith.run_id`: texto de pergunta ou de documento não vira atributo
 (NFR-7). Quem usa: `app/workflows/qa.py`, `app/workflows/registration.py`,
-`app/services/ingestion.py` e `app/services/retention.py`. `span_ids` alimenta o log
+`app/services/ingestion.py`, `app/services/retention.py` e os serviços do atendimento humano
+(`handoff.py` e `attendance.py`). `span_ids` alimenta o log
 (`app/core/logging.py`).
 
 Sem o SDK configurado, a API do OpenTelemetry entrega spans que não gravam nada, e o código
@@ -32,6 +33,12 @@ SPAN_ATTRIBUTES: dict[str, frozenset[str]] = {
     "ingestion.embed": frozenset({"chunk_count", "model"}),
     "ingestion.publish": frozenset({"document_id", "version"}),
     "retention.run": frozenset({"rule", "deleted_count"}),
+    # Atendimento humano (seção 29.12): só enums, contagens e durações, nunca texto.
+    "handoff.request": frozenset({"trigger"}),
+    "handoff.take": frozenset({"wait_ms"}),
+    "handoff.message": frozenset({"role", "redaction_count"}),
+    "handoff.close": frozenset({"close_reason", "duration_ms"}),
+    "realtime.notify": frozenset({"kind"}),
 }
 # Valem em qualquer span: ligam o span ao log e ao rastro do LangSmith (seção 18.2).
 _COMMON = frozenset({"request_id", "langsmith.run_id"})

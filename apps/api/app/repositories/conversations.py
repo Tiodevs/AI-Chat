@@ -72,6 +72,9 @@ class MessageRecord:
     outcome: str | None
     langsmith_run_id: UUID | None
     created_at: datetime
+    # Do atendimento humano (seção 29.7). `handoff_id` nulo é a conversa com a IA.
+    handoff_id: UUID | None = None
+    redaction: str | None = None
 
 
 class ConversationRepository:
@@ -174,6 +177,8 @@ class ConversationRepository:
 
         A busca casa com a restrição única da tabela e usa o índice dela. O serviço chama antes
         de consumir o limite de taxa e depois de um INSERT recusado, para responder 409 com o id.
+        Uma mensagem do atendimento com o mesmo id também conta, porque a restrição vale para
+        as duas (seção 29.7).
         """
         row = await self._session.scalar(
             select(Message).where(
@@ -276,7 +281,12 @@ class ConversationRepository:
             return {}
         rows = await self._session.execute(
             select(Message.conversation_id, Message.content)
-            .where(Message.conversation_id.in_(conversation_ids), Message.role == "user")
+            .where(
+                Message.conversation_id.in_(conversation_ids),
+                Message.role == "user",
+                # A primeira pergunta é à IA, nunca uma mensagem do atendimento humano.
+                Message.handoff_id.is_(None),
+            )
             .order_by(Message.created_at.desc(), Message.id.desc())
         )
         # A ordem decrescente deixa a primeira pergunta como última atribuição.
@@ -328,6 +338,8 @@ def _message(row: Message) -> MessageRecord:
         outcome=row.outcome,
         langsmith_run_id=row.langsmith_run_id,
         created_at=row.created_at,
+        handoff_id=row.handoff_id,
+        redaction=row.redaction,
     )
 
 

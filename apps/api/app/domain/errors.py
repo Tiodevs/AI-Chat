@@ -140,3 +140,69 @@ class CircuitOpen(ProviderUnavailable):
     (seção 7.1). É uma subclasse de `ProviderUnavailable`, então quem trata a mãe também trata
     esta; o `QaWorkflow` a captura antes e grava `degraded` em vez de `error`.
     """
+
+
+class HandoffNotOffered(Conflict):
+    """A última resposta do assistente não permite chamar a equipe (seção 29.4). HTTP 409."""
+
+    code: ClassVar[str] = "handoff_not_offered"
+
+
+class HandoffActive(Conflict):
+    """Já há atendimento ativo do visitante, ou a pergunta chegou durante um. HTTP 409.
+
+    O envelope leva `handoff_id` e `conversation_id`, para a visão abrir o atendimento certo
+    (seção 29.10).
+    """
+
+    code: ClassVar[str] = "handoff_active"
+
+    def __init__(self, message: str, *, handoff_id: UUID, conversation_id: UUID) -> None:
+        """Guarda os ids que vão no envelope do 409."""
+        super().__init__(message)
+        self.handoff_id = handoff_id
+        self.conversation_id = conversation_id
+
+
+class HandoffUnavailable(DomainError):
+    """A fila está cheia, ninguém está presente ou o serviço está desligado. HTTP 503.
+
+    O envelope leva `availability`, com `busy`, `closed` ou `disabled` (seção 29.4).
+    """
+
+    code: ClassVar[str] = "handoff_unavailable"
+
+    def __init__(self, message: str, *, availability: str) -> None:
+        """Guarda o status da disponibilidade que vai no envelope."""
+        super().__init__(message)
+        self.availability = availability
+
+
+class HandoffBlocked(Forbidden):
+    """Bloqueio de 24 horas depois de um encerramento por abuso. HTTP 403."""
+
+    code: ClassVar[str] = "handoff_blocked"
+
+
+class HandoffClosed(Conflict):
+    """Mensagem ou ação num atendimento encerrado. HTTP 409."""
+
+    code: ClassVar[str] = "handoff_closed"
+
+
+class HandoffTaken(Conflict):
+    """Outra pessoa assumiu primeiro (seção 29.5). HTTP 409."""
+
+    code: ClassVar[str] = "handoff_taken"
+
+
+class AttendantAtCapacity(Conflict):
+    """A pessoa já tem 3 atendimentos. HTTP 409."""
+
+    code: ClassVar[str] = "attendant_at_capacity"
+
+
+class AcknowledgementRequired(Forbidden):
+    """Falta o aceite do compromisso de confidencialidade vigente (seção 29.3). HTTP 403."""
+
+    code: ClassVar[str] = "acknowledgement_required"

@@ -103,9 +103,10 @@ def purpose_can_change(purpose: str, *, granted: bool) -> bool:
 
 
 def delete_is_allowed(role: str) -> bool:
-    """Um admin não exclui a própria conta pela API. Seção 10.5.
+    """Um admin e um atendente não excluem a própria conta pela API. Seções 10.5 e 29.3.
 
-    Com falso, o serviço responde 403 com `ADMIN_CANNOT_DELETE`. A remoção de um admin é feita
-    pelo script `bootstrap_admin --remove`, que recusa remover o último.
+    Com falso, o serviço responde 403. A remoção de um admin é feita pelo script
+    `bootstrap_admin --remove`, que recusa remover o último. Um atendente pede a revogação do
+    papel (`attendants revoke`) e, já como membro, pode excluir a conta.
     """
-    return role != "admin"
+    return role not in ("admin", "attendant")

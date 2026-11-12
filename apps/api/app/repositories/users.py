@@ -66,6 +66,27 @@ class UserRepository:
             update(User).where(User.id == user_id).values(**values, updated_at=now)
         )
 
+    async def set_role(self, user_id: UUID, role: str, now: datetime) -> None:
+        """Troca o papel da conta. Só o script `attendants` chama (seção 29.3)."""
+        await self._session.execute(
+            update(User).where(User.id == user_id).values(role=role, updated_at=now)
+        )
+
+    async def set_password_hash(self, user_id: UUID, password_hash: str, now: datetime) -> None:
+        """Troca o hash da senha. Só o script `attendance_dev seed`, em `local`, chama."""
+        await self._session.execute(
+            update(User)
+            .where(User.id == user_id)
+            .values(password_hash=password_hash, updated_at=now)
+        )
+
+    async def first_email_with_role(self, role: str) -> str | None:
+        """O e-mail da conta mais antiga com o papel, ou `None`. Serve ao `attendance_dev`."""
+        value = await self._session.scalar(
+            select(User.email).where(User.role == role).order_by(User.created_at.asc()).limit(1)
+        )
+        return None if value is None else str(value)
+
     async def count_by_role(self, role: str) -> int:
         """Quantas contas têm o papel. O bootstrap conta os admins sob o advisory lock."""
         value = await self._session.scalar(
