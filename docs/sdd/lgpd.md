@@ -6,6 +6,8 @@ Parte da [especificação do Atrium](../sdd.md). A numeração das seções é a
 
 Esta seção aplica a Lei nº 13.709/2018 ao Atrium. Na versão 1, contas, conversas e pedidos usam apenas dados fictícios, e não há titular real. O desenho mesmo assim é o de um sistema real: finalidade, minimização, direitos, retenção, auditoria e incidentes. Esta seção, com os documentos listados em 11.11, é o tratamento de LGPD da versão 1. Ela é desenho técnico, não parecer jurídico. Se pessoas reais passarem a se cadastrar, a revisão jurídica volta a ser necessária antes disso.
 
+A seção 29.9 aplica esta seção ao atendimento por uma pessoa da equipe: bases legais, o que a equipe vê, remoção de identificadores, retenção de 90 dias e os riscos novos do RIPD.
+
 ### 11.1 Papéis
 
 | Papel | Quem |

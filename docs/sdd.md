@@ -201,7 +201,7 @@ Uma fila, armazenamento de objetos, várias réplicas da API e um ambiente separ
 | NFR-19 | Um fluxo do atendimento dura no máximo 10 minutos e é retomado pelo último `seq`, sem perda. |
 | NFR-20 | Pedidos de atendimento, mensagens e fluxos têm limites por sujeito, por IP, por atendente e por processo (seção 29.8). |
 
-FR-19 a FR-26 e NFR-17 a NFR-20 são do atendimento humano, seção 29, em revisão na Etapa 17.0. Até a aprovação, eles não mudam o que as outras seções descrevem.
+FR-19 a FR-26 e NFR-17 a NFR-20 são do atendimento humano, seção 29, aprovada na Etapa 17.0 e implementada nas Etapas 17.1 a 17.8.
 
 ### 5.3 Metas para medir
 
@@ -238,11 +238,11 @@ O documento completo fica dividido por assunto. A numeração das seções não 
 | [Experiência](sdd/experiencia.md) | 13 a 16 | Frontend, design system, plano de UI/UX e GSAP |
 | [Provedores e observabilidade](sdd/observabilidade.md) | 17 e 18 | Portas, logs, rastros, métricas e LangSmith |
 | [Entrega](sdd/entrega.md) | 19 a 25 | Ambientes, testes, CI/CD, ordem de construção, ADRs e riscos |
-| [Atendimento humano](sdd/atendimento-humano.md) | 29 | Proposta em revisão: oferta, fila, canal em tempo real, dados, segurança e LGPD do atendimento por uma pessoa |
+| [Atendimento humano](sdd/atendimento-humano.md) | 29 | Oferta, fila, canal em tempo real, dados, segurança e LGPD do atendimento por uma pessoa |
 
 ## 26. Decisões em aberto
 
-As decisões D-1 a D-4 estão fechadas, e nenhuma decisão bloqueia as Etapas 1 a 4.
+Nenhuma decisão está em aberto. As decisões D-1 a D-4 fecharam na Etapa 0.1, e as D-5 a D-9, do atendimento humano (seção 29), na Etapa 17.0, em 2026-11-12, todas como a proposta.
 
 | ID | Decisão | Onde ficou |
 |---|---|---|
@@ -250,16 +250,11 @@ As decisões D-1 a D-4 estão fechadas, e nenhuma decisão bloqueia as Etapas 1 
 | D-2 | LangSmith na região dos Estados Unidos | Seções 2.1, 11.7 e 18.4 |
 | D-3 | Dados só fictícios | Seção 2.1 |
 | D-4 | Sem domínio próprio | Seção 2.1 |
-
-As decisões abaixo são do atendimento humano (seção 29) e fecham na Etapa 17.0. Nenhuma bloqueia as Fases 11 a 16.
-
-| ID | Pergunta | Proposta | Alternativa |
-|---|---|---|---|
-| D-5 | Como o servidor fala com o navegador no atendimento? | SSE e `POST` pelo rewrite de mesma origem (ADR-015) | WebSocket direto na Railway, ou com um domínio próprio |
-| D-6 | Quem atende? | O papel `attendant`, separado, e também o admin | Só o admin |
-| D-7 | Por quanto tempo fica o texto do atendimento? | 90 dias depois do encerramento, ou antes, com a conversa | 30 dias, como a conversa de convidado |
-| D-8 | Quanto dura a sessão da equipe? | 12 horas para `attendant` e `admin` | 14 dias, como hoje |
-| D-9 | O visitante vê o nome de quem atende? | Não, só "Equipe do Harborlight" | O primeiro nome, escolhido pela pessoa |
+| D-5 | O atendimento usa SSE e `POST` pelo rewrite de mesma origem, sem WebSocket. A alternativa era WebSocket direto na Railway ou com um domínio próprio. | Seções 29.2 e 29.6, ADR-015 |
+| D-6 | O papel `attendant` é separado, e o admin também atende. A alternativa era só o admin atender. | Seções 29.2 e 29.3 |
+| D-7 | O texto do atendimento fica 90 dias depois do encerramento, ou menos, com a conversa. A alternativa era 30 dias. | Seções 29.2 e 29.9.9 |
+| D-8 | A sessão de `attendant` e de `admin` dura 12 horas. A alternativa era manter os 14 dias. | Seções 29.2 e 29.8 |
+| D-9 | O visitante vê só "Equipe do Harborlight", sem o nome de quem atende. A alternativa era o primeiro nome. | Seções 29.2 e 29.9.5 |
 
 ## 27. Glossário
 
@@ -315,3 +310,4 @@ As decisões abaixo são do atendimento humano (seção 29) e fecham na Etapa 17
 | 1.20 | 2026-11-07 | Segredo da borda obrigatório: em development e production, a API não sobe sem `EDGE_SECRET`, e a fumaça confere o 403 de `/v1` e o 200 de `/health` direto na Railway (seções 7.1, 10.3, 19, 21.1 e 22.3). |
 | 1.21 | 2026-11-08 | Documentação, sem mudança de comportamento: disposição do repositório com as pastas atuais e os READMEs de pasta (seção 6.3), Docker Compose como alternativa opcional e não requisito (seção 4.2), API construída pelo Dockerfile (seção 6.1), API em `0.0.0.0` (seção 18.3), testes do frontend sem MSW e Playwright simulado no job `web` (seções 21.1 e 22.3), tabelas, paleta e avisos sem TanStack Table, `cmdk` e Sonner (seção 13.1), `vercel.ts` descrito pelas rotas (seção 13.4), `PSEUDONYM_KEY` entre os segredos (seção 10.6), nome do repositório, mapa da documentação em `docs/README.md` e guia do código em `docs/guia/`. |
 | 1.23 | 2026-11-10 | Proposta do atendimento humano, em revisão na Etapa 17.0: seção 29, FR-19 a FR-26, NFR-17 a NFR-20, decisões D-5 a D-9, ADR-015 (SSE e `POST` pelo rewrite em vez de WebSocket), ADR-016 (`LISTEN/NOTIFY`), passo 12 da ordem de construção e Fase 17 do plano de ação. Nenhum comportamento existente muda até a aprovação. |
+| 1.24 | 2026-11-12 | Atendimento humano aprovado na Etapa 17.0: D-5 a D-9 fechadas como a proposta, seção 29, ADR-015 e ADR-016 sem o status de proposta, e ponteiros para a seção 29 nas seções 8.1, 10, 11, 12, 15.3, 15.4 e 18.3. |

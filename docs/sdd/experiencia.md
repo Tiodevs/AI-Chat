@@ -250,7 +250,11 @@ Componentes sem equivalente na imagem:
 | J7 | Admin investiga uma resposta marcada como não útil | Da visão de qualidade à conversa e ao rastro no LangSmith em até três cliques |
 | J8 | Pessoa sem conta pede a eliminação de dados | Pedido aberto com prazo visível para o admin |
 
+As jornadas J9 a J11, do atendimento humano, estão na seção 29.11.
+
 ### 15.4 Arquitetura de informação
+
+As rotas da equipe, `/attendance` e `/attendance/commitment`, e a de `/admin/attendance` estão na seção 29.11.
 
 ```text
 Visitante

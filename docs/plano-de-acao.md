@@ -1318,7 +1318,7 @@ Depois da 14.3, a Etapa 9.2 é retomada, para o teste de usabilidade rodar com a
 
 ### Fase 17 — Atendimento humano (SDD 23, passo 12)
 
-A Fase 17 implementa a seção 29 do SDD, hoje em proposta: quando a IA não ajuda, o visitante chama uma pessoa da equipe, que continua a conversa num console. A Etapa 17.0 aprova a especificação antes de qualquer código. A Etapa 15.1 vem antes da 17.4, porque o atendimento põe uma pessoa lendo a conversa do membro. `HANDOFF_ENABLED` liga na máquina local para os testes de cada etapa, em development na 17.7, com o console pronto, e em production só depois da 17.8.
+A Fase 17 implementa a seção 29 do SDD, aprovada na Etapa 17.0 em 2026-11-12: quando a IA não ajuda, o visitante chama uma pessoa da equipe, que continua a conversa num console. A Etapa 17.0 aprova a especificação antes de qualquer código. A Etapa 15.1 vem antes da 17.4, porque o atendimento põe uma pessoa lendo a conversa do membro. `HANDOFF_ENABLED` liga na máquina local para os testes de cada etapa, em development na 17.7, com o console pronto, e em production só depois da 17.8.
 
 #### Etapa 17.0 — Revisão da especificação do atendimento humano
 
@@ -1613,7 +1613,7 @@ A IA atualiza esta tabela em cada PR.
 | 16.1 | Avaliações que medem de verdade | Pendente |
 | 16.2 | Lint mais rigoroso | Pendente |
 | 16.3 | Produção que se recupera | Pendente |
-| 17.0 | Revisão da especificação do atendimento humano | Pendente |
+| 17.0 | Revisão da especificação do atendimento humano | Em revisão |
 | 17.1 | Domínio do atendimento | Pendente |
 | 17.2 | Dados, papel de atendente e sessão da equipe | Pendente |
 | 17.3 | Canal em tempo real | Pendente |

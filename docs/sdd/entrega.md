@@ -240,7 +240,7 @@ Implementar nesta ordem. Cada passo pode ser publicado em development e deixa os
 9. **Acabamento de experiência.** Auditoria de acessibilidade, teste de usabilidade da seção 15.9, revisão de movimento com e sem redução, metas de desempenho da seção 5.3.
 10. **Publicação.** `deploy.yml`, development, aprovação, produção e verificação de rollback.
 11. **Melhorias da auditoria.** As divergências entre o código e este documento e o endurecimento encontrados na auditoria de 2026-11-07, nesta ordem: entrega, custo e disponibilidade do LLM, resiliência da API, experiência do visitante, privacidade e qualidade de IA. São as Fases 11 a 16 do plano de ação. Cada etapa que muda comportamento atualiza a seção correspondente deste documento. Da entrega, só a CI que não passa vazia entrou antes do custo do LLM: o rollback conferido, a CI endurecida e a cobertura medida ficaram como débito técnico em 2026-11-07, com o risco escrito na seção 6 do plano de ação.
-12. **Atendimento humano.** A seção 29, em proposta, nas Etapas 17.0 a 17.8 do plano de ação. A Etapa 17.0 aprova a seção e fecha as decisões D-5 a D-9 antes de qualquer código. A Etapa 15.1 vem antes da 17.4, porque o atendimento põe uma pessoa lendo a conversa do membro, e a chave de convidado não pode continuar abrindo essa conversa. `HANDOFF_ENABLED` só liga em production depois da Etapa 17.8, com o Aviso de Privacidade, o RIPD e a LIA atualizados.
+12. **Atendimento humano.** A seção 29, aprovada na Etapa 17.0 com as decisões D-5 a D-9, nas Etapas 17.1 a 17.8 do plano de ação. A Etapa 15.1 vem antes da 17.4, porque o atendimento põe uma pessoa lendo a conversa do membro, e a chave de convidado não pode continuar abrindo essa conversa. `HANDOFF_ENABLED` só liga em production depois da Etapa 17.8, com o Aviso de Privacidade, o RIPD e a LIA atualizados.
 
 ## 24. Registros de decisão de arquitetura
 
@@ -262,8 +262,8 @@ Cada ADR também vive em `docs/adr/NNN-titulo.md`, com contexto, decisão, conse
 | ADR-012 | Uma réplica da API na versão 1 | Várias réplicas desde o início | Simplicidade. A seção 6.5 descreve a mudança. |
 | ADR-013 | Serviços da Railway configurados pela API, com a API construída pelo Dockerfile do repositório | `railway.json` (descontinuado). Railpack. IaC em `.railway/railway.ts` nesta versão. | A tabela da seção 22.1 é a referência da configuração. A imagem é a mesma do `docker-compose.yml`. |
 | ADR-014 | Adaptador `demo` por regras para a e2e com a API real | E2e só com respostas simuladas. Gemini de verdade na CI. | A CI percorre as jornadas sem chave, sem custo e sem variação. A qualidade da IA continua medida no LangSmith. |
-| ADR-015 | Proposto: atendimento humano por SSE e `POST` pelo rewrite de mesma origem, com fluxos de até 10 minutos retomados pelo `seq` | WebSocket pelo rewrite. WebSocket direto na Railway. Serviço de tempo real de terceiros. Só consulta periódica. | Cookie, `Origin`, segredo da borda, IP confiável e CSP continuam como estão. O navegador reconecta a cada 10 minutos. |
-| ADR-016 | Proposto: `LISTEN/NOTIFY` do PostgreSQL acorda os fluxos do atendimento, com carga só de ids | Fila em memória do processo. Redis. Consulta ao banco a cada segundo por fluxo. | Vale com mais de uma réplica e no meio de um deploy. Uma conexão a mais por processo, fora do pool. |
+| ADR-015 | Atendimento humano por SSE e `POST` pelo rewrite de mesma origem, com fluxos de até 10 minutos retomados pelo `seq` | WebSocket pelo rewrite. WebSocket direto na Railway. Serviço de tempo real de terceiros. Só consulta periódica. | Cookie, `Origin`, segredo da borda, IP confiável e CSP continuam como estão. O navegador reconecta a cada 10 minutos. |
+| ADR-016 | `LISTEN/NOTIFY` do PostgreSQL acorda os fluxos do atendimento, com carga só de ids | Fila em memória do processo. Redis. Consulta ao banco a cada segundo por fluxo. | Vale com mais de uma réplica e no meio de um deploy. Uma conexão a mais por processo, fora do pool. |
 
 ## 25. Riscos
 

@@ -4,7 +4,7 @@ Parte da [especificação do Atrium](../sdd.md). A numeração das seções é a
 
 ## 29. Atendimento humano
 
-**Status.** Proposta, em revisão na Etapa 17.0 do plano de ação. Nada desta seção está implementado, e ela não muda o comportamento das outras seções até ser aprovada. As decisões D-5 a D-9 da seção 26 fecham nessa revisão.
+**Status.** Aprovada na Etapa 17.0 do plano de ação, em 2026-11-12, com as decisões D-5 a D-9 da seção 26 fechadas como propostas. A implementação segue as Etapas 17.1 a 17.8, e `HANDOFF_ENABLED` só liga em production depois da Etapa 17.8.
 
 Quando o Atrium não consegue ajudar, o visitante pode chamar uma pessoa da equipe do Harborlight, que continua a mesma conversa numa tela própria. Esta seção define quando o atendimento é oferecido, o fluxo, o canal em tempo real, os dados, a segurança e o tratamento de LGPD. As regras das seções 10 e 11 continuam valendo. Esta seção diz só o que o atendimento por uma pessoa acrescenta ou muda.
 
@@ -29,7 +29,7 @@ flowchart LR
 
 ### 29.1 Escopo
 
-**Dentro da proposta:**
+**Dentro da versão 1:**
 
 - oferta do atendimento depois de uma resposta que não ajudou (29.4)
 - fila, uma pessoa por atendimento, conversa em tempo real, devolução à fila e encerramento (29.5)
@@ -56,7 +56,7 @@ flowchart LR
 
 ### 29.2 Decisões
 
-| Escolha | Por que é a proposta |
+| Escolha | Por quê |
 |---|---|
 | 1. A oferta aparece só quando a IA não ajudou, e nunca numa recusa médica. | É o pedido do produto. A recusa médica já leva à emergência e à mesa telefônica (seção 10.1), e a equipe não é clínica. |
 | 2. O visitante confirma num diálogo que diz o que a equipe vai ler, o que não vai para a IA e por quanto tempo o texto fica guardado. | Transparência no momento da coleta, art. 6º, VI, e o princípio 5 da seção 15.1. |

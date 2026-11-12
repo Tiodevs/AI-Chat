@@ -1,6 +1,6 @@
 # ADR-015 — Atendimento humano em tempo real por SSE e `POST`, sem WebSocket
 
-Proposto em 2026-11-10, em revisão na Etapa 17.0 (seção 29 do SDD, decisão D-5).
+Proposto em 2026-11-10 e aceito em 2026-11-12, na Etapa 17.0 (seção 29 do SDD, decisão D-5).
 
 ## Contexto
 

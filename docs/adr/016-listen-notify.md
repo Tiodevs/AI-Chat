@@ -1,6 +1,6 @@
 # ADR-016 — PostgreSQL `LISTEN/NOTIFY` para acordar os fluxos do atendimento
 
-Proposto em 2026-11-10, em revisão na Etapa 17.0 (seção 29.6 do SDD).
+Proposto em 2026-11-10 e aceito em 2026-11-12, na Etapa 17.0 (seção 29.6 do SDD).
 
 ## Contexto
 

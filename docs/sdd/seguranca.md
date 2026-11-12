@@ -4,6 +4,8 @@ Parte da [especificação do Atrium](../sdd.md). A numeração das seções é a
 
 ## 10. Segurança
 
+O atendimento humano acrescenta as ameaças, os controles, os limites de taxa e a sessão de 12 horas da equipe da seção 29.8.
+
 ### 10.1 Respostas fixas
 
 Os textos abaixo são a cópia em português que o produto mostra.

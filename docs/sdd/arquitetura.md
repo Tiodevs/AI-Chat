@@ -361,6 +361,8 @@ Os identificadores são UUIDs. Os timestamps são `timestamptz` em UTC. O e-mail
 
 ### 8.1 Tabelas
 
+As tabelas do atendimento humano (`handoffs`, `attendant_presence` e `attendant_acknowledgements`) e as colunas que ele acrescenta a `messages` e `users` estão na seção 29.7.
+
 **users.** `email` único, `password_hash`, `full_name`, `phone` anulável, `visitor_type` anulável (`patient`, `visitor`, `caregiver`), `visit_reason` anulável, `role` (`member`, `admin`), `last_seen_at`, `created_at`, `updated_at`.
 
 **consent_records.** `user_id`, `purpose` (`terms_and_privacy_notice`, `age_18_plus`, `profile_personalization`, `quality_improvement`), `document_version`, `granted_at`, `revoked_at` anulável, `source` (`chat`, `form`, `account`). Revogar grava `revoked_at`. Conceder de novo cria uma linha nova.

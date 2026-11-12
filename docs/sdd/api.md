@@ -4,7 +4,7 @@ Parte da [especificação do Atrium](../sdd.md). A numeração das seções é a
 
 ## 12. API HTTP
 
-O prefixo da API é `/v1`. O navegador chama `/backend/v1/...`. Os corpos são JSON, salvo uploads. Os erros usam uma forma só:
+O prefixo da API é `/v1`. O navegador chama `/backend/v1/...`. Os corpos são JSON, salvo uploads. As rotas do atendimento humano, de `/v1/handoff`, `/v1/conversations/{id}/handoff`, `/v1/attendance` e `/v1/admin/handoffs`, e os códigos de erro dele estão na seção 29.10. Os erros usam uma forma só:
 
 ```json
 {
