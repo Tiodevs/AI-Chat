@@ -2,7 +2,7 @@
 
 Visão de ponta a ponta de como o Atrium é construído, onde cada peça roda e como uma mudança vai do pull request até a produção. É o resumo para apresentar o projeto. As regras completas ficam na [especificação](../sdd.md), e cada seção abaixo aponta a parte dela que detalha o assunto.
 
-A versão visual, com os mesmos diagramas desenhados para projetar, está em [`apresentacao.html`](apresentacao.html). Abra o arquivo no navegador e use o botão **Apresentar**: as setas do teclado passam as telas e `Esc` sai.
+A versão visual, com os mesmos diagramas desenhados para projetar, está em [`apresentacao.html`](apresentacao.html). Abra o arquivo no navegador. O mapa do sistema é interativo: passe o mouse ou toque em uma peça para ver os detalhes, e clique para abrir a tela que a explica. O botão do topo troca entre o tema claro e o escuro. A página usa a paleta e a marca da landing page, e os logos dos serviços vêm do Simple Icons (CC0).
 
 > Levantado em 2026-11-08, a partir da `main` em `984fefc` (SDD 1.20) e da configuração publicada na Railway e na Vercel.
 
