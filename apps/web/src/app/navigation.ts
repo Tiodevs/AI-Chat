@@ -14,6 +14,8 @@ import {
   ClipboardList,
   FileText,
   Files,
+  Headset,
+  History,
   Inbox,
   LayoutDashboard,
   LogIn,
@@ -94,6 +96,25 @@ export const navigation: NavGroup[] = [
     ],
   },
   {
+    // Atendimento humano (seção 29.11): a fila para `attendant` e `admin`, e
+    // os encerrados só para o admin.
+    label: pt.nav.attendanceGroup,
+    items: [
+      {
+        label: pt.nav.attendanceQueue,
+        to: "/attendance",
+        icon: Headset,
+        end: true,
+      },
+      {
+        label: pt.nav.attendanceClosed,
+        to: "/admin/attendance",
+        icon: History,
+        end: true,
+      },
+    ],
+  },
+  {
     label: pt.nav.operations,
     items: [
       {
@@ -102,8 +123,18 @@ export const navigation: NavGroup[] = [
         icon: LayoutDashboard,
         end: true,
       },
-      { label: pt.nav.documents, to: "/admin/documents", icon: Files, end: true },
-      { label: pt.nav.quality, to: "/admin/quality", icon: Activity, end: true },
+      {
+        label: pt.nav.documents,
+        to: "/admin/documents",
+        icon: Files,
+        end: true,
+      },
+      {
+        label: pt.nav.quality,
+        to: "/admin/quality",
+        icon: Activity,
+        end: true,
+      },
     ],
   },
   {
@@ -119,13 +150,24 @@ export const navigation: NavGroup[] = [
   },
 ]
 
-/** Quem está vendo o app. `guest` é o visitante sem sessão. SDD 14.5. */
-export type Viewer = "guest" | "member" | "admin"
+/**
+ * Quem está vendo o app. `guest` é o visitante sem sessão, e `attendant`, a
+ * pessoa da equipe de atendimento (seção 29.3). SDD 14.5.
+ */
+export type Viewer = "guest" | "member" | "attendant" | "admin"
 
 // Cadastro e entrada somem da navegação de quem já entrou (seção 14.5).
 const guestOnly = new Set<string>(["/register", "/register/form", "/sign-in"])
 // Os grupos só do admin, achados pelo rótulo.
 const adminGroups = new Set<string>([pt.nav.operations, pt.nav.system])
+// O grupo da equipe e o que só o admin vê dentro dele (seção 29.11).
+const staffGroup = pt.nav.attendanceGroup
+const adminOnly = new Set<string>(["/admin/attendance"])
+// O `attendant` vê só os grupos Atendimento e Conta (seção 29.11).
+const attendantGroups = new Set<string>([
+  pt.nav.attendanceGroup,
+  pt.nav.account,
+])
 
 /**
  * Traduz o `role` do `GET /v1/me` no tipo de pessoa. Sem perfil, é
@@ -134,6 +176,9 @@ const adminGroups = new Set<string>([pt.nav.operations, pt.nav.system])
 export function viewerOf(role: string | null | undefined): Viewer {
   if (role === "admin") {
     return "admin"
+  }
+  if (role === "attendant") {
+    return "attendant"
   }
   return role ? "member" : "guest"
 }
@@ -149,10 +194,21 @@ export function viewerOf(role: string | null | undefined): Viewer {
 export function navigationFor(viewer: Viewer): NavGroup[] {
   return navigation
     .filter((group) => viewer === "admin" || !adminGroups.has(group.label))
+    .filter(
+      (group) =>
+        group.label !== staffGroup ||
+        viewer === "admin" ||
+        viewer === "attendant"
+    )
+    .filter(
+      (group) => viewer !== "attendant" || attendantGroups.has(group.label)
+    )
     .map((group) => ({
       ...group,
       items: group.items.filter(
-        (item) => viewer === "guest" || !guestOnly.has(item.to)
+        (item) =>
+          (viewer === "guest" || !guestOnly.has(item.to)) &&
+          (viewer === "admin" || !adminOnly.has(item.to))
       ),
     }))
     .filter((group) => group.items.length > 0)

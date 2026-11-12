@@ -27,6 +27,8 @@ from app.domain.errors import (
     DomainError,
     DuplicateMessage,
     Forbidden,
+    HandoffActive,
+    HandoffUnavailable,
     NotFound,
     ProviderUnavailable,
     RateLimited,
@@ -48,6 +50,7 @@ _HTTP_STATUS: dict[type[DomainError], int] = {
     RateLimited: 429,
     BudgetExceeded: 503,
     ProviderUnavailable: 503,
+    HandoffUnavailable: 503,
 }
 
 
@@ -64,9 +67,13 @@ def error_payload(error: DomainError) -> ErrorResponse:
 
     `retry_after_seconds` só entra no 429, `message_id` só no 409 de mensagem repetida, e
     `field_errors` só quando o domínio o preencheu; um dicionário vazio conta como ausente.
+    O 409 `handoff_active` leva `handoff_id` e `conversation_id`, e o 503
+    `handoff_unavailable` leva `availability` (seção 29.10).
     """
     retry_after_seconds = error.retry_after_seconds if isinstance(error, RateLimited) else None
     message_id = error.message_id if isinstance(error, DuplicateMessage) else None
+    active = error if isinstance(error, HandoffActive) else None
+    availability = error.availability if isinstance(error, HandoffUnavailable) else None
     return ErrorResponse(
         error=ErrorBody(
             code=error.code,
@@ -75,6 +82,9 @@ def error_payload(error: DomainError) -> ErrorResponse:
             retry_after_seconds=retry_after_seconds,
             message_id=message_id,
             field_errors=error.field_errors or None,
+            handoff_id=None if active is None else active.handoff_id,
+            conversation_id=None if active is None else active.conversation_id,
+            availability=availability,
         )
     )
 

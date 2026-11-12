@@ -45,6 +45,10 @@ export function Composer({
   disabled,
   disabledReason,
   error,
+  label = pt.ask.questionLabel,
+  placeholder = pt.ask.placeholder,
+  hint = pt.ask.healthHint,
+  maxLength = 1000,
 }: {
   value: string
   onChange: (value: string) => void
@@ -61,6 +65,15 @@ export function Composer({
   /** Texto do bloqueio, mostrado só com `disabled`. */
   disabledReason: string | null
   error: string | null
+  /**
+   * Rótulo, texto de exemplo, dica e limite do campo. No atendimento
+   * humano, a conversa troca os da pergunta pelos da equipe e a dica de
+   * saúde pelo aviso da seção 29.9.5.
+   */
+  label?: string
+  placeholder?: string
+  hint?: string
+  maxLength?: number
 }) {
   const fieldId = useId()
   const hintId = useId()
@@ -100,15 +113,15 @@ export function Composer({
         data-disabled={disabled ? true : undefined}
         data-invalid={error ? true : undefined}
       >
-        <FieldLabel htmlFor={fieldId}>{pt.ask.questionLabel}</FieldLabel>
+        <FieldLabel htmlFor={fieldId}>{label}</FieldLabel>
         <Textarea
           ref={fieldRef}
           id={fieldId}
           value={value}
           rows={2}
-          // O limite de 1.000 caracteres da API (seção 12).
-          maxLength={1000}
-          placeholder={pt.ask.placeholder}
+          // O limite de 1.000 caracteres da API (seções 12 e 29.8).
+          maxLength={maxLength}
+          placeholder={placeholder}
           // Desabilitar o campo focado durante o fluxo tira o foco dele;
           // é o achado da Etapa 14.3.
           disabled={blocked}
@@ -126,7 +139,7 @@ export function Composer({
           }}
         />
         {/* O aviso de saúde da seção 15.6, lido junto com o campo. */}
-        <FieldDescription id={hintId}>{pt.ask.healthHint}</FieldDescription>
+        <FieldDescription id={hintId}>{hint}</FieldDescription>
         {error ? <FieldError id={errorId}>{error}</FieldError> : null}
         {disabled && disabledReason ? (
           <p className="text-body text-foreground">{disabledReason}</p>

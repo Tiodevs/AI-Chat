@@ -13,6 +13,7 @@ vai nos dois.
 from starlette.responses import Response
 
 from app.domain.auth import SESSION_COOKIE_NAME, SessionCookie
+from app.domain.questions import GUEST_COOKIE_NAME
 
 
 def apply_session_cookie(response: Response, cookie: SessionCookie) -> None:
@@ -36,11 +37,25 @@ def apply_session_cookie(response: Response, cookie: SessionCookie) -> None:
 def clear_session_cookie(response: Response, *, secure: bool) -> None:
     """Apaga `atrium_session` com o mesmo path e os mesmos atributos com que foi gravado.
 
-    O navegador só troca o cookie que casa com o nome e o path. O `atrium_guest` continua; a
-    Etapa 15.1 passa a apagá-lo também no login, no fim do cadastro e no logout.
+    O navegador só troca o cookie que casa com o nome e o path.
     """
     response.delete_cookie(
         key=SESSION_COOKIE_NAME,
+        path="/",
+        secure=secure,
+        httponly=True,
+        samesite="lax",
+    )
+
+
+def clear_guest_cookie(response: Response, *, secure: bool) -> None:
+    """Apaga `atrium_guest` no login, no fim do cadastro e no logout. Etapa 15.1, seção 10.3.
+
+    Depois de entrar ou de sair, a chave de convidado não serve mais a ninguém naquele
+    navegador: as conversas dela já são do membro, ou ficam para a retenção de 30 dias.
+    """
+    response.delete_cookie(
+        key=GUEST_COOKIE_NAME,
         path="/",
         secure=secure,
         httponly=True,

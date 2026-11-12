@@ -1,8 +1,10 @@
 """Formato SSE, manutenção e o relógio do diagnóstico. Seções 7.1 e 12.
 
 Camada de núcleo, sem framework. Quem usa: `app/controllers/conversations.py`, que transforma
-os eventos em texto, e `app/services/conversations.py`, que espera o próximo token com
-`next_stream_item`. Um evento SSE é a linha `event:`, a linha `data:` e uma linha em branco.
+os eventos em texto, `app/services/conversations.py`, que espera o próximo token com
+`next_stream_item`, e os fluxos do atendimento humano (`services/handoff.py` e
+`services/attendance.py`), que usam o campo `id:` e o `Last-Event-ID` da seção 29.6. Um
+evento SSE é a linha `event:`, a linha `data:` e uma linha em branco.
 Um comentário começa com `:`, e o leitor do frontend (`apps/web/src/lib/sse.ts`) o pula.
 """
 
@@ -11,6 +13,7 @@ import contextlib
 import json
 from collections.abc import AsyncIterator, Mapping
 from typing import Any
+from uuid import UUID
 
 # Seção 7.1: sem token por 15 s, a API manda `: keepalive`, para um proxy não fechar a conexão
 # ociosa.
@@ -24,14 +27,37 @@ KEEPALIVE = object()
 DISCONNECTED = object()
 
 
-def format_event(name: str, payload: Mapping[str, Any]) -> str:
-    """Monta um evento SSE com a carga em JSON compacto.
+def format_event(name: str, payload: Mapping[str, Any], *, event_id: str | None = None) -> str:
+    """Monta um evento SSE com a carga em JSON compacto e, se houver, o campo `id:`.
 
     O `json.dumps` escapa as quebras de linha do texto, então a carga cabe numa linha só de
-    `data:`. `ensure_ascii=False` mantém os acentos em UTF-8.
+    `data:`. `ensure_ascii=False` mantém os acentos em UTF-8. O `id:` serve à retomada do
+    atendimento humano: o navegador o devolve em `Last-Event-ID` (seção 29.6).
     """
     data = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
-    return f"event: {name}\ndata: {data}\n\n"
+    prefix = "" if event_id is None else f"id: {event_id}\n"
+    return f"{prefix}event: {name}\ndata: {data}\n\n"
+
+
+def message_event_id(handoff_id: UUID, seq: int) -> str:
+    """O `id:` de um evento `message` do atendimento: `{handoff_id}:{seq}` (seção 29.6)."""
+    return f"{handoff_id}:{seq}"
+
+
+def parse_last_event_id(value: str | None) -> tuple[UUID, int] | None:
+    """Lê o `Last-Event-ID` de volta para o atendimento e o `seq`. Fora do formato, `None`."""
+    if not value:
+        return None
+    handoff, separator, seq = value.strip().rpartition(":")
+    if not separator:
+        return None
+    try:
+        parsed = UUID(handoff), int(seq)
+    except ValueError:
+        return None
+    if parsed[1] < 0:
+        return None
+    return parsed
 
 
 def format_comment(text: str) -> str:
@@ -40,7 +66,7 @@ def format_comment(text: str) -> str:
 
 
 async def next_stream_item(
-    queue: asyncio.Queue[object],
+    queue: "asyncio.Queue[Any]",
     disconnected: asyncio.Event,
     *,
     interval_seconds: float,

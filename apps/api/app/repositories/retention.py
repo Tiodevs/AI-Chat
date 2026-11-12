@@ -13,11 +13,13 @@ from datetime import datetime
 from sqlalchemy import ColumnElement, and_, delete, exists, func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.domain.handoff import RETENTION_MARKER, HandoffStatus, RedactionCategory
 from app.models.audit_event import AuditEvent
 from app.models.auth_session import AuthSession
 from app.models.conversation import Conversation
 from app.models.data_subject_request import DataSubjectRequest
 from app.models.guest_key import GuestKey
+from app.models.handoff import Handoff
 from app.models.message import Message
 from app.models.rate_limit_window import RateLimitWindow
 from app.models.registration_session import RegistrationSession
@@ -174,7 +176,45 @@ class RetentionRepository:
             and_(has_messages, last_activity < cutoff),
             and_(~has_messages, Conversation.created_at < cutoff),
         )
+        # Uma conversa com atendimento ativo fica: a varredura encerra o atendimento antes
+        # (seção 29.9.9).
+        active_handoff = exists().where(
+            Handoff.conversation_id == Conversation.id,
+            Handoff.status != HandoffStatus.CLOSED,
+        )
         result = await self._session.execute(
-            delete(Conversation).where(owner, stale).returning(Conversation.id)
+            delete(Conversation).where(owner, stale, ~active_handoff).returning(Conversation.id)
         )
         return len(result.all())
+
+    async def purge_handoff_content(self, cutoff: datetime) -> int:
+        """O texto dos atendimentos encerrados antes do corte, 90 dias (seção 29.9.9).
+
+        Troca o conteúdo de cada mensagem do atendimento pelo marcador de retenção, com
+        `redaction = retention`, e grava `handoffs.content_purged_at`. O registro do
+        atendimento e as mensagens ficam, sem texto. Um atendimento ativo nunca entra, porque
+        só `closed` tem `closed_at`. Devolve quantas mensagens perderam o texto.
+        """
+        due = select(Handoff.id).where(
+            Handoff.status == HandoffStatus.CLOSED,
+            Handoff.closed_at < cutoff,
+            Handoff.content_purged_at.is_(None),
+        )
+        result = await self._session.execute(
+            update(Message)
+            .where(
+                Message.handoff_id.in_(due),
+                or_(Message.redaction.is_(None), Message.redaction != "retention"),
+            )
+            .values(
+                content=RETENTION_MARKER,
+                redaction=RedactionCategory.RETENTION.value,
+                redacted_at=func.now(),
+            )
+            .returning(Message.id)
+        )
+        purged = len(result.all())
+        await self._session.execute(
+            update(Handoff).where(Handoff.id.in_(due)).values(content_purged_at=func.now())
+        )
+        return purged

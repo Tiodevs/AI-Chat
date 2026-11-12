@@ -39,6 +39,7 @@ RULES: tuple[tuple[RetentionRule, _Step], ...] = (
     (RetentionRule.RATE_LIMIT_WINDOWS, RetentionRepository.delete_rate_limit_windows),
     (RetentionRule.AUDIT_EVENTS, RetentionRepository.delete_audit_events),
     (RetentionRule.PRIVACY_REQUESTS, RetentionRepository.delete_privacy_requests),
+    (RetentionRule.HANDOFF_CONTENT, RetentionRepository.purge_handoff_content),
 )
 
 

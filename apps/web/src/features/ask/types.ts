@@ -104,8 +104,19 @@ export type AssistantTurn = {
   retryText: string | null
 }
 
-/** Um item da thread: pergunta ou resposta. */
-export type Turn = UserTurn | AssistantTurn
+/**
+ * O lugar de um atendimento humano na thread (seção 29.11). O conteúdo, as
+ * mensagens e o status ficam em `handoff-store.ts`, pelo `handoffId`; a
+ * thread só guarda onde o bloco aparece, entre as perguntas à IA.
+ */
+export type HandoffTurn = {
+  key: string
+  role: "handoff"
+  handoffId: string
+}
+
+/** Um item da thread: pergunta, resposta ou um atendimento humano. */
+export type Turn = UserTurn | AssistantTurn | HandoffTurn
 
 /**
  * Retrato de uma conversa no store (`store.ts`). A tela lê só isto, por
@@ -143,11 +154,26 @@ export type AskSnapshot = {
  */
 export type StoredMessage = {
   id: string
-  role: "user" | "assistant"
+  /** `attendant` é a equipe, numa mensagem do atendimento humano. */
+  role: "user" | "assistant" | "attendant"
   content: string
   /** Só a pergunta do visitante tem. A resposta vem com `null`. */
   clientMessageId: string | null
   citations: CitationView[]
   /** Desfecho da resposta. A pergunta do visitante vem com `null`. */
   outcome: string | null
+  /** Data de gravação, em ISO 8601, para ordenar os blocos do atendimento. */
+  createdAt: string
+  /** Atendimento humano da mensagem, ou `null` na conversa com a IA. */
+  handoffId: string | null
+  /** Por que o texto virou marcador (seção 29.9.6), ou `null`. */
+  redaction: string | null
+}
+
+/** Um atendimento humano da conversa, como `GET /v1/conversations/{id}`. */
+export type StoredHandoff = {
+  id: string
+  status: "queued" | "assigned" | "closed"
+  closeReason: string | null
+  requestedAt: string
 }

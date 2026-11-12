@@ -74,6 +74,24 @@ class AuthSessionRepository:
         )
         return result.scalar_one_or_none() is not None
 
+    async def revoke_for_user(self, user_id: UUID, now: datetime) -> int:
+        """Revoga todas as sessões vivas da conta e devolve quantas eram (seção 29.3).
+
+        O script `attendants` chama ao conceder e ao revogar o papel: a próxima entrada já
+        nasce com a duração da sessão da equipe, e a revogação tira o acesso na hora.
+        """
+        result = await self._session.execute(
+            update(AuthSession)
+            .where(
+                AuthSession.user_id == user_id,
+                AuthSession.revoked_at.is_(None),
+                AuthSession.expires_at > now,
+            )
+            .values(revoked_at=now)
+            .returning(AuthSession.id)
+        )
+        return len(result.all())
+
     async def delete_for_user(self, user_id: UUID) -> None:
         """Apaga todas as sessões do usuário.
 

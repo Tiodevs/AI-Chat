@@ -1,0 +1,2395 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Atendimento humano · SDD do Atrium</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Seção 29 do SDD do Atrium: quando a IA não ajuda, o visitante chama uma pessoa da equipe. Fluxo, canal em tempo real, dados, segurança, LGPD e as etapas da Fase 17.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;display=swap">
+<style>
+/* Layout: documento de uma coluna (até 1040px), no ritmo do plano de ação da Leemia
+   (projetos/Plataforma de aulas/docs/plano-de-acao-fase-01.html): cartões planos de 1px,
+   gap de 6px e hierarquia por peso. Os diagramas são SVG desenhado à mão, como em
+   docs/engenharia/apresentacao.html. A cor só marca significado, como no design system
+   do Atrium (SDD 14.1), e todo status também tem texto. A fonte da verdade é
+   docs/sdd/atendimento-humano.md. */
+:root {
+  --bg: #f6f6f6;
+  --paper: #ffffff;
+  --strong: #ededed;
+  --chip-active: #dadada;
+  --hairline: #e6e6e6;
+  --divider: #e2e2e2;
+  --track: #d4d4d4;
+  --ink: #0a0a0a;
+  --ink-2: #171717;
+  --muted: #666666;
+  --code: #f0f0f0;
+  --badge-ink: #0a0a0a;
+  --c-open: #fddc70;
+  --c-b1: #fddc70;
+  --c-b2: #71fcd3;
+  --c-b3: #b4d2ff;
+  --c-later: #dbdbdb;
+  --ok: #10b981;
+  --bad: #ef4444;
+  --warn: #f59e0b;
+  --info: #3b82f6;
+  --ok-ink: #067647;
+  --bad-ink: #b42318;
+  --warn-ink: #93370d;
+  --font-sans: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color-scheme: light;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0d0d0d;
+    --paper: #161616;
+    --strong: #262626;
+    --chip-active: #3a3a3a;
+    --hairline: #262626;
+    --divider: #232323;
+    --track: #3a3a3a;
+    --ink: #f5f5f5;
+    --ink-2: #fafafa;
+    --muted: #a1a1a1;
+    --code: #1f1f1f;
+    --ok-ink: #34d399;
+    --bad-ink: #f87171;
+    --warn-ink: #fbbf24;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0d0d0d;
+  --paper: #161616;
+  --strong: #262626;
+  --chip-active: #3a3a3a;
+  --hairline: #262626;
+  --divider: #232323;
+  --track: #3a3a3a;
+  --ink: #f5f5f5;
+  --ink-2: #fafafa;
+  --muted: #a1a1a1;
+  --code: #1f1f1f;
+  --ok-ink: #34d399;
+  --bad-ink: #f87171;
+  --warn-ink: #fbbf24;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 20px;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+a { color: inherit; text-decoration-color: var(--track); text-underline-offset: 3px; }
+a:hover { text-decoration-color: var(--ink); }
+a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visible, summary:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+code {
+  font-family: var(--font-mono);
+  font-size: 0.86em;
+  background: var(--code);
+  padding: 1px 5px;
+  border-radius: 4px;
+  overflow-wrap: anywhere;
+}
+h1, h2, h3, h4 { margin: 0; text-wrap: balance; }
+p { margin: 0; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+/* Sumário fixo no topo */
+.toc {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  padding-top: env(safe-area-inset-top, 0px);
+  background: var(--bg);
+  background: color-mix(in srgb, var(--bg) 92%, transparent);
+  -webkit-backdrop-filter: saturate(140%) blur(8px);
+  backdrop-filter: saturate(140%) blur(8px);
+  border-bottom: 1px solid var(--divider);
+}
+.toc-inner {
+  max-width: 1040px;
+  margin: 0 auto;
+  padding-left: max(8px, env(safe-area-inset-left, 0px));
+  padding-right: max(8px, env(safe-area-inset-right, 0px));
+  display: flex;
+  gap: 2px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.toc-inner::-webkit-scrollbar { display: none; }
+.toc a {
+  flex: none;
+  font-size: 13px;
+  line-height: 16px;
+  font-weight: 500;
+  color: var(--muted);
+  text-decoration: none;
+  padding: 14px 8px;
+}
+.toc a:hover { color: var(--ink); }
+
+.page {
+  max-width: 1040px;
+  margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 40px 72px;
+  display: grid;
+  gap: 56px;
+}
+
+/* Cabeçalho */
+.masthead { display: grid; gap: 20px; }
+.brand { display: flex; align-items: center; gap: 12px; }
+.brand svg { width: 36px; height: 36px; flex: none; }
+.eyebrow { font-size: 12px; line-height: 16px; font-weight: 500; color: var(--muted); letter-spacing: 0.02em; }
+h1 { font-size: clamp(28px, 5vw, 36px); line-height: 1.12; font-weight: 700; letter-spacing: -0.02em; }
+.lead { font-size: 16px; line-height: 25px; max-width: 64ch; color: var(--ink-2); }
+.meta { display: flex; flex-wrap: wrap; gap: 12px 32px; margin: 0; }
+.meta div { display: grid; gap: 2px; min-width: 0; }
+.meta dt { font-size: 12px; line-height: 16px; color: var(--muted); }
+.meta dd { margin: 0; font-weight: 600; }
+.status-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.status-row .when { font-size: 12px; line-height: 16px; color: var(--muted); }
+
+/* Seções */
+.section { display: grid; gap: 16px; scroll-margin-top: 60px; min-width: 0; }
+.section-head { display: grid; gap: 6px; }
+.sec-num { font-family: var(--font-mono); font-size: 12px; line-height: 16px; font-weight: 500; color: var(--muted); }
+.section-head h2 { font-size: 22px; line-height: 28px; font-weight: 700; letter-spacing: -0.01em; }
+.section-head p { color: var(--muted); max-width: 70ch; }
+.sub { display: grid; gap: 12px; scroll-margin-top: 60px; min-width: 0; }
+.sub > h3 { font-size: 16px; line-height: 22px; font-weight: 700; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+.sub > h3 .sec-num { font-weight: 500; }
+.sub > p, .prose p { line-height: 22px; color: var(--ink-2); max-width: 78ch; }
+.note { font-size: 13px; line-height: 20px; color: var(--muted); max-width: 78ch; }
+/* Um item de grid cresce até a largura mínima do conteúdo. Sem isto, a tabela com largura
+   mínima dentro de um <details> estica a seção inteira no celular. */
+.page > *, .section > *, .sub > *, .grid > *, .prio > *, .items > * { min-width: 0; }
+
+/* Chips e marcas */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 700;
+  color: var(--badge-ink);
+  padding: 4px 10px;
+  border-radius: 8px;
+  white-space: nowrap;
+}
+.chip-open { background: var(--c-open); }
+.chip-b1 { background: var(--c-b1); }
+.chip-b2 { background: var(--c-b2); }
+.chip-b3 { background: var(--c-b3); }
+.chip-later { background: var(--c-later); }
+.tag {
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 600;
+  background: var(--strong);
+  color: var(--ink);
+  padding: 2px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+.confirm {
+  font-size: 11px;
+  line-height: 14px;
+  font-weight: 600;
+  color: var(--muted);
+  border: 1px dashed var(--track);
+  padding: 1px 6px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+.yn { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; color: var(--ink); white-space: nowrap; }
+.yn::before { content: ""; width: 8px; height: 8px; border-radius: 9999px; background: var(--muted); flex: none; }
+.yn.yes::before { background: var(--ok); }
+.yn.no::before { background: var(--bad); }
+.yn.part::before { background: var(--warn); }
+.lv { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; white-space: nowrap; }
+.lv::before { content: ""; width: 8px; height: 8px; border-radius: 2px; flex: none; }
+.lv.high::before { background: var(--bad); }
+.lv.mid::before { background: var(--warn); }
+.lv.low::before { background: var(--ok); }
+
+/* Cartões */
+.panel {
+  background: var(--paper);
+  border: 1px solid var(--hairline);
+  border-radius: 6px;
+  padding: 20px;
+  display: grid;
+  gap: 12px;
+  align-content: start;
+  min-width: 0;
+}
+.panel-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.panel-top .when { font-size: 12px; line-height: 16px; color: var(--muted); }
+.panel h3 { font-size: 16px; line-height: 22px; font-weight: 600; }
+.panel p, .panel li { line-height: 21px; color: var(--ink-2); }
+.panel ul, .panel ol { margin: 0; padding-left: 18px; display: grid; gap: 6px; }
+.panel .muted { color: var(--muted); }
+.grid { display: grid; gap: 6px; }
+.g2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.g3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.g4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.k { font-family: var(--font-mono); font-size: 12px; line-height: 16px; font-weight: 500; color: var(--muted); }
+
+/* Números de destaque */
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.stat { background: var(--paper); border: 1px solid var(--hairline); border-radius: 6px; padding: 18px 20px; display: grid; gap: 6px; align-content: start; min-width: 0; }
+.stat b { font-size: 28px; line-height: 32px; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.stat span { font-size: 13px; line-height: 19px; color: var(--muted); }
+
+/* Tabelas */
+.table-wrap { overflow-x: auto; overscroll-behavior-x: contain; background: var(--paper); border: 1px solid var(--hairline); border-radius: 6px; }
+table { width: 100%; border-collapse: collapse; font-size: 13.5px; line-height: 20px; }
+.table-wrap table { min-width: 640px; }
+.table-wrap.narrow table { min-width: 480px; }
+caption { text-align: left; }
+th, td { text-align: left; vertical-align: top; padding: 10px 14px; border-bottom: 1px solid var(--hairline); }
+thead th { font-size: 12px; line-height: 16px; font-weight: 500; color: var(--muted); background: var(--strong); white-space: nowrap; }
+tbody tr:last-child > * { border-bottom: 0; }
+tbody th { font-weight: 600; color: var(--ink); }
+td { color: var(--ink-2); }
+td.nowrap, th.nowrap { white-space: nowrap; }
+
+/* Diagramas */
+.diagram { margin: 0; display: grid; gap: 10px; min-width: 0; }
+.canvas { overflow-x: auto; overscroll-behavior-x: contain; background: var(--bg); border: 1px solid var(--hairline); border-radius: 6px; padding: 14px; }
+.canvas svg { display: block; width: 100%; height: auto; min-width: var(--minw, 760px); }
+.diagram figcaption { font-size: 13px; line-height: 20px; color: var(--muted); max-width: 80ch; }
+.swipe { display: none; font-size: 12px; color: var(--muted); }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 24px; color: var(--muted); font-size: 12px; line-height: 16px; }
+.legend .ln { display: inline-flex; align-items: center; gap: 8px; }
+.legend svg { width: 32px; height: 8px; }
+.dg { font-family: var(--font-sans); }
+.dg text { fill: var(--ink); }
+.dg .box { fill: var(--paper); stroke: var(--track); stroke-width: 1; }
+.dg .box.hl { stroke: var(--ink-2); stroke-width: 1.4; }
+.dg .t { font-size: 13px; font-weight: 600; fill: var(--ink); }
+.dg .mono { font-family: var(--font-mono); }
+.dg .s { font-size: 11.5px; fill: var(--muted); }
+.dg .bad { font-size: 11.5px; font-weight: 600; fill: var(--bad-ink); }
+.dg .edge, .legend .edge { fill: none; stroke: var(--ink-2); stroke-width: 1.4; }
+.dg .edge.dash, .legend .edge.dash { stroke: var(--muted); stroke-dasharray: 5 4; }
+.dg .life { fill: none; stroke: var(--track); stroke-width: 1; stroke-dasharray: 3 4; }
+.dg .lbl { font-size: 11px; fill: var(--muted); paint-order: stroke fill; stroke: var(--bg); stroke-width: 5px; stroke-linejoin: round; }
+.dg .dot { fill: var(--ink-2); }
+.ah { fill: var(--ink-2); }
+.ah.muted { fill: var(--muted); }
+
+/* Decisões */
+.decisions { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 6px; }
+.options { margin: 0; display: grid; gap: 8px; }
+.options div { display: grid; gap: 2px; }
+.options dt { font-size: 12px; line-height: 16px; color: var(--muted); }
+.options dd { margin: 0; line-height: 21px; }
+.why { font-size: 13px; line-height: 20px; color: var(--muted) !important; }
+.choice { border: 0; margin: 0; padding: 12px 0 0; border-top: 1px solid var(--hairline); display: flex; flex-wrap: wrap; gap: 8px 18px; }
+.choice legend { padding: 0; margin-bottom: 8px; font-size: 12px; line-height: 16px; font-weight: 500; color: var(--muted); float: left; width: 100%; }
+.choice label { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; cursor: pointer; min-height: 24px; }
+.choice input { width: 16px; height: 16px; margin: 0; accent-color: var(--ink); cursor: pointer; }
+.summary { display: grid; gap: 10px; }
+.summary-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; }
+.btn {
+  appearance: none;
+  border: 1px solid var(--ink);
+  background: var(--ink);
+  color: var(--bg);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 16px;
+  padding: 9px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.btn.ghost { background: transparent; color: var(--ink); border-color: var(--track); }
+.status-msg { font-size: 13px; color: var(--muted); }
+.summary pre {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 20px;
+  background: var(--code);
+  border: 1px solid var(--hairline);
+  border-radius: 6px;
+  padding: 12px 14px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* Compromisso e diálogo de exemplo */
+.doc { background: var(--paper); border: 1px solid var(--hairline); border-radius: 6px; padding: 24px; display: grid; gap: 14px; }
+.doc-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 16px; padding-bottom: 12px; border-bottom: 1px solid var(--hairline); }
+.doc-head h3 { font-size: 16px; line-height: 22px; font-weight: 700; }
+.doc ol { margin: 0; padding-left: 22px; display: grid; gap: 8px; }
+.doc li { line-height: 22px; color: var(--ink-2); }
+.doc li::marker { font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
+.doc-foot { font-size: 13px; line-height: 20px; color: var(--muted); padding-top: 12px; border-top: 1px solid var(--hairline); }
+.mock { margin: 0; display: grid; gap: 10px; justify-items: start; }
+.mock-dialog {
+  width: min(100%, 460px);
+  background: var(--paper);
+  border: 1px solid var(--track);
+  border-radius: 10px;
+  padding: 22px;
+  display: grid;
+  gap: 12px;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.08);
+}
+.mock-title { font-size: 16px; line-height: 22px; font-weight: 700; }
+.mock-dialog p { line-height: 21px; color: var(--ink-2); }
+.mock-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; padding-top: 4px; }
+.mock-btn { font-size: 13px; font-weight: 600; line-height: 16px; padding: 9px 14px; border-radius: 6px; border: 1px solid var(--track); }
+.mock-btn.primary { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.mock figcaption { font-size: 13px; color: var(--muted); }
+.notice { border-left: 3px solid var(--warn); background: var(--paper); border-radius: 0 6px 6px 0; padding: 12px 16px; line-height: 21px; color: var(--ink-2); }
+
+/* Demonstração da remoção */
+.demo { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.demo label { font-size: 12px; line-height: 16px; font-weight: 500; color: var(--muted); }
+.demo textarea, .demo output {
+  display: block;
+  width: 100%;
+  min-height: 168px;
+  margin-top: 8px;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 20px;
+  color: var(--ink);
+  background: var(--code);
+  border: 1px solid var(--hairline);
+  border-radius: 6px;
+  padding: 12px 14px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.demo textarea { resize: vertical; }
+.demo mark { background: var(--c-open); color: var(--badge-ink); border-radius: 3px; padding: 0 2px; }
+.demo-counts { font-size: 12px; line-height: 18px; color: var(--muted); margin-top: 8px; }
+
+/* Listas de verificação */
+.checks { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 32px; }
+/* O marcador é posicionado, não uma coluna de grid: num li em grid, cada <code> do texto
+   viraria uma célula separada. */
+.checks li { position: relative; padding-left: 18px; line-height: 21px; color: var(--ink-2); }
+.checks li::before { content: ""; position: absolute; left: 0; top: 7px; width: 8px; height: 8px; border-radius: 9999px; background: var(--ok); }
+.steps { margin: 0; padding-left: 22px; display: grid; gap: 10px; }
+.steps li { line-height: 22px; color: var(--ink-2); }
+.steps li::marker { font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
+.consts { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 180px), 1fr)); gap: 6px; }
+.const { background: var(--paper); border: 1px solid var(--hairline); border-radius: 6px; padding: 14px 16px; display: grid; gap: 4px; align-content: start; }
+.const b { font-size: 18px; line-height: 24px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.const span { font-size: 12.5px; line-height: 18px; color: var(--muted); }
+.pills { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.pills li { font-family: var(--font-mono); font-size: 12px; line-height: 16px; background: var(--strong); color: var(--ink); padding: 4px 8px; border-radius: 6px; }
+
+details.more { background: var(--paper); border: 1px solid var(--hairline); border-radius: 6px; }
+details.more > summary { cursor: pointer; padding: 14px 18px; font-weight: 600; list-style-position: inside; }
+details.more[open] > summary { border-bottom: 1px solid var(--hairline); }
+details.more > .table-wrap { border: 0; border-radius: 0 0 6px 6px; }
+
+/* Fase 17: ordem, filtros e etapas (o mesmo desenho do plano da Leemia) */
+.attack { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.attack ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.attack a { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 8px; text-decoration: none; }
+.attack a:hover .t { text-decoration: underline; text-decoration-color: var(--track); text-underline-offset: 3px; }
+.attack .id { font-family: var(--font-mono); font-size: 12px; line-height: 21px; color: var(--muted); }
+.attack .t { font-weight: 600; }
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 24px;
+  padding-block: 10px;
+  border-block: 1px solid var(--divider);
+}
+.filters { display: flex; flex-wrap: wrap; gap: 2px 18px; }
+.filter {
+  appearance: none;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 0;
+  cursor: pointer;
+}
+.filter .count {
+  font-size: 11px;
+  line-height: 14px;
+  font-weight: 600;
+  background: var(--strong);
+  color: var(--muted);
+  padding: 1px 6px;
+  border-radius: 6px;
+  font-variant-numeric: tabular-nums;
+}
+.filter[aria-pressed="true"] { color: var(--ink); font-weight: 700; }
+.filter[aria-pressed="true"] .count { background: var(--chip-active); color: var(--ink); }
+.progress { display: grid; gap: 6px; width: min(220px, 100%); }
+.progress-label { font-size: 12px; line-height: 16px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.bar { height: 4px; background: var(--track); border-radius: 9999px; overflow: hidden; }
+.bar span { display: block; height: 100%; width: 0; background: var(--ink-2); transition: width 0.2s ease; }
+.prio { display: grid; gap: 16px; }
+.prio-head { display: grid; gap: 8px; }
+.prio-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.prio-row .when { font-size: 12px; line-height: 16px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.prio-head h2 { font-size: 22px; line-height: 28px; font-weight: 700; letter-spacing: -0.01em; }
+.prio-head p { color: var(--muted); max-width: 66ch; }
+.prio-empty { color: var(--muted); font-size: 13px; padding: 12px 0; }
+.items { display: grid; gap: 6px; }
+.item {
+  background: var(--paper);
+  border: 1px solid var(--hairline);
+  border-radius: 6px;
+  padding: 20px;
+  display: grid;
+  gap: 16px;
+  scroll-margin-top: 60px;
+  min-width: 0;
+}
+.item:target { box-shadow: inset 0 0 0 2px var(--ink-2); }
+.item-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; }
+.item-id { font-family: var(--font-mono); font-size: 12px; line-height: 16px; font-weight: 500; color: var(--muted); }
+.item h3 { font-size: 20px; line-height: 26px; font-weight: 700; letter-spacing: -0.01em; }
+.item h4 { font-size: 12px; line-height: 16px; font-weight: 500; color: var(--muted); margin-bottom: 6px; }
+.item p, .item li { font-size: 14px; line-height: 22px; color: var(--ink-2); }
+.item ul, .item ol { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
+.item-body, .item-foot { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); gap: 16px 32px; }
+.item-body > div, .item-foot > div { min-width: 0; display: grid; gap: 14px; align-content: start; }
+.item-foot { padding-top: 16px; border-top: 1px solid var(--hairline); }
+.refs { list-style: none; padding-left: 0 !important; gap: 6px !important; }
+.refs li { font-size: 12px; line-height: 18px; }
+.done {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+}
+.done input { width: 16px; height: 16px; margin: 0; accent-color: var(--ink); cursor: pointer; }
+.item.is-done h3 { color: var(--muted); }
+.item.is-done .done { color: var(--ink); }
+
+.foot { display: grid; gap: 8px; color: var(--muted); font-size: 13px; line-height: 20px; max-width: 76ch; }
+
+@media (max-width: 900px) {
+  .attack, .g3, .g4 { grid-template-columns: minmax(0, 1fr); }
+  .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .swipe { display: block; }
+}
+@media (max-width: 760px) {
+  .page { padding-block: 24px 56px; gap: 44px; }
+  .g2, .demo, .checks, .item-body, .item-foot { grid-template-columns: minmax(0, 1fr); }
+  .done { margin-left: 0; }
+  .doc { padding: 18px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .bar span { transition: none; }
+}
+@media print {
+  .toc, .toolbar, .done, .choice, .summary-bar { display: none !important; }
+  .canvas, .table-wrap { overflow: visible; }
+}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="ah" d="M0 0L10 5L0 10z"/></marker>
+    <marker id="ahm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="ah muted" d="M0 0L10 5L0 10z"/></marker>
+  </defs>
+</svg>
+
+<nav class="toc" aria-label="Seções">
+  <div class="toc-inner">
+    <a href="#visao">Visão geral</a>
+    <a href="#decisoes">Decisões</a>
+    <a href="#escopo">Escopo</a>
+    <a href="#escolhas">Escolhas</a>
+    <a href="#papeis">Papéis</a>
+    <a href="#oferta">Oferta</a>
+    <a href="#fluxo">Fluxo</a>
+    <a href="#tempo-real">Tempo real</a>
+    <a href="#dados">Dados</a>
+    <a href="#seguranca">Segurança</a>
+    <a href="#lgpd">LGPD</a>
+    <a href="#api">API</a>
+    <a href="#telas">Telas</a>
+    <a href="#observabilidade">Observabilidade</a>
+    <a href="#testes">Testes</a>
+    <a href="#constantes">Constantes</a>
+    <a href="#riscos">Riscos</a>
+    <a href="#fase-17">Fase 17</a>
+    <a href="#nao-muda">O que não muda</a>
+  </div>
+</nav>
+
+<main class="page">
+
+  <header class="masthead" id="inicio">
+    <div class="brand">
+      <svg viewBox="0 0 40 40" aria-hidden="true">
+        <rect x="0.5" y="0.5" width="39" height="39" rx="8" fill="#0a0a0a" stroke="#3a3a3a"/>
+        <g fill="none" stroke="#fafafa" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M11 22v-3a9 9 0 0 1 18 0v3"/>
+          <rect x="9" y="21" width="5" height="8" rx="2"/>
+          <rect x="26" y="21" width="5" height="8" rx="2"/>
+          <path d="M28.5 29c0 3-3 4.5-6.5 4.5h-2"/>
+        </g>
+      </svg>
+      <span class="eyebrow">AI-Chat · Atrium · SDD, seção 29</span>
+    </div>
+    <div class="status-row"><span class="chip chip-open">Aprovada</span><span class="when">Aprovada na Etapa 17.0, em 2026-11-12, com as decisões D-5 a D-9 como propostas. A implementação segue as Etapas 17.1 a 17.8.</span></div>
+    <h1>Atendimento humano no Atrium</h1>
+    <p class="lead">Quando o Atrium não consegue ajudar, o visitante chama uma pessoa da equipe do Harborlight, que continua a mesma conversa num console. Esta página mostra a seção 29 do SDD, com foco em segurança e LGPD, e as nove etapas da Fase 17 que a implementam.</p>
+    <dl class="meta">
+      <div><dt>Data</dt><dd>10 nov 2026</dd></div>
+      <div><dt>SDD</dt><dd>Versão 1.23, seção 29</dd></div>
+      <div><dt>Branch</dt><dd><code>docs/atendimento-humano</code></dd></div>
+      <div><dt>Foco</dt><dd>Segurança e LGPD</dd></div>
+      <div><dt>Fase 17</dt><dd>9 etapas, uma PR cada</dd></div>
+    </dl>
+  </header>
+
+  <!-- Visão geral -->
+  <section class="section" id="visao" aria-labelledby="visao-title">
+    <div class="section-head">
+      <span class="sec-num">Seção 29</span>
+      <h2 id="visao-title">Em uma página</h2>
+      <p>O visitante pede, a equipe assume da fila e os dois conversam em tempo real. Tudo passa pelo mesmo rewrite de <code>/backend</code> que as perguntas já usam, e nada do atendimento vai para a IA. As regras das seções 10 e 11 continuam valendo: a seção 29 diz só o que o atendimento por uma pessoa acrescenta.</p>
+    </div>
+    <figure class="diagram">
+      <div class="canvas" style="--minw: 820px">
+        <svg class="dg" viewBox="0 0 1020 320" role="img" aria-label="Visão geral. O navegador do visitante e o navegador da equipe mandam POST e abrem fluxos SSE pela Vercel, que encaminha /backend para a API FastAPI na Railway, na mesma origem e com o segredo da borda. A API grava no PostgreSQL e avisa com NOTIFY na mesma transação, e recebe os avisos pelo LISTEN, só com ids. A API chama o Gemini e manda rastros ao LangSmith só nas perguntas à IA, nunca com o atendimento.">
+          <rect class="box" x="20" y="60" width="200" height="60" rx="8"/>
+          <text class="t" x="120" y="86" text-anchor="middle">Navegador do visitante</text>
+          <text class="s" x="120" y="104" text-anchor="middle">conversa em /ask/:id</text>
+          <rect class="box" x="20" y="240" width="200" height="60" rx="8"/>
+          <text class="t" x="120" y="266" text-anchor="middle">Navegador da equipe</text>
+          <text class="s" x="120" y="284" text-anchor="middle">console em /attendance</text>
+          <rect class="box" x="290" y="150" width="180" height="60" rx="8"/>
+          <text class="t" x="380" y="176" text-anchor="middle">Vercel</text>
+          <text class="s" x="380" y="194" text-anchor="middle">rewrite de /backend</text>
+          <rect class="box hl" x="590" y="150" width="180" height="60" rx="8"/>
+          <text class="t" x="680" y="176" text-anchor="middle">API FastAPI</text>
+          <text class="s" x="680" y="194" text-anchor="middle">Railway, uma réplica</text>
+          <rect class="box" x="590" y="14" width="180" height="60" rx="8"/>
+          <text class="t" x="680" y="40" text-anchor="middle">PostgreSQL</text>
+          <text class="s" x="680" y="58" text-anchor="middle">fonte da verdade</text>
+          <rect class="box" x="840" y="86" width="160" height="64" rx="8"/>
+          <text class="t" x="920" y="108" text-anchor="middle">API Gemini</text>
+          <text class="s" x="920" y="125" text-anchor="middle">só perguntas à IA</text>
+          <text class="bad" x="920" y="141" text-anchor="middle">nunca o atendimento</text>
+          <rect class="box" x="840" y="226" width="160" height="64" rx="8"/>
+          <text class="t" x="920" y="248" text-anchor="middle">LangSmith</text>
+          <text class="s" x="920" y="265" text-anchor="middle">só rastros da IA</text>
+          <text class="bad" x="920" y="281" text-anchor="middle">nunca o atendimento</text>
+          <path class="edge" d="M220 90 C255 90 255 170 290 170" marker-end="url(#ah)"/>
+          <text class="lbl" x="256" y="124" text-anchor="middle">POST e SSE</text>
+          <path class="edge" d="M220 270 C255 270 255 190 290 190" marker-end="url(#ah)"/>
+          <text class="lbl" x="256" y="244" text-anchor="middle">POST e SSE</text>
+          <path class="edge" d="M470 180 H590" marker-end="url(#ah)"/>
+          <text class="lbl" x="530" y="170" text-anchor="middle">mesma origem</text>
+          <text class="lbl" x="530" y="200" text-anchor="middle">segredo da borda</text>
+          <path class="edge" d="M662 150 V74" marker-end="url(#ah)"/>
+          <text class="lbl" x="654" y="116" text-anchor="end">grava e NOTIFY</text>
+          <path class="edge dash" d="M698 74 V150" marker-end="url(#ahm)"/>
+          <text class="lbl" x="706" y="116">LISTEN, só ids</text>
+          <path class="edge" d="M770 168 C805 168 805 118 840 118" marker-end="url(#ah)"/>
+          <path class="edge dash" d="M770 192 C805 192 805 258 840 258" marker-end="url(#ahm)"/>
+        </svg>
+      </div>
+      <div class="legend">
+        <span class="ln"><svg viewBox="0 0 32 8" aria-hidden="true"><path class="edge" d="M1 4H31"/></svg>pedido ou dado</span>
+        <span class="ln"><svg viewBox="0 0 32 8" aria-hidden="true"><path class="edge dash" d="M1 4H31"/></svg>aviso do banco ou rastro</span>
+      </div>
+      <figcaption>O visitante e a equipe falam só com a origem da Vercel. A API grava cada mensagem e avisa os outros fluxos pelo PostgreSQL. O Gemini e o LangSmith continuam recebendo só o que vem da conversa com a IA (escolha 4 da seção 29.2).</figcaption>
+      <p class="swipe">Arraste o diagrama para os lados para ver tudo.</p>
+    </figure>
+    <div class="stats">
+      <div class="stat"><b>0</b><span>operadores novos: o atendimento fica na Railway e passa pela Vercel</span></div>
+      <div class="stat"><b>1</b><span>pessoa por atendimento, e assumir fica na auditoria</span></div>
+      <div class="stat"><b>90 dias</b><span>até o texto do atendimento ser apagado, ou antes, com a conversa</span></div>
+      <div class="stat"><b>10 min</b><span>por fluxo SSE, retomado pelo <code>seq</code> sem perder mensagem</span></div>
+    </div>
+  </section>
+
+  <!-- Decisões -->
+  <section class="section" id="decisoes" aria-labelledby="decisoes-title">
+    <div class="section-head">
+      <span class="sec-num">Seção 26 · Etapa 17.0</span>
+      <h2 id="decisoes-title">Decisões fechadas</h2>
+      <p>Estas cinco decisões fecharam na Etapa 17.0, em 2026-11-12, todas como a proposta. Os botões abaixo continuam para registro e ficam salvos só neste navegador.</p>
+    </div>
+    <div class="decisions">
+      <article class="panel decision" data-id="D-5" data-label="canal em tempo real" data-proposta="SSE e POST pelo rewrite de mesma origem" data-alternativa="WebSocket direto na Railway ou com um domínio próprio">
+        <div class="panel-top"><span class="item-id">D-5</span><span class="chip chip-open">Em aberto</span></div>
+        <h3>Como o servidor fala com o navegador no atendimento?</h3>
+        <dl class="options">
+          <div><dt>Proposta</dt><dd>SSE e <code>POST</code> pelo rewrite de mesma origem (<a href="../adr/015-atendimento-por-sse.md">ADR-015</a>)</dd></div>
+          <div><dt>Alternativa</dt><dd>WebSocket direto na Railway, ou com um domínio próprio</dd></div>
+        </dl>
+        <p class="why">A Vercel não documenta WebSocket num rewrite para outra origem. Direto na Railway, o canal perderia o cookie de mesma origem, o segredo da borda, o IP confiável dos limites e a CSP atual.</p>
+        <fieldset class="choice">
+          <legend>Sua escolha para a D-5</legend>
+          <label><input type="radio" name="d-5" value="proposta"> Proposta</label>
+          <label><input type="radio" name="d-5" value="alternativa"> Alternativa</label>
+        </fieldset>
+      </article>
+      <article class="panel decision" data-id="D-6" data-label="quem atende" data-proposta="papel attendant separado, e o admin também atende" data-alternativa="só o admin atende">
+        <div class="panel-top"><span class="item-id">D-6</span><span class="chip chip-open">Em aberto</span></div>
+        <h3>Quem atende?</h3>
+        <dl class="options">
+          <div><dt>Proposta</dt><dd>O papel <code>attendant</code>, separado, e também o admin</dd></div>
+          <div><dt>Alternativa</dt><dd>Só o admin</dd></div>
+        </dl>
+        <p class="why">Menor privilégio: quem atende no balcão não precisa ver documentos, qualidade nem pedidos de titular. O papel só muda por script.</p>
+        <fieldset class="choice">
+          <legend>Sua escolha para a D-6</legend>
+          <label><input type="radio" name="d-6" value="proposta"> Proposta</label>
+          <label><input type="radio" name="d-6" value="alternativa"> Alternativa</label>
+        </fieldset>
+      </article>
+      <article class="panel decision" data-id="D-7" data-label="retenção do texto" data-proposta="90 dias depois do encerramento, ou antes, com a conversa" data-alternativa="30 dias, como a conversa de convidado">
+        <div class="panel-top"><span class="item-id">D-7</span><span class="chip chip-open">Em aberto</span></div>
+        <h3>Por quanto tempo fica o texto do atendimento?</h3>
+        <dl class="options">
+          <div><dt>Proposta</dt><dd>90 dias depois do encerramento, ou antes, com a conversa</dd></div>
+          <div><dt>Alternativa</dt><dd>30 dias, como a conversa de convidado</dd></div>
+        </dl>
+        <p class="why">Texto livre trocado com uma pessoa tem mais chance de trazer dado sensível. 90 dias cobrem uma reclamação com folga. 30 dias minimizam mais.</p>
+        <fieldset class="choice">
+          <legend>Sua escolha para a D-7</legend>
+          <label><input type="radio" name="d-7" value="proposta"> Proposta</label>
+          <label><input type="radio" name="d-7" value="alternativa"> Alternativa</label>
+        </fieldset>
+      </article>
+      <article class="panel decision" data-id="D-8" data-label="sessão da equipe" data-proposta="12 horas para attendant e admin" data-alternativa="14 dias, como hoje">
+        <div class="panel-top"><span class="item-id">D-8</span><span class="chip chip-open">Em aberto</span></div>
+        <h3>Quanto dura a sessão da equipe?</h3>
+        <dl class="options">
+          <div><dt>Proposta</dt><dd>12 horas para <code>attendant</code> e <code>admin</code></dd></div>
+          <div><dt>Alternativa</dt><dd>14 dias, como hoje</dd></div>
+        </dl>
+        <p class="why">Um turno. O balcão tem computador compartilhado. A proposta também encurta a sessão do admin, que hoje dura 14 dias (seção 10.3).</p>
+        <fieldset class="choice">
+          <legend>Sua escolha para a D-8</legend>
+          <label><input type="radio" name="d-8" value="proposta"> Proposta</label>
+          <label><input type="radio" name="d-8" value="alternativa"> Alternativa</label>
+        </fieldset>
+      </article>
+      <article class="panel decision" data-id="D-9" data-label="nome de quem atende" data-proposta="o visitante vê só Equipe do Harborlight" data-alternativa="o visitante vê o primeiro nome, escolhido pela pessoa">
+        <div class="panel-top"><span class="item-id">D-9</span><span class="chip chip-open">Em aberto</span></div>
+        <h3>O visitante vê o nome de quem atende?</h3>
+        <dl class="options">
+          <div><dt>Proposta</dt><dd>Não, só "Equipe do Harborlight"</dd></div>
+          <div><dt>Alternativa</dt><dd>O primeiro nome, escolhido pela pessoa</dd></div>
+        </dl>
+        <p class="why">Minimização também para a equipe. O nome pode entrar depois sem mudar o desenho.</p>
+        <fieldset class="choice">
+          <legend>Sua escolha para a D-9</legend>
+          <label><input type="radio" name="d-9" value="proposta"> Proposta</label>
+          <label><input type="radio" name="d-9" value="alternativa"> Alternativa</label>
+        </fieldset>
+      </article>
+    </div>
+    <div class="summary">
+      <div class="summary-bar">
+        <button type="button" class="btn" id="copy-decisions">Copiar decisões</button>
+        <button type="button" class="btn ghost" id="clear-decisions">Limpar escolhas</button>
+        <span class="status-msg" id="copy-status" role="status" aria-live="polite"></span>
+      </div>
+      <pre id="decisions-text" aria-label="Resumo das decisões"></pre>
+    </div>
+  </section>
+
+  <!-- 29.1 Escopo -->
+  <section class="section" id="escopo" aria-labelledby="escopo-title">
+    <div class="section-head">
+      <span class="sec-num">29.1</span>
+      <h2 id="escopo-title">Escopo</h2>
+      <p>O que entra na proposta e o que fica de fora da versão 1, com o motivo quando ele importa.</p>
+    </div>
+    <div class="panel">
+      <h3>Dentro da proposta</h3>
+      <ul class="checks">
+        <li>Oferta do atendimento depois de uma resposta que não ajudou (29.4)</li>
+        <li>Fila, uma pessoa por atendimento, conversa em tempo real, devolução à fila e encerramento (29.5)</li>
+        <li>Canal por SSE e <code>POST</code>, pelo rewrite de mesma origem (29.6)</li>
+        <li>Papel <code>attendant</code>, concedido por script, com compromisso de confidencialidade (29.3)</li>
+        <li>Console para atendentes e admins, e a lista de encerrados para o admin (29.11)</li>
+        <li>Remoção automática de identificadores e remoção de conteúdo sensível pela equipe (29.9.6 e 29.9.7)</li>
+        <li>Retenção, exportação, auditoria, métricas e alertas do atendimento</li>
+      </ul>
+    </div>
+    <div class="grid g2">
+      <div class="panel">
+        <div class="panel-top"><span class="chip chip-later">Fora da versão 1</span></div>
+        <h3>Canal e conteúdo</h3>
+        <ul>
+          <li>WebSocket (<a href="../adr/015-atendimento-por-sse.md">ADR-015</a>)</li>
+          <li>Anexos, imagens e áudio</li>
+          <li>Indicador de digitação</li>
+        </ul>
+      </div>
+      <div class="panel">
+        <div class="panel-top"><span class="chip chip-later">Fora da versão 1</span></div>
+        <h3>IA para a equipe</h3>
+        <ul>
+          <li>Resumo, classificação ou sugestão de resposta por IA para a equipe. Isso levaria o texto do atendimento ao Gemini, contra a escolha 4 da seção 29.2.</li>
+        </ul>
+      </div>
+      <div class="panel">
+        <div class="panel-top"><span class="chip chip-later">Fora da versão 1</span></div>
+        <h3>Operação da equipe</h3>
+        <ul>
+          <li>Transferência direta entre atendentes e supervisão ao vivo</li>
+          <li>Gestão da equipe pela interface: o papel é concedido por script (29.3)</li>
+          <li>Horário de atendimento configurado: a disponibilidade vem da presença da equipe (29.4)</li>
+          <li>Notificação do sistema operacional para a equipe</li>
+        </ul>
+      </div>
+      <div class="panel">
+        <div class="panel-top"><span class="chip chip-later">Fora da versão 1</span></div>
+        <h3>Para o visitante</h3>
+        <ul>
+          <li>O nome de quem atende (D-9)</li>
+          <li>Avaliação do atendimento pelo visitante</li>
+          <li>Retorno por e-mail, SMS ou telefone: a entrega de mensagens está fora do escopo (seção 4.2)</li>
+          <li>Oferta do atendimento na página inicial, antes de uma resposta</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 29.2 Escolhas -->
+  <section class="section" id="escolhas" aria-labelledby="escolhas-title">
+    <div class="section-head">
+      <span class="sec-num">29.2</span>
+      <h2 id="escolhas-title">As doze escolhas da proposta</h2>
+      <p>Cada escolha tem o motivo ao lado. As marcadas com uma decisão da seção 26 dependem da sua resposta.</p>
+    </div>
+    <div class="grid g2">
+      <div class="panel"><span class="k">1</span><h3>A oferta aparece só quando a IA não ajudou, e nunca numa recusa médica.</h3><p class="muted">A recusa médica já leva à emergência e à mesa telefônica (seção 10.1), e a equipe não é clínica.</p></div>
+      <div class="panel"><span class="k">2</span><h3>O visitante confirma num diálogo o que a equipe vai ler, o que não vai para a IA e por quanto tempo fica guardado.</h3><p class="muted">Transparência no momento da coleta, art. 6º, VI, e o princípio 5 da seção 15.1.</p></div>
+      <div class="panel"><span class="k">3</span><h3>A equipe lê a conversa atual, não o perfil.</h3><p class="muted">Nome, e-mail, telefone, tipo de visitante e outras conversas ficam fora da tela. Necessidade, art. 6º, III.</p></div>
+      <div class="panel"><span class="k">4</span><h3>O texto do atendimento nunca vai ao Gemini nem ao LangSmith, nem como histórico de uma pergunta posterior.</h3><p class="muted">Finalidade, art. 6º, I. Nenhum operador novo recebe o conteúdo, e nada da conversa com a pessoa vira instrução para o modelo.</p></div>
+      <div class="panel"><span class="k">5</span><h3>A fila não mostra conteúdo. Ele abre para uma pessoa por vez, a que assumiu, e assumir fica na auditoria.</h3><p class="muted">Responsabilização, art. 6º, X. Cada leitura tem um responsável.</p></div>
+      <div class="panel"><div class="panel-top"><span class="k">6</span><span class="confirm">D-6</span></div><h3>O papel <code>attendant</code> é separado de <code>admin</code> e concedido por script. O admin também atende.</h3><p class="muted">Menor privilégio. Nenhuma rota da web concede papel.</p></div>
+      <div class="panel"><div class="panel-top"><span class="k">7</span><span class="confirm">D-5</span></div><h3>SSE para o servidor falar e <code>POST</code> para o navegador falar, pelo mesmo rewrite. Sem WebSocket na versão 1.</h3><p class="muted">O cookie, o <code>Origin</code>, o segredo da borda, o IP confiável e a CSP continuam como estão.</p></div>
+      <div class="panel"><span class="k">8</span><h3>O PostgreSQL avisa os fluxos com <code>LISTEN/NOTIFY</code>. O banco continua sendo a fonte da verdade.</h3><p class="muted">Aviso só depois do commit, sem serviço novo e válido com mais de uma réplica (<a href="../adr/016-listen-notify.md">ADR-016</a>).</p></div>
+      <div class="panel"><span class="k">9</span><h3>A disponibilidade vem da presença da equipe, sem horário configurado.</h3><p class="muted">O visitante só vê o botão quando há alguém para responder.</p></div>
+      <div class="panel"><div class="panel-top"><span class="k">10</span><span class="confirm">D-7</span></div><h3>O texto do atendimento some 90 dias depois do encerramento, ou antes, com a conversa.</h3><p class="muted">Texto livre trocado com uma pessoa tem mais chance de trazer dado sensível que a conversa com a IA.</p></div>
+      <div class="panel"><div class="panel-top"><span class="k">11</span><span class="confirm">D-8</span></div><h3>A sessão da equipe dura 12 horas.</h3><p class="muted">Um turno. A equipe usa computador compartilhado no balcão.</p></div>
+      <div class="panel"><div class="panel-top"><span class="k">12</span><span class="confirm">D-9</span></div><h3>O visitante vê "Equipe do Harborlight", sem o nome de quem atende.</h3><p class="muted">Minimização também para a equipe.</p></div>
+    </div>
+  </section>
+
+  <!-- 29.3 Papéis -->
+  <section class="section" id="papeis" aria-labelledby="papeis-title">
+    <div class="section-head">
+      <span class="sec-num">29.3</span>
+      <h2 id="papeis-title">Pessoas, papéis e normas da equipe</h2>
+      <p>O visitante é o convidado ou o membro dono da conversa. O atendente tem o papel <code>attendant</code>, e o admin também atende. Os dois agem sob a autoridade do controlador e não são operadores (art. 5º, VII), como diz o guia orientativo da ANPD sobre agentes de tratamento.</p>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th scope="col">Ação</th><th scope="col">Dono da conversa</th><th scope="col"><code>attendant</code></th><th scope="col"><code>admin</code></th></tr></thead>
+        <tbody>
+          <tr><th scope="row">Pedir atendimento, escrever e encerrar o próprio atendimento</th><td><span class="yn yes">Sim</span></td><td><span class="yn no">Não</span></td><td><span class="yn part">Nas próprias conversas</span></td></tr>
+          <tr><th scope="row">Ver a fila, sem conteúdo</th><td><span class="yn no">Não</span></td><td><span class="yn yes">Sim</span></td><td><span class="yn yes">Sim</span></td></tr>
+          <tr><th scope="row">Assumir, ler, responder, devolver e encerrar</th><td><span class="yn no">Não</span></td><td><span class="yn yes">Até 3 ao mesmo tempo</span></td><td><span class="yn yes">Até 3 ao mesmo tempo</span></td></tr>
+          <tr><th scope="row">Remover o conteúdo de uma mensagem do atendimento</th><td><span class="yn no">Não</span></td><td><span class="yn part">No que assumiu</span></td><td><span class="yn part">No que assumiu</span></td></tr>
+          <tr><th scope="row">Ler um atendimento encerrado</th><td><span class="yn part">Na própria conversa</span></td><td><span class="yn no">Não</span></td><td><span class="yn part">Com motivo, em <code>handoff.view</code></span></td></tr>
+          <tr><th scope="row">Documentos, qualidade, visão geral e pedidos de titular</th><td><span class="yn no">Não</span></td><td><span class="yn no">Não</span></td><td><span class="yn yes">Sim</span></td></tr>
+          <tr><th scope="row">Conceder e revogar o papel <code>attendant</code></th><td><span class="yn no">Não</span></td><td><span class="yn no">Não</span></td><td><span class="yn part">Só pelo script</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="grid g2">
+      <div class="panel">
+        <h3>Concessão do papel</h3>
+        <ol>
+          <li>A pessoa da equipe cria a própria conta pelo formulário, com a própria senha.</li>
+          <li>Quem opera roda <code>railway run python -m app.scripts.attendants grant &lt;email&gt; --by &lt;email do admin&gt;</code>.</li>
+          <li>O script só promove uma conta <code>member</code>, revoga as sessões dela e grava <code>attendant.grant</code> com o admin como ator.</li>
+          <li><code>revoke</code> volta a conta para <code>member</code>, devolve os atendimentos à fila, apaga a presença, revoga as sessões e grava <code>attendant.revoke</code>.</li>
+        </ol>
+        <p class="muted">O script recusa mudar um admin. A conta <code>attendant</code> não é eliminada por inatividade e recebe 403 em <code>DELETE /v1/me</code>: a pessoa pede a revogação e, já como membro, pode excluir a conta.</p>
+      </div>
+      <div class="panel">
+        <h3>Por que por script</h3>
+        <p>Nenhuma rota da web concede papel. Assim, um XSS ou um CSRF numa tela de admin não cria atendentes, e quem concede o acesso já tem o mesmo nível de confiança de quem roda o <code>bootstrap_admin</code> (seção 10.5).</p>
+        <p class="muted">Sem o aceite da versão vigente do compromisso, assumir responde 403 <code>acknowledgement_required</code>. A versão é a constante <code>ATTENDANT_TERMS_VERSION</code>, e o aceite fica em <code>attendant_acknowledgements</code>.</p>
+      </div>
+    </div>
+    <article class="doc" aria-labelledby="compromisso-title">
+      <div class="doc-head">
+        <h3 id="compromisso-title">Compromisso de confidencialidade</h3>
+        <span class="k">ATTENDANT_TERMS_VERSION · aceito antes do primeiro atendimento</span>
+      </div>
+      <ol>
+        <li>Uso o que leio só para responder a esta pessoa, neste atendimento.</li>
+        <li>Respondo só com informação pública do Harborlight. O catálogo da seção 9 é a referência de horários e telefones.</li>
+        <li>Não dou orientação médica. Num assunto de sintoma, dose, exame ou remédio, uso a ação Enviar orientação de emergência, que manda o texto fixo da seção 10.1.</li>
+        <li>Nunca confirmo nem nego que alguém está internado ou é paciente, e não informo quarto, estado, exame ou alta. Isso é dado de saúde de outra pessoa (art. 11).</li>
+        <li>Nunca peço documento, cartão, senha, endereço, e-mail ou telefone. O atendimento não tem retorno por fora.</li>
+        <li>Assunto de uma pessoa específica, como cobrança, exame ou internação, vai para o telefone do setor no catálogo da seção 9. Pedido sobre dados pessoais vai para o canal de privacidade, em <code>/privacy</code>.</li>
+        <li>Removo, com a categoria, a mensagem que traz dado de saúde, documento ou dado de outra pessoa.</li>
+        <li>Não copio, não fotografo e não repasso o conteúdo do console.</li>
+        <li>Encerro como abuso uma conversa com ofensa ou assédio.</li>
+        <li>Saio da conta ao deixar o computador.</li>
+      </ol>
+      <p class="doc-foot">O art. 47 da LGPD obriga quem participa do tratamento a garantir a segurança da informação mesmo depois do fim dele. O texto vai para <code>src/i18n/pt.ts</code>, e uma versão nova pede um aceite novo antes de assumir.</p>
+    </article>
+  </section>
+
+  <!-- 29.4 Oferta -->
+  <section class="section" id="oferta" aria-labelledby="oferta-title">
+    <div class="section-head">
+      <span class="sec-num">29.4</span>
+      <h2 id="oferta-title">Quando o atendimento é oferecido</h2>
+      <p>A regra é a função pura <code>handoff_offer</code>, em <code>domain/handoff.py</code>. Ela olha a última resposta do assistente na conversa, fora do atendimento, e o servidor a confere de novo no pedido.</p>
+    </div>
+    <div class="table-wrap narrow">
+      <table>
+        <thead><tr><th scope="col">Última resposta do assistente</th><th scope="col">Oferta</th><th scope="col">Por quê</th></tr></thead>
+        <tbody>
+          <tr><th scope="row"><code>abstained</code> ou <code>grounding_failed</code></th><td><span class="yn yes">Sim</span></td><td>A resposta não está nas informações publicadas, ou não foi confirmada.</td></tr>
+          <tr><th scope="row"><code>off_topic</code></th><td><span class="yn yes">Sim</span></td><td>Uma pergunta legítima com classificação de confiança baixa cai aqui, e um pedido como "quero falar com uma pessoa" também.</td></tr>
+          <tr><th scope="row"><code>degraded</code> ou <code>error</code></th><td><span class="yn yes">Sim</span></td><td>O atendimento não depende do Gemini.</td></tr>
+          <tr><th scope="row"><code>answered</code> com a nota não útil</th><td><span class="yn yes">Sim</span></td><td>Logo depois da nota.</td></tr>
+          <tr><th scope="row"><code>refused</code></th><td><span class="yn no">Não</span></td><td>A recusa médica continua com a orientação de emergência (seção 10.1).</td></tr>
+          <tr><th scope="row"><code>cancelled</code></th><td><span class="yn no">Não</span></td><td>O visitante pode tentar de novo.</td></tr>
+          <tr><th scope="row">Atendimento ativo na conversa</th><td><span class="yn no">Não</span></td><td>A conversa já está com a equipe.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note">A mensagem que motivou o pedido precisa ser a última do assistente na conversa. Um sujeito, o usuário ou a chave de convidado, tem no máximo um atendimento ativo, em qualquer conversa. Um sujeito com um atendimento encerrado como <code>abusive</code> nas últimas 24 horas não pede outro.</p>
+    <div class="sub">
+      <h3>Disponibilidade <span class="sec-num">GET /v1/handoff/availability</span></h3>
+      <p>Um status só, sem dizer quantas pessoas estão presentes. Um atendente está presente quando o status dele é <code>available</code> e o console mandou sinal nos últimos 45 segundos.</p>
+      <div class="grid g4">
+        <div class="panel"><span class="k">open</span><p class="muted"><code>HANDOFF_ENABLED</code> ligado, pelo menos um atendente presente e menos de 20 na fila</p><p>O botão Falar com uma pessoa.</p></div>
+        <div class="panel"><span class="k">busy</span><p class="muted">20 atendimentos na fila</p><p>"A fila está cheia agora. Tente de novo em alguns minutos ou ligue para a mesa telefônica no (555) 014-2600."</p></div>
+        <div class="panel"><span class="k">closed</span><p class="muted">Nenhum atendente presente</p><p>"Ninguém da equipe está disponível agora. Você pode ligar para a mesa telefônica no (555) 014-2600."</p></div>
+        <div class="panel"><span class="k">disabled</span><p class="muted"><code>HANDOFF_ENABLED</code> desligado</p><p>Nada novo. A conversa fica como na seção 15.5.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 29.5 Fluxo -->
+  <section class="section" id="fluxo" aria-labelledby="fluxo-title">
+    <div class="section-head">
+      <span class="sec-num">29.5</span>
+      <h2 id="fluxo-title">Fluxo e estados</h2>
+      <p>A máquina de estados é Python puro em <code>domain/handoff.py</code>, como a do cadastro (seção 7.2). Uma transição fora do diagrama levanta <code>Conflict</code>.</p>
+    </div>
+    <figure class="diagram">
+      <div class="canvas" style="--minw: 760px">
+        <svg class="dg" viewBox="0 0 980 250" role="img" aria-label="Estados do atendimento. Começa em queued quando o visitante confirma. De queued vai para assigned quando um atendente assume, e volta para queued quando o atendente devolve ou fica 2 minutos sem sinal. De assigned vai para closed quando o atendente ou o visitante encerra, ou depois de 30 minutos sem mensagem. De queued vai direto para closed quando o visitante cancela, a espera passa de 15 minutos, o visitante fica ausente por 5 minutos ou o serviço é desligado.">
+          <circle class="dot" cx="30" cy="110" r="7"/>
+          <path class="edge" d="M37 110 H110" marker-end="url(#ah)"/>
+          <text class="lbl" x="72" y="98" text-anchor="middle">confirma</text>
+          <rect class="box" x="110" y="80" width="200" height="60" rx="8"/>
+          <text class="t mono" x="210" y="106" text-anchor="middle">queued</text>
+          <text class="s" x="210" y="124" text-anchor="middle">na fila</text>
+          <rect class="box hl" x="430" y="80" width="200" height="60" rx="8"/>
+          <text class="t mono" x="530" y="106" text-anchor="middle">assigned</text>
+          <text class="s" x="530" y="124" text-anchor="middle">com uma pessoa da equipe</text>
+          <rect class="box" x="750" y="80" width="200" height="60" rx="8"/>
+          <text class="t mono" x="850" y="106" text-anchor="middle">closed</text>
+          <text class="s" x="850" y="124" text-anchor="middle">encerrado, a IA volta</text>
+          <path class="edge" d="M310 98 H430" marker-end="url(#ah)"/>
+          <text class="lbl" x="370" y="88" text-anchor="middle">assume</text>
+          <path class="edge" d="M430 122 H310" marker-end="url(#ah)"/>
+          <text class="lbl" x="370" y="160" text-anchor="middle">devolve, ou 2 min sem sinal</text>
+          <path class="edge" d="M630 110 H750" marker-end="url(#ah)"/>
+          <text class="lbl" x="690" y="100" text-anchor="middle">encerra</text>
+          <text class="lbl" x="690" y="160" text-anchor="middle">ou 30 min sem mensagem</text>
+          <path class="edge" d="M210 140 V210 H850 V140" marker-end="url(#ah)"/>
+          <text class="lbl" x="530" y="230" text-anchor="middle">cancela, espera de 15 min, visitante ausente por 5 min ou serviço desligado</text>
+        </svg>
+      </div>
+      <p class="swipe">Arraste o diagrama para os lados para ver tudo.</p>
+    </figure>
+    <ol class="steps">
+      <li><strong>Pedido.</strong> O serviço confere, nesta ordem: o dono da conversa (404 para quem não é), um atendimento ativo nesta conversa (devolve o mesmo, com 200), <code>HANDOFF_ENABLED</code>, um atendimento ativo do mesmo sujeito em outra conversa (409 <code>handoff_active</code>), o bloqueio por abuso (403 <code>handoff_blocked</code>), o limite de taxa (429), a regra da seção 29.4 (409 <code>handoff_not_offered</code>) e a disponibilidade (503 <code>handoff_unavailable</code>). Então grava o atendimento <code>queued</code> e o <code>NOTIFY</code>, numa transação.</li>
+      <li><strong>Fila.</strong> Anda pela ordem de <code>requested_at</code>. Um atendimento devolvido mantém o <code>requested_at</code> original e volta para a frente. A posição do visitante é a quantidade de pedidos anteriores na fila, mais um.</li>
+      <li><strong>Na fila.</strong> O visitante já pode escrever, e quem assumir lê. O Atrium não responde: a pergunta à IA recebe 409 <code>handoff_active</code> sem chamar o modelo.</li>
+      <li><strong>Assumir.</strong> Um <code>UPDATE</code> condicional (<code>WHERE status = 'queued'</code>) grava <code>attendant_id</code>. Quem perde a corrida recebe 409 <code>handoff_taken</code>. Exige o aceite do compromisso e menos de 3 atendimentos com a pessoa, e grava <code>handoff.take</code> na mesma transação.</li>
+      <li><strong>Conversa.</strong> Cada mensagem é um <code>POST</code>. O serviço trava a linha do atendimento, soma 1 em <code>last_seq</code>, grava a mensagem com esse <code>seq</code>, atualiza <code>last_activity_at</code> e faz o <code>NOTIFY</code>, numa transação. A mensagem do visitante passa antes pela remoção de identificadores (29.9.7).</li>
+      <li><strong>Devolver.</strong> O atendente devolve à fila, por exemplo no fim do turno. <code>queued_at</code> recomeça, <code>handoff.release</code> é gravado, e o visitante vê "Outra pessoa da equipe vai continuar o atendimento.".</li>
+      <li><strong>Encerrar.</strong> O atendente encerra com um motivo da lista, e o visitante encerra quando quiser. Depois disso, a próxima pergunta vai de novo para o Atrium, com o histórico sem as mensagens do atendimento.</li>
+      <li><strong>Varredura.</strong> A cada 30 segundos, uma tarefa do <code>lifespan</code> encerra a fila vencida em 15 minutos, o pedido sem fluxo do visitante há 5 minutos e o atendimento sem mensagem há 30 minutos, devolve à fila o atendimento de quem ficou 2 minutos sem sinal e, com o serviço desligado, encerra a fila. Cada passo é um <code>UPDATE</code> condicional com <code>NOTIFY</code>, então duas réplicas não duplicam efeito. A varredura registra log e métrica, não auditoria.</li>
+    </ol>
+    <div class="table-wrap">
+      <table>
+        <caption class="sr-only">Motivos de encerramento</caption>
+        <thead><tr><th scope="col">Motivo</th><th scope="col">Quem encerra</th><th scope="col">O que o visitante vê</th></tr></thead>
+        <tbody>
+          <tr><th scope="row"><code>resolved</code></th><td>Atendente: respondido</td><td rowspan="4">"Atendimento encerrado pela equipe."</td></tr>
+          <tr><th scope="row"><code>redirected</code></th><td>Atendente: encaminhado para a mesa telefônica ou outro canal</td></tr>
+          <tr><th scope="row"><code>out_of_scope</code></th><td>Atendente: fora do que a equipe atende</td></tr>
+          <tr><th scope="row"><code>no_response</code></th><td>Atendente: o visitante não respondeu</td></tr>
+          <tr><th scope="row"><code>abusive</code></th><td>Atendente: ofensa ou assédio</td><td>"Atendimento encerrado. O atendimento por uma pessoa fica indisponível para você por 24 horas."</td></tr>
+          <tr><th scope="row"><code>visitor_cancelled</code></th><td>Visitante, ainda na fila</td><td>"Você saiu da fila."</td></tr>
+          <tr><th scope="row"><code>visitor_ended</code></th><td>Visitante, em atendimento</td><td>"Você encerrou o atendimento."</td></tr>
+          <tr><th scope="row"><code>queue_timeout</code>, <code>visitor_left</code>, <code>service_closed</code></th><td>Varredura</td><td>"Ninguém da equipe conseguiu responder agora. Você pode ligar para a mesa telefônica no (555) 014-2600."</td></tr>
+          <tr><th scope="row"><code>inactivity</code></th><td>Varredura</td><td>"Atendimento encerrado por falta de mensagens."</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note">Todos os textos terminam com "Você pode continuar perguntando ao Atrium.". O encerramento pela equipe não tem nota livre: o motivo é uma lista fechada, para nenhuma opinião sobre o visitante virar dado novo.</p>
+  </section>
+
+  <!-- 29.6 Tempo real -->
+  <section class="section" id="tempo-real" aria-labelledby="tempo-title">
+    <div class="section-head">
+      <span class="sec-num">29.6 · ADR-015 · ADR-016</span>
+      <h2 id="tempo-title">Canal em tempo real</h2>
+      <p>O servidor fala com o navegador por SSE, e o navegador fala com o servidor por <code>POST</code>. Tudo passa pelo rewrite de <code>/backend/*</code>, como as perguntas (seção 7.1).</p>
+    </div>
+    <div class="grid g3">
+      <div class="panel"><span class="k">Por que não WebSocket, 1</span><p>O navegador fala só com a origem do frontend, e é isso que mantém o cookie de sessão primário (seção 2.1 e ADR-001). O SSE já passa pelo rewrite, e a fumaça confere o fluxo em cada deploy (seção 22.3).</p></div>
+      <div class="panel"><span class="k">Por que não WebSocket, 2</span><p>A Vercel documenta WebSocket só nas Vercel Functions, em beta desde 2026-06-22, e não documenta o upgrade num rewrite para uma origem externa.</p></div>
+      <div class="panel"><span class="k">Por que não WebSocket, 3</span><p>Direto na Railway, o canal perderia o cookie de mesma origem, o segredo da borda (seção 10.3) e o IP confiável dos limites (seção 10.4), e pediria <code>connect-src</code> além de <code>'self'</code> (seção 13.4).</p></div>
+    </div>
+    <div class="table-wrap narrow">
+      <table>
+        <caption class="sr-only">Limites da plataforma</caption>
+        <thead><tr><th scope="col">Limite da plataforma</th><th scope="col">Efeito no desenho</th></tr></thead>
+        <tbody>
+          <tr><td>A Vercel cancela o pedido encaminhado quando a origem fica 120 segundos sem mandar dados.</td><td>O comentário <code>: keepalive</code> a cada 15 segundos (seção 7.1) basta.</td></tr>
+          <tr><td>A Railway fecha um pedido HTTP com 15 minutos, mesmo com dados passando, e com 5 minutos sem dados.</td><td>Cada fluxo termina com 10 minutos, com o evento <code>reconnect</code>, e o navegador reconecta na hora.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <figure class="diagram">
+      <div class="canvas" style="--minw: 860px">
+        <svg class="dg" viewBox="0 0 1000 660" role="img" aria-label="Sequência de um atendimento. O visitante faz POST do pedido. A API grava queued e faz NOTIFY numa transação, e o PostgreSQL entrega o aviso depois do commit. A API manda ao console o evento queue, sem conteúdo. O atendente faz POST take. A API faz o UPDATE condicional, grava a auditoria e faz NOTIFY, e manda ao visitante o status assigned. O visitante faz POST de uma mensagem, sem identificadores. A API grava com seq e faz NOTIFY, e manda a mensagem ao console. O atendente responde por POST, a API grava com seq e faz NOTIFY, e manda a mensagem ao visitante. O atendente faz POST close com o motivo, e a API manda ao visitante o status closed.">
+          <rect class="box" x="40" y="14" width="140" height="40" rx="8"/><text class="t" x="110" y="39" text-anchor="middle">Visitante</text>
+          <rect class="box hl" x="320" y="14" width="140" height="40" rx="8"/><text class="t" x="390" y="39" text-anchor="middle">API</text>
+          <rect class="box" x="570" y="14" width="140" height="40" rx="8"/><text class="t" x="640" y="39" text-anchor="middle">PostgreSQL</text>
+          <rect class="box" x="830" y="14" width="140" height="40" rx="8"/><text class="t" x="900" y="39" text-anchor="middle">Atendente</text>
+          <path class="life" d="M110 54 V648 M390 54 V648 M640 54 V648 M900 54 V648"/>
+          <path class="edge" d="M110 96 H390" marker-end="url(#ah)"/><text class="lbl" x="250" y="88" text-anchor="middle">POST /handoff, depois do diálogo</text>
+          <path class="edge" d="M390 134 H640" marker-end="url(#ah)"/><text class="lbl" x="515" y="126" text-anchor="middle">grava queued e NOTIFY, numa transação</text>
+          <path class="edge dash" d="M640 172 H390" marker-end="url(#ahm)"/><text class="lbl" x="515" y="164" text-anchor="middle">aviso depois do commit</text>
+          <path class="edge" d="M390 210 H900" marker-end="url(#ah)"/><text class="lbl" x="645" y="202" text-anchor="middle">SSE queue, sem conteúdo</text>
+          <path class="edge" d="M900 248 H390" marker-end="url(#ah)"/><text class="lbl" x="645" y="240" text-anchor="middle">POST take</text>
+          <path class="edge" d="M390 286 H640" marker-end="url(#ah)"/><text class="lbl" x="515" y="278" text-anchor="middle">UPDATE condicional, auditoria e NOTIFY</text>
+          <path class="edge" d="M390 324 H110" marker-end="url(#ah)"/><text class="lbl" x="250" y="316" text-anchor="middle">SSE status assigned</text>
+          <path class="edge" d="M110 362 H390" marker-end="url(#ah)"/><text class="lbl" x="250" y="354" text-anchor="middle">POST mensagem, sem identificadores</text>
+          <path class="edge" d="M390 400 H640" marker-end="url(#ah)"/><text class="lbl" x="515" y="392" text-anchor="middle">grava com seq e NOTIFY</text>
+          <path class="edge" d="M390 438 H900" marker-end="url(#ah)"/><text class="lbl" x="645" y="430" text-anchor="middle">SSE message</text>
+          <path class="edge" d="M900 476 H390" marker-end="url(#ah)"/><text class="lbl" x="645" y="468" text-anchor="middle">POST mensagem da equipe</text>
+          <path class="edge" d="M390 514 H640" marker-end="url(#ah)"/><text class="lbl" x="515" y="506" text-anchor="middle">grava com seq e NOTIFY</text>
+          <path class="edge" d="M390 552 H110" marker-end="url(#ah)"/><text class="lbl" x="250" y="544" text-anchor="middle">SSE message</text>
+          <path class="edge" d="M900 590 H390" marker-end="url(#ah)"/><text class="lbl" x="645" y="582" text-anchor="middle">POST close, com o motivo</text>
+          <path class="edge" d="M390 628 H110" marker-end="url(#ah)"/><text class="lbl" x="250" y="620" text-anchor="middle">SSE status closed</text>
+        </svg>
+      </div>
+      <figcaption>Cada gravação e o <code>NOTIFY</code> dela saem na mesma transação. O PostgreSQL entrega o aviso só depois do commit, e o fluxo lê o conteúdo do banco, com a própria autorização, antes de mandar.</figcaption>
+      <p class="swipe">Arraste o diagrama para os lados para ver tudo.</p>
+    </figure>
+    <div class="grid g2">
+      <div class="sub">
+        <h3>Fluxo do visitante <span class="sec-num">GET /v1/conversations/{id}/handoff/events</span></h3>
+        <div class="table-wrap narrow">
+          <table>
+            <thead><tr><th scope="col">Evento</th><th scope="col">Carga</th></tr></thead>
+            <tbody>
+              <tr><th scope="row" class="nowrap"><code>ready</code></th><td><code>{ handoff_id, status, queue_position, seq }</code>, sempre primeiro</td></tr>
+              <tr><th scope="row" class="nowrap"><code>message</code></th><td><code>{ id, seq, role, content, redaction, created_at }</code>, com <code>role</code> <code>user</code> ou <code>attendant</code></td></tr>
+              <tr><th scope="row" class="nowrap"><code>status</code></th><td><code>{ status, queue_position, close_reason }</code></td></tr>
+              <tr><th scope="row" class="nowrap"><code>reconnect</code></th><td><code>{}</code>, antes de fechar aos 10 minutos</td></tr>
+              <tr><th scope="row" class="nowrap"><code>error</code></th><td><code>{ code, message }</code>, e o fluxo fecha</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="sub">
+        <h3>Fluxo do console <span class="sec-num">GET /v1/attendance/events</span></h3>
+        <div class="table-wrap narrow">
+          <table>
+            <thead><tr><th scope="col">Evento</th><th scope="col">Carga</th></tr></thead>
+            <tbody>
+              <tr><th scope="row" class="nowrap"><code>ready</code></th><td><code>{ presence, acknowledged }</code></td></tr>
+              <tr><th scope="row" class="nowrap"><code>queue</code></th><td>A fila com <code>handoff_id</code>, <code>label</code>, espera, <code>trigger</code>, <code>returned</code> e <code>visitor_present</code>. Nunca conteúdo.</td></tr>
+              <tr><th scope="row" class="nowrap"><code>assigned</code></th><td><code>{ handoff_id }</code>, quando a pessoa assume em outra aba</td></tr>
+              <tr><th scope="row" class="nowrap"><code>message</code></th><td>Só dos atendimentos da pessoa</td></tr>
+              <tr><th scope="row" class="nowrap"><code>status</code> e <code>removed</code></th><td>Mudança de status, ou a conversa que deixou de existir ou passou para outra pessoa</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="grid g3">
+      <div class="panel">
+        <h3>Retomada</h3>
+        <p>Cada atendimento tem um contador <code>last_seq</code>. Uma mensagem nova recebe o próximo <code>seq</code>, e uma remoção dá à mensagem um <code>seq</code> novo. O <code>id:</code> de cada evento é <code>{handoff_id}:{seq}</code>, e o navegador reconecta com <code>Last-Event-ID</code>. O servidor manda o <code>ready</code> e depois o que tem <code>seq</code> maior.</p>
+      </div>
+      <div class="panel">
+        <h3>Autorização contínua</h3>
+        <p>O fluxo confere a sessão e a permissão ao abrir e a cada tique de 15 segundos. Sessão revogada, papel revogado ou atendimento passado para outra pessoa fecham o fluxo em no máximo um tique. O mesmo tique grava o sinal de presença, sem segurar conexão do pool.</p>
+      </div>
+      <div class="panel">
+        <h3>Aviso entre processos</h3>
+        <p>O repositório chama <code>pg_notify('atrium_handoff', carga)</code> na transação que grava. A carga tem <code>handoff_id</code>, <code>seq</code> e <code>kind</code>, com menos de 200 bytes. Cada processo mantém uma conexão de <code>LISTEN</code> fora do pool, e o tique lê o <code>seq</code> para cobrir um aviso perdido.</p>
+      </div>
+    </div>
+    <div class="consts">
+      <div class="const"><b>3</b><span>fluxos abertos por conversa, para abas diferentes</span></div>
+      <div class="const"><b>2</b><span>fluxos abertos por atendente</span></div>
+      <div class="const"><b>300</b><span>fluxos do atendimento abertos no processo</span></div>
+      <div class="const"><b>10 min</b><span>de duração máxima de um fluxo</span></div>
+    </div>
+    <p class="note">Acima de um limite, o pedido responde 429 <code>rate_limited</code> com <code>retry_after_seconds</code>. Os contadores são do processo: com mais de uma réplica, cada uma conta os próprios fluxos.</p>
+  </section>
+
+  <!-- 29.7 Dados -->
+  <section class="section" id="dados" aria-labelledby="dados-title">
+    <div class="section-head">
+      <span class="sec-num">29.7</span>
+      <h2 id="dados-title">Dados</h2>
+      <p>Segue a seção 8: UUIDs, <code>timestamptz</code> em UTC, regra de retenção para todo dado pessoal e migração em expand and contract.</p>
+    </div>
+    <div class="grid g2">
+      <div class="panel">
+        <span class="k">tabela nova</span>
+        <h3><code>handoffs</code></h3>
+        <ul>
+          <li><code>conversation_id</code>, em cascata, e <code>status</code>: <code>queued</code>, <code>assigned</code> ou <code>closed</code></li>
+          <li><code>trigger</code>: <code>abstained</code>, <code>grounding_failed</code>, <code>off_topic</code>, <code>degraded</code>, <code>error</code> ou <code>not_helpful</code></li>
+          <li><code>trigger_message_id</code> e <code>attendant_id</code>, anuláveis, com <code>SET NULL</code></li>
+          <li><code>close_reason</code>, <code>requested_at</code>, <code>queued_at</code>, <code>assigned_at</code>, <code>closed_at</code>, <code>last_activity_at</code> e <code>visitor_seen_at</code></li>
+          <li><code>last_seq</code>, começando em 0, e <code>content_purged_at</code></li>
+          <li>Índice único parcial em <code>conversation_id</code> onde <code>status &lt;&gt; 'closed'</code>: um atendimento ativo por conversa</li>
+        </ul>
+      </div>
+      <div class="panel">
+        <span class="k">colunas novas</span>
+        <h3><code>messages</code></h3>
+        <ul>
+          <li><code>role</code> passa a aceitar <code>attendant</code></li>
+          <li><code>handoff_id</code>: com ele, a mensagem é do atendimento; sem ele, da conversa com a IA</li>
+          <li><code>seq</code>, único em <code>(handoff_id, seq)</code>, só no atendimento: o cursor da retomada, que muda quando a mensagem é removida</li>
+          <li><code>author_user_id</code>, sem chave estrangeira, para a responsabilização sobreviver à revogação do papel</li>
+          <li><code>redaction</code> e <code>redacted_at</code>: <code>health</code>, <code>document</code>, <code>contact</code>, <code>third_party</code>, <code>other</code> ou <code>retention</code></li>
+          <li>A conversa continua ordenada por <code>created_at</code></li>
+        </ul>
+      </div>
+      <div class="panel">
+        <span class="k">tabelas novas</span>
+        <h3><code>attendant_presence</code> e <code>attendant_acknowledgements</code></h3>
+        <ul>
+          <li>Presença: <code>user_id</code>, <code>status</code> (<code>available</code> ou <code>away</code>) e <code>last_seen_at</code>. Uma linha por atendente, sem histórico.</li>
+          <li>Aceite: <code>user_id</code>, <code>version</code> e <code>accepted_at</code>, com chave <code>(user_id, version)</code>.</li>
+          <li><code>users.role</code> passa a aceitar <code>attendant</code>.</li>
+        </ul>
+      </div>
+      <div class="panel">
+        <span class="k">auditoria</span>
+        <h3>Ações novas em <code>audit_events</code></h3>
+        <ul class="pills" aria-label="Ações de auditoria">
+          <li>handoff.take</li><li>handoff.release</li><li>handoff.close</li><li>handoff.message_redact</li><li>handoff.view</li><li>attendant.grant</li><li>attendant.revoke</li>
+        </ul>
+        <p class="muted">O <code>reason</code> guarda o motivo de encerramento, a categoria da remoção ou, em <code>handoff.view</code>, o motivo escrito pelo admin. Nunca conteúdo nem e-mail.</p>
+      </div>
+    </div>
+    <p class="notice"><strong>Leituras que mudam.</strong> O histórico enviado ao modelo lê só mensagens sem <code>handoff_id</code>. A visão geral e a qualidade do admin contam e mostram só mensagens sem <code>handoff_id</code>: o inspetor mostra que houve atendimento, sem o conteúdo, porque o consentimento de melhoria (seção 11.8) cobre a conversa com a IA, não a conversa com a equipe.</p>
+  </section>
+
+  <!-- 29.8 Segurança -->
+  <section class="section" id="seguranca" aria-labelledby="seg-title">
+    <div class="section-head">
+      <span class="sec-num">29.8</span>
+      <h2 id="seg-title">Segurança</h2>
+      <p>Cada ameaça com o controle que a fecha. As proteções da seção 10 continuam valendo para todas as rotas novas.</p>
+    </div>
+    <div class="grid g2">
+      <div class="panel"><h3>Visitante lê o atendimento de outra pessoa</h3><p>O dono da conversa é conferido em cada pedido e em cada tique do fluxo. A Etapa 15.1 vem antes, para a chave de convidado parar de abrir a conversa que passou para uma conta. Quem não é dono recebe 404, sem revelar que o id existe.</p></div>
+      <div class="panel"><h3>Atendente lê o que não assumiu</h3><p>Conteúdo só com <code>attendant_id</code> igual à pessoa. A fila e o evento <code>queue</code> não têm campo de conteúdo. Fora da atribuição, 404.</p></div>
+      <div class="panel"><h3>Aviso entregue à pessoa errada</h3><p>A carga do <code>NOTIFY</code> leva só ids. Cada fluxo lê do banco com a própria autorização antes de mandar qualquer coisa.</p></div>
+      <div class="panel"><h3>Dois atendentes assumem ao mesmo tempo</h3><p><code>UPDATE</code> condicional. Quem perde recebe 409 <code>handoff_taken</code>.</p></div>
+      <div class="panel"><h3>CSRF</h3><p>Os <code>POST</code> passam pela conferência de <code>Origin</code> (seção 10.3). Os fluxos são <code>GET</code>, não mudam o atendimento, só gravam o sinal de presença, e recusam <code>Sec-Fetch-Site: cross-site</code>. Os cookies continuam <code>SameSite=Lax</code>, e o CORS continua só para <code>WEB_ORIGIN</code>.</p></div>
+      <div class="panel"><h3>XSS por uma mensagem</h3><p>O texto sai sempre como texto puro, com <code>white-space: pre-wrap</code>. Sem Markdown, sem HTML, sem link clicável e sem <code>dangerouslySetInnerHTML</code>. A CSP da seção 13.4 não muda.</p></div>
+      <div class="panel"><h3>Engenharia social contra a equipe</h3><p>Link não é clicável no console. As normas da seção 29.3 proíbem confirmar paciente e pedir documento.</p></div>
+      <div class="panel"><h3>Injeção de prompt pelo atendimento</h3><p>O texto do atendimento nunca vai ao modelo, nem como histórico. Um teste confere o pedido ao modelo depois de um atendimento.</p></div>
+      <div class="panel"><h3>Escalada de privilégio</h3><p>O papel só muda pelo script, e o cadastro público fixa <code>member</code>. <code>attendant</code> recebe 403 em <code>/v1/admin/*</code>, e <code>member</code> em <code>/v1/attendance/*</code>. A checagem de papel roda antes de o corpo ser lido.</p></div>
+      <div class="panel"><h3>Sessão roubada num computador compartilhado</h3><p>Sessão de 12 horas para <code>attendant</code> e <code>admin</code>, Sair sempre visível e nenhum conteúdo no título da aba nem em notificação.</p></div>
+      <div class="panel"><h3>Fila inundada ou equipe assediada</h3><p>Limites abaixo, fila de 20, um atendimento ativo por sujeito e encerramento <code>abusive</code> com bloqueio de 24 horas.</p></div>
+      <div class="panel"><h3>Equipe copia ou vaza conteúdo</h3><p>Conteúdo só depois de assumir, até 3 por pessoa, encerrado só para o admin com motivo, sem exportação em lote, compromisso e auditoria. A captura de tela não se impede por software, e o risco fica na seção 29.15.</p></div>
+      <div class="panel"><h3>Dado pessoal em log, rastro ou métrica</h3><p>NFR-7 vale para o atendimento. Os logs levam ids, pseudônimos e enums, nada vai ao LangSmith, e as métricas não têm rótulo de pessoa.</p></div>
+      <div class="panel"><h3>Ids adivinhados</h3><p>UUIDs, e 404 igual para ausente e para proibido.</p></div>
+    </div>
+    <div class="grid g2">
+      <div class="sub">
+        <h3>Limites de taxa <span class="sec-num">entram na seção 10.4</span></h3>
+        <div class="table-wrap narrow">
+          <table>
+            <thead><tr><th scope="col">Balde</th><th scope="col">Limite</th></tr></thead>
+            <tbody>
+              <tr><td>Pedidos de atendimento, por sujeito</td><td class="nowrap">3 por hora</td></tr>
+              <tr><td>Pedidos de atendimento, por IP</td><td class="nowrap">10 por hora</td></tr>
+              <tr><td>Mensagens do visitante, por atendimento</td><td class="nowrap">120 por hora</td></tr>
+              <tr><td>Mensagens da equipe, por atendente</td><td class="nowrap">600 por hora</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="note">O pedido conta a tentativa antes das outras conferências. O texto do visitante tem até 1.000 caracteres, e o da equipe até 2.000, sem caracteres de controle além de quebra de linha e tabulação.</p>
+      </div>
+      <div class="sub">
+        <h3>Sessão e segredos</h3>
+        <div class="panel">
+          <p>No login, uma conta <code>attendant</code> ou <code>admin</code> recebe uma sessão de 12 horas, e o cookie <code>atrium_session</code> tem o mesmo prazo. Isso muda a sessão do admin, de 14 dias, e depende da D-8.</p>
+          <p class="muted">Nenhum segredo novo. O rótulo do console usa <code>PSEUDONYM_KEY</code>, e os baldes usam <code>RATE_LIMIT_HMAC_KEY</code>, como hoje.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 29.9 LGPD -->
+  <section class="section" id="lgpd" aria-labelledby="lgpd-title">
+    <div class="section-head">
+      <span class="sec-num">29.9</span>
+      <h2 id="lgpd-title">LGPD</h2>
+      <p>A seção 11 aplicada ao atendimento humano. É desenho técnico, não parecer jurídico. A versão 1 usa dados fictícios, e pessoas reais pedem revisão jurídica antes.</p>
+    </div>
+
+    <div class="sub" id="lgpd-papeis">
+      <h3>Papéis e operadores <span class="sec-num">29.9.1</span></h3>
+      <p>O controlador e o encarregado continuam os da seção 11.1. A equipe age em nome do controlador. Nenhum operador novo entra: o atendimento fica no PostgreSQL da Railway e passa pela Vercel, que já tratam as conversas (seção 11.7). O Gemini e o LangSmith não recebem nada do atendimento, então a transferência internacional não muda.</p>
+    </div>
+
+    <div class="sub" id="lgpd-bases">
+      <h3>Bases legais <span class="sec-num">29.9.2</span></h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th scope="col">Dado</th><th scope="col">Titular</th><th scope="col">Finalidade</th><th scope="col">Base legal</th><th scope="col">Retenção</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">Pedido e status do atendimento, <code>visitor_seen_at</code></th><td>Visitante</td><td>Chamar a equipe e saber se a pessoa continua na conversa</td><td>Procedimento a pedido do titular, art. 7º, V</td><td>Com a conversa</td></tr>
+            <tr><th scope="row">Mensagens do atendimento</th><td>Visitante e atendente</td><td>Continuar o atendimento pedido</td><td>Art. 7º, V</td><td>90 dias depois do encerramento, ou antes, com a conversa</td></tr>
+            <tr><th scope="row">Conversa com a IA lida pela equipe</th><td>Visitante</td><td>Dar contexto, como avisado no diálogo</td><td>Art. 7º, V</td><td>Não é copiada</td></tr>
+            <tr><th scope="row">Conta, presença e aceite do compromisso</th><td>Atendente</td><td>Operar o atendimento e provar o compromisso</td><td>Execução de contrato, art. 7º, V, pelo vínculo com o hospital</td><td>Enquanto a conta existir</td></tr>
+            <tr><th scope="row">Autoria das mensagens da equipe</th><td>Atendente</td><td>Responsabilização</td><td>Legítimo interesse, art. 7º, IX</td><td>Com a mensagem</td></tr>
+            <tr><th scope="row">Auditoria do atendimento</th><td>Atendente e visitante, por pseudônimo</td><td>Responsabilização</td><td>Legítimo interesse, art. 7º, IX</td><td>2 anos, sem conteúdo</td></tr>
+            <tr><th scope="row">Leitura de encerrado pelo admin</th><td>Visitante</td><td>Apurar reclamação, incidente ou pedido de titular</td><td>Legítimo interesse, art. 7º, IX, e exercício regular de direitos, art. 7º, VI</td><td>Enquanto o conteúdo existir</td></tr>
+            <tr><th scope="row">Bloqueio por abuso</th><td>Visitante</td><td>Proteger a equipe e o serviço</td><td>Legítimo interesse, art. 7º, IX</td><td>24 horas de efeito</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="note">O dado de saúde não é finalidade do atendimento. Quando ele aparece, a regra é removê-lo (29.9.6). Os usos de legítimo interesse entram no <code>docs/privacy/lia.md</code> antes de o serviço ser ligado em produção.</p>
+    </div>
+
+    <div class="sub" id="lgpd-principios">
+      <h3>Princípios aplicados <span class="sec-num">29.9.3, art. 6º</span></h3>
+      <div class="grid g3">
+        <div class="panel"><span class="k">Finalidade e adequação</span><p>O conteúdo serve só para responder ao pedido. Não vai para avaliação de IA, rastro, métrica nem treino de modelo.</p></div>
+        <div class="panel"><span class="k">Necessidade</span><p>Fila sem conteúdo, perfil fora da tela, rótulo por atendimento, identificadores removidos e encerramento sem nota livre.</p></div>
+        <div class="panel"><span class="k">Livre acesso</span><p>A exportação da conta traz o atendimento (29.9.8).</p></div>
+        <div class="panel"><span class="k">Qualidade dos dados</span><p>O visitante vê a mensagem como foi gravada, com os marcadores.</p></div>
+        <div class="panel"><span class="k">Transparência</span><p>Diálogo antes do pedido, aviso no compositor, rótulo da equipe em cada mensagem e seção nova no Aviso de Privacidade.</p></div>
+        <div class="panel"><span class="k">Segurança e prevenção</span><p>A seção 29.8 e o RIPD antes de ligar o serviço em produção.</p></div>
+        <div class="panel"><span class="k">Não discriminação</span><p>A fila anda pela ordem do pedido. O console não mostra se a pessoa é convidada ou membro, nem o tipo de visitante.</p></div>
+        <div class="panel"><span class="k">Responsabilização</span><p>Auditoria de assumir, devolver, encerrar, remover e ler encerrado, compromisso da equipe, inventário, RIPD e LIA atualizados.</p></div>
+      </div>
+    </div>
+
+    <div class="sub" id="lgpd-ve">
+      <h3>O que a equipe vê <span class="sec-num">29.9.4</span></h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th scope="col">Dado</th><th scope="col">Na fila</th><th scope="col">Depois de assumir</th><th scope="col">Encerrado, admin com motivo</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">Rótulo: "Visitante" e 8 caracteres do HMAC de <code>PSEUDONYM_KEY</code> sobre o id do atendimento</th><td><span class="yn yes">Sim</span></td><td><span class="yn yes">Sim</span></td><td><span class="yn yes">Sim</span></td></tr>
+            <tr><th scope="row">Espera, motivo da oferta e se a pessoa está na conversa</th><td><span class="yn yes">Sim</span></td><td><span class="yn yes">Sim</span></td><td><span class="yn yes">Sim</span></td></tr>
+            <tr><th scope="row">Perguntas, respostas do Atrium com fontes e selos, e mensagens do atendimento</th><td><span class="yn no">Não</span></td><td><span class="yn yes">Sim</span></td><td><span class="yn yes">Sim</span></td></tr>
+            <tr><th scope="row">Mensagem de saúde da conversa com a IA</th><td><span class="yn no">Não</span></td><td><span class="yn part">Só o marcador</span></td><td><span class="yn part">Só o marcador</span></td></tr>
+            <tr><th scope="row">Desfecho técnico, modelo, versão de prompt, tokens, <code>request_id</code> e rastro</th><td><span class="yn no">Não</span></td><td><span class="yn no">Não</span></td><td><span class="yn no">Não</span></td></tr>
+            <tr><th scope="row">Convidado ou membro, nome, e-mail, telefone, tipo de visitante e motivo da visita</th><td><span class="yn no">Não</span></td><td><span class="yn no">Não</span></td><td><span class="yn no">Não</span></td></tr>
+            <tr><th scope="row">Outras conversas e outros atendimentos da mesma pessoa</th><td><span class="yn no">Não</span></td><td><span class="yn no">Não</span></td><td><span class="yn no">Não</span></td></tr>
+            <tr><th scope="row">IP e user agent</th><td><span class="yn no">Não</span></td><td><span class="yn no">Não</span></td><td><span class="yn no">Não</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="note">O rótulo vem do id do atendimento, não do id da pessoa: dois atendimentos da mesma pessoa não se ligam pela tela. O bloqueio por abuso usa o sujeito no servidor, sem mostrá-lo.</p>
+    </div>
+
+    <div class="sub" id="lgpd-transparencia">
+      <h3>Transparência <span class="sec-num">29.9.5</span></h3>
+      <div class="grid g2">
+        <figure class="mock">
+          <div class="mock-dialog">
+            <p class="mock-title">Falar com uma pessoa da equipe</p>
+            <p>Uma pessoa da equipe de atendimento do Harborlight vai ler esta conversa para continuar daqui.</p>
+            <p>A equipe não vê seu nome, seu e-mail nem seu telefone. O que você escrever para a equipe não vai para a IA.</p>
+            <p>Não compartilhe dados de saúde, documentos ou dados de outras pessoas. A equipe não dá orientação médica e não informa se alguém está internado.</p>
+            <p>As mensagens do atendimento ficam guardadas com esta conversa e são apagadas em até 90 dias depois do fim do atendimento.</p>
+            <div class="mock-actions" aria-hidden="true"><span class="mock-btn">Agora não</span><span class="mock-btn primary">Chamar a equipe</span></div>
+          </div>
+          <figcaption>Exemplo do diálogo de confirmação, mostrado antes de qualquer pedido à API (FR-20). Os botões são Chamar a equipe e Agora não.</figcaption>
+        </figure>
+        <div class="grid">
+          <div class="panel"><span class="k">Compositor, durante o atendimento</span><p>"Você está falando com uma pessoa. Não compartilhe dados de saúde nem documentos. Números de documento e de cartão, e-mail e telefone são removidos antes do envio."</p></div>
+          <div class="panel"><span class="k">Mensagens da equipe</span><p>Cada uma tem o rótulo visível "Equipe do Harborlight" e um componente próprio, diferente do <code>AssistantMessage</code>: o visitante sempre sabe se quem responde é a IA ou uma pessoa.</p></div>
+          <div class="panel"><span class="k">Aviso de Privacidade e Termos</span><p>O Aviso ganha a seção "Atendimento por uma pessoa", com versão nova, e o membro aceita de novo na próxima entrada (seção 11.11). Os Termos ganham as regras do atendimento e o bloqueio de 24 horas.</p></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sub" id="lgpd-saude">
+      <h3>Dado sensível de saúde <span class="sec-num">29.9.6</span> <span class="lv mid">Risco residual médio</span></h3>
+      <p>O risco da seção 11.4 cresce, porque a pessoa conversa com outra pessoa. O desenho reduz o risco em camadas:</p>
+      <ol class="steps">
+        <li>O diálogo e o compositor pedem que a pessoa não compartilhe dado de saúde.</li>
+        <li>A equipe não dá orientação médica, nunca confirma paciente e usa a orientação de emergência (29.3).</li>
+        <li>A ação Remover conteúdo troca o texto pelo marcador e apaga o original na mesma transação, sem cópia. O visitante vê "Removemos esta mensagem para proteger sua privacidade.", e <code>handoff.message_redact</code> grava só a categoria.</li>
+        <li>O texto do atendimento não vai ao Gemini, ao LangSmith nem aos logs.</li>
+        <li>A mensagem médica da conversa com a IA já está gravada como marcador, então a equipe nunca a lê.</li>
+        <li>O texto do atendimento some em até 90 dias depois do encerramento.</li>
+      </ol>
+      <p class="note">O risco que sobra: a pessoa da equipe lê a mensagem antes de removê-la. O RIPD o registra (29.9.11).</p>
+    </div>
+
+    <div class="sub" id="lgpd-identificadores">
+      <h3>Remoção automática de identificadores <span class="sec-num">29.9.7</span></h3>
+      <p>A função pura <code>redact_identifiers</code>, em <code>domain/redaction.py</code>, roda na mensagem do visitante antes de gravar e antes do <code>NOTIFY</code>. Ela não roda na mensagem da equipe. Os telefones do catálogo da seção 9 ficam fora de todas as regras, e as regras rodam nesta ordem:</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th scope="col">Ordem</th><th scope="col">Identificador</th><th scope="col">Regra</th><th scope="col">Marcador</th></tr></thead>
+          <tbody>
+            <tr><td class="nowrap">1</td><th scope="row">E-mail</th><td>O mesmo padrão do redator de logs (seção 18.1)</td><td class="nowrap"><code>[e-mail removido]</code></td></tr>
+            <tr><td class="nowrap">2</td><th scope="row">CPF</th><td>11 dígitos, com ou sem pontos e hífen, com os dígitos verificadores válidos</td><td class="nowrap"><code>[CPF removido]</code></td></tr>
+            <tr><td class="nowrap">3</td><th scope="row">Cartão de pagamento</th><td>13 a 19 dígitos, com ou sem espaços e hífens, que passam no algoritmo de Luhn</td><td class="nowrap"><code>[cartão removido]</code></td></tr>
+            <tr><td class="nowrap">4</td><th scope="row">Telefone</th><td>Um bloco de 7 a 15 dígitos com pelo menos um <code>+</code>, <code>(</code>, <code>)</code>, hífen ou espaço entre eles, que não começa com uma data como <code>10-11-2026</code>. O bloco vai até o primeiro caractere que não é dígito nem separador.</td><td class="nowrap"><code>[telefone removido]</code></td></tr>
+            <tr><td class="nowrap">5</td><th scope="row">Outro número longo</th><td>6 ou mais dígitos seguidos, ou um bloco com mais de 15 dígitos, como um prontuário, o cartão do SUS ou um telefone sem separador</td><td class="nowrap"><code>[número removido]</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="note">Data, hora, valor em reais e número de quarto continuam no texto. O visitante recebe de volta a mensagem como foi gravada. Um nome não é removido: a equipe o remove pela categoria <code>third_party</code> quando é de outra pessoa.</p>
+      <div class="demo" role="group" aria-labelledby="demo-title">
+        <div class="panel">
+          <h3 id="demo-title">Experimente as regras</h3>
+          <label for="demo-in">Mensagem do visitante, com dados inventados</label>
+          <textarea id="demo-in" rows="7" spellcheck="false">Oi, sou a Maria (maria@example.com). Meu CPF é 123.456.789-09 e o cartão 4111 1111 1111 1111. Liga no +55 11 91234-5678? O prontuário é 4815162342. Vou amanhã, 10-11-2026, às 14:30, no quarto 312. O estacionamento custa R$ 25,90? O telefone (555) 014-2620 é de qual setor?</textarea>
+        </div>
+        <div class="panel">
+          <h3>Como a mensagem é gravada</h3>
+          <span class="sr-only" id="demo-out-label">Resultado da remoção</span>
+          <output id="demo-out" for="demo-in" aria-labelledby="demo-out-label" aria-live="polite"></output>
+          <p class="demo-counts" id="demo-counts"></p>
+          <p class="note">Demonstração no navegador das regras da tabela. A função de verdade, em Python, nasce na Etapa 17.1, com os testes da seção 29.13.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="sub" id="lgpd-direitos">
+      <h3>Direitos do titular <span class="sec-num">29.9.8, art. 18</span></h3>
+      <div class="table-wrap narrow">
+        <table>
+          <thead><tr><th scope="col">Direito</th><th scope="col">No atendimento</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">Confirmação, acesso e portabilidade</th><td><code>GET /v1/me/export</code> traz, em cada conversa, os atendimentos (status, datas e motivo de encerramento) e as mensagens com o papel de quem escreveu. Não traz o id de quem atendeu.</td></tr>
+            <tr><th scope="row">Eliminação</th><td><code>DELETE /v1/me</code> apaga atendimentos e mensagens com a conversa, na mesma transação, e avisa o console com <code>removed</code>. O convidado usa o canal (seção 11.5).</td></tr>
+            <tr><th scope="row">Oposição</th><td>O visitante encerra o atendimento quando quiser. Sem pedido, nada vai para a equipe.</td></tr>
+            <tr><th scope="row">Informação sobre compartilhamento</th><td>O diálogo de confirmação e o Aviso de Privacidade.</td></tr>
+            <tr><th scope="row">Revisão de decisão automatizada, art. 20</th><td>Não se aplica. O Atrium só informa e não decide sobre a pessoa. O atendimento humano é um serviço, não o mecanismo do art. 20.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="sub" id="lgpd-retencao">
+      <h3>Retenção <span class="sec-num">29.9.9, entra na seção 11.6</span></h3>
+      <div class="table-wrap narrow">
+        <table>
+          <thead><tr><th scope="col">Dado</th><th scope="col">Retenção</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">Texto das mensagens do atendimento</th><td>90 dias depois do encerramento, ou antes, com a conversa: 30 dias para o convidado. O texto vira <code>[conteúdo do atendimento apagado]</code>, com <code>redaction = retention</code>.</td></tr>
+            <tr><th scope="row">Registro do atendimento, sem conteúdo</th><td>Com a conversa</td></tr>
+            <tr><th scope="row">Atendimento ativo</th><td>Encerrado pela varredura. A regra de conversas não apaga uma conversa com atendimento ativo.</td></tr>
+            <tr><th scope="row">Presença</th><td>Uma linha por atendente, apagada com o papel ou com a conta</td></tr>
+            <tr><th scope="row">Aceite do compromisso</th><td>Enquanto a conta existir</td></tr>
+            <tr><th scope="row">Bloqueio por abuso</th><td>24 horas, derivado do encerramento <code>abusive</code>, sem linha própria</td></tr>
+            <tr><th scope="row">Auditoria do atendimento</th><td>2 anos, sem conteúdo nem e-mail</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="note">A regra nova é <code>handoff_content</code>, em <code>RetentionRule</code>, e grava em <code>retention_runs</code> como as outras. A eliminação de conta inativa por 24 meses continua só para <code>member</code>.</p>
+    </div>
+
+    <div class="sub" id="lgpd-documentos">
+      <h3>Documentos de privacidade <span class="sec-num">29.9.10</span></h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th scope="col">Documento</th><th scope="col">O que muda</th><th scope="col">Quando</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">Aviso de Privacidade</th><td>Seção "Atendimento por uma pessoa" e versão nova</td><td>Antes de ligar o serviço em produção</td></tr>
+            <tr><th scope="row">Termos de Uso</th><td>Regras do atendimento</td><td>Junto com o Aviso</td></tr>
+            <tr><th scope="row"><code>docs/privacy/ropa.md</code></th><td>As linhas da seção 29.9.2</td><td>Junto com a implementação</td></tr>
+            <tr><th scope="row"><code>docs/privacy/ripd.md</code></th><td>Os riscos da seção 29.9.11</td><td>Antes de ligar o serviço em produção</td></tr>
+            <tr><th scope="row"><code>docs/privacy/lia.md</code></th><td>Autoria, auditoria, leitura de encerrado e bloqueio por abuso</td><td>Antes de ligar o serviço em produção</td></tr>
+            <tr><th scope="row"><code>docs/privacy/incident-playbook.md</code></th><td>O roteiro da seção 29.9.12</td><td>Junto com a implementação</td></tr>
+            <tr><th scope="row">Compromisso de confidencialidade</th><td>O texto da seção 29.3, em <code>src/i18n/pt.ts</code>, com <code>ATTENDANT_TERMS_VERSION</code></td><td>Junto com o console</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="sub" id="lgpd-ripd">
+      <h3>Relatório de impacto, riscos novos <span class="sec-num">29.9.11</span></h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th scope="col">Risco</th><th scope="col">Probabilidade</th><th scope="col">Impacto</th><th scope="col">Medidas</th><th scope="col">Residual</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">A pessoa conta algo sobre a própria saúde à equipe</th><td><span class="lv high">Alta</span></td><td><span class="lv high">Alto</span></td><td>Avisos, remoção pela equipe, nada ao Gemini e ao LangSmith, retenção de 90 dias</td><td><span class="lv mid">Médio</span></td></tr>
+            <tr><th scope="row">A equipe confirma que alguém está internado</th><td><span class="lv mid">Média</span></td><td><span class="lv high">Alto</span></td><td>Norma 4 da seção 29.3, compromisso e revisão de encerrados por reclamação</td><td><span class="lv low">Baixo</span></td></tr>
+            <tr><th scope="row">Um atendente lê além do necessário</th><td><span class="lv mid">Média</span></td><td><span class="lv high">Alto</span></td><td>Fila sem conteúdo, uma pessoa por atendimento, <code>handoff.take</code> e <code>handoff.view</code> auditados, papel sem acesso ao admin</td><td><span class="lv low">Baixo</span></td></tr>
+            <tr><th scope="row">Um atendente copia ou vaza o que leu</th><td><span class="lv low">Baixa</span></td><td><span class="lv high">Alto</span></td><td>Compromisso do art. 47, sessão de 12 horas, nada em notificação, auditoria e revogação imediata</td><td><span class="lv mid">Médio</span></td></tr>
+            <tr><th scope="row">Documento, cartão, e-mail ou telefone digitado no chat</th><td><span class="lv mid">Média</span></td><td><span class="lv mid">Médio</span></td><td>Remoção automática antes de gravar</td><td><span class="lv low">Baixo</span></td></tr>
+            <tr><th scope="row">Mensagem entregue a quem não devia</th><td><span class="lv low">Baixa</span></td><td><span class="lv high">Alto</span></td><td>Autorização em cada pedido e tique, aviso só com ids, testes de acesso cruzado</td><td><span class="lv low">Baixo</span></td></tr>
+            <tr><th scope="row">Criança ou adolescente usa o atendimento</th><td><span class="lv mid">Média</span></td><td><span class="lv mid">Médio</span></td><td>Nenhuma identificação pedida, escopo só informativo, melhor interesse conforme o Enunciado CD/ANPD nº 1/2023, retenção curta</td><td><span class="lv low">Baixo</span></td></tr>
+            <tr><th scope="row">Abuso da fila ou assédio à equipe</th><td><span class="lv mid">Média</span></td><td><span class="lv low">Baixo</span></td><td>Limites, fila de 20 e bloqueio de 24 horas</td><td><span class="lv low">Baixo</span></td></tr>
+            <tr><th scope="row">Equipe atende num computador compartilhado</th><td><span class="lv mid">Média</span></td><td><span class="lv mid">Médio</span></td><td>Sessão de 12 horas, Sair visível e título sem conteúdo</td><td><span class="lv mid">Médio</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="sub" id="lgpd-incidentes">
+      <h3>Incidentes <span class="sec-num">29.9.12</span></h3>
+      <div class="grid g4">
+        <div class="panel"><span class="k">1 · Conter</span><p>Revogar o papel com <code>attendants revoke</code>, que também revoga as sessões e devolve os atendimentos à fila. Preservar <code>audit_events</code> e os logs.</p></div>
+        <div class="panel"><span class="k">2 · Avaliar</span><p>Listar <code>handoff.take</code> e <code>handoff.view</code> da pessoa no período. Cada atendimento lido é um titular afetado, e a categoria de remoção mostra se havia dado de saúde.</p></div>
+        <div class="panel"><span class="k">3 · Comunicar</span><p>Como na seção 11.10. Sem e-mail e com convidado sem contato, o aviso inviável de forma individual vai para a página Privacy por pelo menos três meses (Resolução CD/ANPD nº 15/2024, art. 9º, §3º).</p></div>
+        <div class="panel"><span class="k">4 · Registrar</span><p>Como na seção 11.10, mesmo sem comunicação, e por 5 anos.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 29.10 API -->
+  <section class="section" id="api" aria-labelledby="api-title">
+    <div class="section-head">
+      <span class="sec-num">29.10</span>
+      <h2 id="api-title">API</h2>
+      <p>Os erros seguem o envelope da seção 12. Os <code>POST</code> passam pela conferência de <code>Origin</code>, e as respostas saem com <code>Cache-Control: no-store</code>.</p>
+    </div>
+    <div class="table-wrap narrow">
+      <table>
+        <caption class="sr-only">Códigos de erro novos</caption>
+        <thead><tr><th scope="col">Código</th><th scope="col">HTTP</th><th scope="col">Quando</th></tr></thead>
+        <tbody>
+          <tr><th scope="row"><code>handoff_not_offered</code></th><td>409</td><td>A última resposta do assistente não permite a oferta</td></tr>
+          <tr><th scope="row"><code>handoff_active</code></th><td>409</td><td>Atendimento ativo do sujeito em outra conversa, ou pergunta à IA durante um atendimento. Traz <code>handoff_id</code> e <code>conversation_id</code>.</td></tr>
+          <tr><th scope="row"><code>handoff_unavailable</code></th><td>503</td><td>Status <code>busy</code>, <code>closed</code> ou <code>disabled</code>. Traz <code>availability</code>.</td></tr>
+          <tr><th scope="row"><code>handoff_blocked</code></th><td>403</td><td>Bloqueio por abuso de 24 horas</td></tr>
+          <tr><th scope="row"><code>handoff_closed</code></th><td>409</td><td>Mensagem ou ação num atendimento encerrado</td></tr>
+          <tr><th scope="row"><code>handoff_taken</code></th><td>409</td><td>Outra pessoa assumiu primeiro</td></tr>
+          <tr><th scope="row"><code>attendant_at_capacity</code></th><td>409</td><td>A pessoa já tem 3 atendimentos</td></tr>
+          <tr><th scope="row"><code>acknowledgement_required</code></th><td>403</td><td>Falta o aceite do compromisso vigente</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <details class="more" open>
+      <summary>Rotas do visitante (8)</summary>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th scope="col">Método e caminho</th><th scope="col">Quem</th><th scope="col">Comportamento</th></tr></thead>
+          <tbody>
+            <tr><th scope="row"><code>GET /v1/handoff/availability</code></th><td>Qualquer um</td><td><code>{ status }</code>: <code>open</code>, <code>busy</code>, <code>closed</code> ou <code>disabled</code></td></tr>
+            <tr><th scope="row"><code>POST /v1/conversations/{id}/handoff</code></th><td>Dono</td><td><code>{ trigger_message_id }</code>. 201 com <code>{ id, status, queue_position, requested_at }</code>. Com atendimento ativo nesta conversa, 200 com ele.</td></tr>
+            <tr><th scope="row"><code>GET /v1/conversations/{id}/handoff</code></th><td>Dono</td><td>O atendimento ativo ou o último, com <code>seq</code>. Sem atendimento, 404.</td></tr>
+            <tr><th scope="row"><code>POST /v1/conversations/{id}/handoff/messages</code></th><td>Dono</td><td><code>{ text, client_message_id }</code>. 201 com a mensagem gravada, já com os marcadores. Reenvio, 409 com <code>message_id</code>.</td></tr>
+            <tr><th scope="row"><code>POST /v1/conversations/{id}/handoff/end</code></th><td>Dono</td><td>Na fila, <code>visitor_cancelled</code>. Em atendimento, <code>visitor_ended</code>. Repetir devolve o mesmo.</td></tr>
+            <tr><th scope="row"><code>GET /v1/conversations/{id}/handoff/events</code></th><td>Dono</td><td><code>text/event-stream</code>, com <code>Last-Event-ID</code> opcional</td></tr>
+            <tr><th scope="row"><code>GET /v1/conversations/{id}</code></th><td>Dono</td><td>Muda: mensagens com <code>handoff_id</code> e <code>redaction</code>, <code>role</code> <code>attendant</code> e a lista <code>handoffs</code></td></tr>
+            <tr><th scope="row"><code>POST /v1/conversations/{id}/messages</code></th><td>Dono</td><td>Muda: com atendimento ativo, 409 <code>handoff_active</code>, sem gravar e sem chamar o modelo</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </details>
+    <details class="more">
+      <summary>Rotas da equipe (11)</summary>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th scope="col">Método e caminho</th><th scope="col">Quem</th><th scope="col">Comportamento</th></tr></thead>
+          <tbody>
+            <tr><th scope="row"><code>GET /v1/attendance/me</code></th><td><code>attendant</code> ou <code>admin</code></td><td><code>{ presence, acknowledged, terms_version }</code></td></tr>
+            <tr><th scope="row"><code>POST /v1/attendance/acknowledgement</code></th><td><code>attendant</code> ou <code>admin</code></td><td><code>{ version }</code>, que precisa ser a vigente; outra responde 422</td></tr>
+            <tr><th scope="row"><code>PUT /v1/attendance/presence</code></th><td><code>attendant</code> ou <code>admin</code></td><td><code>{ status }</code>: <code>available</code> ou <code>away</code></td></tr>
+            <tr><th scope="row"><code>GET /v1/attendance/queue</code></th><td><code>attendant</code> ou <code>admin</code></td><td><code>{ queued, mine, available_attendants }</code>, sem conteúdo</td></tr>
+            <tr><th scope="row"><code>POST /v1/attendance/handoffs/{id}/take</code></th><td>Com o aceite</td><td>Assume. 200 com o atendimento e as mensagens. Grava <code>handoff.take</code>.</td></tr>
+            <tr><th scope="row"><code>GET /v1/attendance/handoffs/{id}</code></th><td>Quem assumiu</td><td>A conversa como na seção 29.9.4, com <code>?after_seq=</code>. Para outra pessoa, 404.</td></tr>
+            <tr><th scope="row"><code>POST /v1/attendance/handoffs/{id}/messages</code></th><td>Quem assumiu</td><td><code>{ text, client_message_id }</code>, ou <code>{ template: "medical_emergency", client_message_id }</code>, com o texto fixo da seção 10.1</td></tr>
+            <tr><th scope="row"><code>POST /v1/attendance/handoffs/{id}/release</code></th><td>Quem assumiu</td><td>Devolve à fila. Grava <code>handoff.release</code>.</td></tr>
+            <tr><th scope="row"><code>POST /v1/attendance/handoffs/{id}/close</code></th><td>Quem assumiu</td><td><code>{ reason }</code>, um dos motivos de atendente. Grava <code>handoff.close</code>.</td></tr>
+            <tr><th scope="row"><code>POST /v1/attendance/handoffs/{id}/messages/{message_id}/redact</code></th><td>Quem assumiu</td><td><code>{ category }</code>. Troca o texto pelo marcador e grava <code>handoff.message_redact</code>.</td></tr>
+            <tr><th scope="row"><code>GET /v1/attendance/events</code></th><td><code>attendant</code> ou <code>admin</code></td><td><code>text/event-stream</code> do console</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </details>
+    <details class="more">
+      <summary>Rotas do admin (2)</summary>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th scope="col">Método e caminho</th><th scope="col">Quem</th><th scope="col">Comportamento</th></tr></thead>
+          <tbody>
+            <tr><th scope="row"><code>GET /v1/admin/handoffs</code></th><td>Admin</td><td><code>?period_days=7</code> ou <code>30</code>. Até 100 encerrados, com rótulo, datas, motivo e contagem de mensagens. Nunca conteúdo.</td></tr>
+            <tr><th scope="row"><code>POST /v1/admin/handoffs/{id}/view</code></th><td>Admin</td><td><code>{ reason }</code> de 10 a 500 caracteres; fora disso, 422 sem gravar. Devolve a conversa e grava <code>handoff.view</code> na mesma transação. Atendimento ativo, 409.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </details>
+  </section>
+
+  <!-- 29.11 Telas -->
+  <section class="section" id="telas" aria-labelledby="telas-title">
+    <div class="section-head">
+      <span class="sec-num">29.11</span>
+      <h2 id="telas-title">Experiência</h2>
+      <p>Os estados novos da conversa, o console da equipe e a lista de encerrados do admin. Toda a cópia fica em <code>src/i18n/pt.ts</code> e segue a seção 15.7.</p>
+    </div>
+    <div class="grid g2">
+      <div class="panel">
+        <span class="k">Persona</span>
+        <h3>Rita, 41 anos, atendente do balcão principal</h3>
+        <p>Usa o console num computador compartilhado, entre um telefonema e outro.</p>
+        <p class="muted">Implicação: aviso visível sem depender de som, sessão que termina com o turno e nada de conteúdo no título da aba.</p>
+      </div>
+      <div class="panel">
+        <span class="k">Rotas novas</span>
+        <ul>
+          <li><code>/attendance</code>: fila e atendimentos, para <code>attendant</code> e <code>admin</code></li>
+          <li><code>/attendance/commitment</code>: compromisso de confidencialidade</li>
+          <li><code>/admin/attendance</code>: atendimentos encerrados, só para o admin</li>
+        </ul>
+        <p class="muted">A navegação ganha o grupo Atendimento. O <code>attendant</code> vê os grupos Atendimento e Conta, e uma rota de admin mostra a ele a página 403.</p>
+      </div>
+    </div>
+    <div class="table-wrap narrow">
+      <table>
+        <caption class="sr-only">Jornadas novas</caption>
+        <thead><tr><th scope="col">Jornada</th><th scope="col">O que acontece</th><th scope="col">Sucesso</th></tr></thead>
+        <tbody>
+          <tr><th scope="row">J9</th><td>Convidado não recebe resposta da IA e chama a equipe</td><td>Da abstenção à primeira mensagem da equipe sem sair da conversa, com o diálogo lido antes</td></tr>
+          <tr><th scope="row">J10</th><td>Atendente assume da fila, responde e encerra</td><td>Assumir, responder e encerrar com o motivo, sem dado do perfil na tela</td></tr>
+          <tr><th scope="row">J11</th><td>Admin abre um encerrado para apurar uma reclamação</td><td>O conteúdo só aparece depois do motivo, e <code>handoff.view</code> fica gravado</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="sub">
+      <h3>Conversa <span class="sec-num">/ask/:id, estados novos</span></h3>
+      <div class="table-wrap narrow">
+        <table>
+          <thead><tr><th scope="col">Estado</th><th scope="col">O que a pessoa vê</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">Oferta</th><td>Abaixo da resposta que não ajudou, o <code>HandoffOffer</code>: "Quer falar com uma pessoa da equipe?" e o botão Falar com uma pessoa. Com <code>busy</code> ou <code>closed</code>, o texto da disponibilidade no lugar do botão.</td></tr>
+            <tr><th scope="row">Confirmação</th><td>O <code>HandoffDialog</code> com o texto da seção 29.9.5. Agora não fecha sem chamar a API.</td></tr>
+            <tr><th scope="row">Na fila</th><td>O <code>HandoffStatusBar</code>: "Você está na fila. Posição N." e o botão Sair da fila. O compositor diz "Escreva para a equipe".</td></tr>
+            <tr><th scope="row">Em atendimento</th><td>"Você está falando com uma pessoa da equipe do Harborlight." e Encerrar atendimento. As mensagens da equipe usam o <code>AttendantMessage</code>, com o rótulo "Equipe do Harborlight" e o ícone <code>Headset</code>.</td></tr>
+            <tr><th scope="row">Mensagem removida</th><td>"Removemos esta mensagem para proteger sua privacidade."</td></tr>
+            <tr><th scope="row">Encerrado</th><td>Um divisor com o texto do motivo e "Você pode continuar perguntando ao Atrium.". O compositor volta para a IA.</td></tr>
+            <tr><th scope="row">Reconectando</th><td>Depois de 5 segundos sem fluxo, "Reconectando…". O que a pessoa envia nesse tempo vai pelo <code>POST</code>.</td></tr>
+            <tr><th scope="row">Bloqueado</th><td>"O atendimento por uma pessoa não está disponível para você agora. Ligue para a mesa telefônica no (555) 014-2600."</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="grid g2">
+      <div class="panel">
+        <h3>Fila e atendimentos <code>/attendance</code></h3>
+        <ul>
+          <li><strong>Topo:</strong> o <code>PresenceToggle</code> com Disponível e Ausente, e os contadores Na fila, Comigo e Equipe disponível.</li>
+          <li><strong>Fila:</strong> rótulo, espera, motivo da oferta e as marcas Devolvido e Visitante ausente. Assumir fica desabilitado com 3 atendimentos, com o motivo num tooltip.</li>
+          <li><strong>Atendimento:</strong> até 3 em abas, com a conversa, o compositor, Enviar orientação de emergência e Remover conteúdo em cada mensagem.</li>
+          <li><strong>Ações:</strong> Devolver à fila e Encerrar, com o motivo num <code>Select</code> e confirmação.</li>
+          <li><strong>Avisos:</strong> a contagem na aba e no título, como "(2) Atendimento · Atrium", sem conteúdo. Som opcional e desligado por padrão.</li>
+          <li><strong>Compromisso:</strong> sem o aceite vigente, Assumir leva a <code>/attendance/commitment</code>.</li>
+        </ul>
+      </div>
+      <div class="panel">
+        <h3>Encerrados <code>/admin/attendance</code></h3>
+        <p>Tabela com rótulo, motivo da oferta, espera, duração, motivo de encerramento e se o texto já foi apagado. Abrir pede o motivo, de 10 a 500 caracteres, antes de chamar a API, e mostra a conversa só para leitura.</p>
+        <span class="k">Componentes novos, com histórias no Storybook (DP-7)</span>
+        <ul class="pills" aria-label="Componentes novos">
+          <li>HandoffOffer</li><li>HandoffDialog</li><li>HandoffStatusBar</li><li>AttendantMessage</li><li>PresenceToggle</li><li>QueueList</li><li>HandoffThread</li><li>RedactDialog</li>
+        </ul>
+      </div>
+    </div>
+    <div class="grid g3">
+      <div class="panel"><span class="k">Acessibilidade</span><p>Mudança de status numa região <code>role="status"</code>. A mensagem da equipe chega inteira e é anunciada por <code>aria-live="polite"</code>. O foco fica no compositor, e tudo funciona só com teclado (seção 15.8).</p></div>
+      <div class="panel"><span class="k">Movimento</span><p>Três entradas novas no catálogo da seção 16.3, todas diretas com movimento reduzido: a barra de status, um item novo na fila e a mensagem da equipe.</p></div>
+      <div class="panel"><span class="k">Motivos da oferta no console</span><p>"Não estava nas informações publicadas", "A IA não confirmou a resposta", "Fora do tema da IA", "IA indisponível" e "Resposta marcada como não útil".</p></div>
+    </div>
+  </section>
+
+  <!-- 29.12 Observabilidade -->
+  <section class="section" id="observabilidade" aria-labelledby="obs-title">
+    <div class="section-head">
+      <span class="sec-num">29.12</span>
+      <h2 id="obs-title">Observabilidade</h2>
+      <p>Ids, contagens, enums e durações, nunca o texto. O LangSmith não recebe nada do atendimento.</p>
+    </div>
+    <div class="panel">
+      <span class="k">Eventos de log</span>
+      <ul class="pills" aria-label="Eventos de log">
+        <li>handoff.requested</li><li>handoff.assigned</li><li>handoff.released</li><li>handoff.closed</li><li>handoff.redacted</li><li>handoff.stream_opened</li><li>handoff.stream_closed</li><li>realtime.listener_reconnected</li>
+      </ul>
+    </div>
+    <div class="grid g2">
+      <div class="table-wrap narrow">
+        <table>
+          <caption class="sr-only">Métricas novas</caption>
+          <thead><tr><th scope="col">Métrica</th><th scope="col">Tipo</th><th scope="col">Rótulos</th></tr></thead>
+          <tbody>
+            <tr><td><code>atrium_handoff_requests</code></td><td>counter</td><td><code>trigger</code></td></tr>
+            <tr><td><code>atrium_handoff_closed</code></td><td>counter</td><td><code>close_reason</code></td></tr>
+            <tr><td><code>atrium_handoff_queue</code></td><td>gauge</td><td>nenhum</td></tr>
+            <tr><td><code>atrium_handoff_wait_seconds</code></td><td>histogram</td><td>nenhum</td></tr>
+            <tr><td><code>atrium_handoff_attendants_available</code></td><td>gauge</td><td>nenhum</td></tr>
+            <tr><td><code>atrium_handoff_messages</code></td><td>counter</td><td><code>role</code></td></tr>
+            <tr><td><code>atrium_handoff_redactions</code></td><td>counter</td><td><code>kind</code></td></tr>
+            <tr><td><code>atrium_sse_streams</code></td><td>gauge</td><td><code>stream</code></td></tr>
+            <tr><td><code>atrium_realtime_listener_up</code></td><td>gauge</td><td>nenhum</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="grid">
+        <div class="table-wrap narrow">
+          <table>
+            <caption class="sr-only">Spans novos</caption>
+            <thead><tr><th scope="col">Span</th><th scope="col">Atributos</th></tr></thead>
+            <tbody>
+              <tr><td><code>handoff.request</code></td><td><code>trigger</code></td></tr>
+              <tr><td><code>handoff.take</code></td><td><code>wait_ms</code></td></tr>
+              <tr><td><code>handoff.message</code></td><td><code>role</code>, <code>redaction_count</code></td></tr>
+              <tr><td><code>handoff.close</code></td><td><code>close_reason</code>, <code>duration_ms</code></td></tr>
+              <tr><td><code>realtime.notify</code></td><td><code>kind</code></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="table-wrap narrow">
+          <table>
+            <caption class="sr-only">Alertas novos</caption>
+            <thead><tr><th scope="col">Alerta</th><th scope="col">Condição</th></tr></thead>
+            <tbody>
+              <tr><th scope="row">Fila sem equipe</th><td>Fila acima de 0 e nenhum atendente disponível por 5 minutos</td></tr>
+              <tr><th scope="row">Espera longa</th><td>p95 da espera acima de 300 s por 30 minutos</td></tr>
+              <tr><th scope="row">Canal parado</th><td><code>atrium_realtime_listener_up</code> igual a 0 por 2 minutos</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <p class="note">A fila e os atendentes disponíveis são lidos do banco a cada coleta, como <code>atrium_dsr_open</code>, para valerem com mais de uma réplica. O Grafana ganha o painel "Atrium, atendimento".</p>
+  </section>
+
+  <!-- 29.13 Testes -->
+  <section class="section" id="testes" aria-labelledby="testes-title">
+    <div class="section-head">
+      <span class="sec-num">29.13</span>
+      <h2 id="testes-title">Testes</h2>
+      <p>Seguem a seção 21.1: sem Gemini, sem LangSmith, com o PostgreSQL da CI para o <code>LISTEN/NOTIFY</code>.</p>
+    </div>
+    <details class="more">
+      <summary>Os 35 testes e o que cada um prova</summary>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th scope="col">Teste</th><th scope="col">Prova</th></tr></thead>
+          <tbody>
+            <tr><td><code>handoff_offer</code> segue a tabela da seção 29.4, e <code>refused</code> nunca oferece</td><td class="nowrap">FR-19</td></tr>
+            <tr><td>O pedido sem a última resposta elegível responde 409 <code>handoff_not_offered</code></td><td class="nowrap">FR-19</td></tr>
+            <tr><td>O diálogo mostra o texto da seção 29.9.5 e só chama a API depois da confirmação</td><td class="nowrap">FR-20</td></tr>
+            <tr><td>Um segundo pedido na mesma conversa devolve o mesmo atendimento, e outra conversa do mesmo sujeito responde 409 <code>handoff_active</code></td><td class="nowrap">29.5</td></tr>
+            <tr><td>Com atendimento ativo, a pergunta à IA responde 409, e o <code>FakeChatProvider</code> não recebe chamada</td><td class="nowrap">FR-21</td></tr>
+            <tr><td>Depois de um atendimento, o pedido ao modelo não contém nenhuma mensagem com <code>handoff_id</code></td><td class="nowrap">FR-21</td></tr>
+            <tr><td>Nenhuma rota do atendimento chama o provedor de chat, o de embedding nem o <code>FeedbackSink</code></td><td class="nowrap">FR-21, NFR-17</td></tr>
+            <tr><td>Dois atendentes assumem ao mesmo tempo: um recebe 200, o outro 409 <code>handoff_taken</code></td><td class="nowrap">FR-22</td></tr>
+            <tr><td>A fila e o evento <code>queue</code> não têm conteúdo, nome, e-mail, tipo de visitante nem tipo de sujeito</td><td class="nowrap">FR-22</td></tr>
+            <tr><td>O atendente B recebe 404 no atendimento de A, e o fluxo de B não recebe as mensagens de A</td><td class="nowrap">NFR-18</td></tr>
+            <tr><td><code>member</code> recebe 403 em <code>/v1/attendance/*</code>, e <code>attendant</code> recebe 403 em <code>/v1/admin/*</code></td><td class="nowrap">29.3</td></tr>
+            <tr><td>A carga do <code>NOTIFY</code> tem só <code>handoff_id</code>, <code>seq</code> e <code>kind</code>, e um rollback não entrega aviso</td><td class="nowrap">NFR-18</td></tr>
+            <tr><td>Reconectar com <code>Last-Event-ID</code> entrega as mensagens de <code>seq</code> maior, inclusive uma remoção, sem repetir</td><td class="nowrap">FR-23, NFR-19</td></tr>
+            <tr><td>O fluxo manda <code>reconnect</code> e fecha aos 10 minutos, com relógio falso</td><td class="nowrap">NFR-19</td></tr>
+            <tr><td>Uma sessão ou um papel revogado fecha o fluxo em até um tique</td><td class="nowrap">NFR-18</td></tr>
+            <tr><td>O ouvinte do <code>LISTEN</code> reconecta, e a leitura do tique entrega a mensagem do aviso perdido</td><td class="nowrap">ADR-016</td></tr>
+            <tr><td>O visitante encerra na fila e em atendimento, e a equipe só encerra com motivo da lista</td><td class="nowrap">FR-24</td></tr>
+            <tr><td><code>redact_identifiers</code> troca e-mail, CPF válido, cartão que passa no Luhn, telefone e 6 ou mais dígitos, e mantém data, hora, valor, quarto e os telefones do catálogo</td><td class="nowrap">FR-25</td></tr>
+            <tr><td>Remover uma mensagem apaga o texto na mesma transação, grava só a categoria e reenvia a mensagem ao visitante</td><td class="nowrap">FR-25</td></tr>
+            <tr><td>Ler um encerrado sem motivo responde 422 e não grava nada; com motivo, grava <code>handoff.view</code></td><td class="nowrap">FR-26</td></tr>
+            <tr><td>Cada ação da equipe grava o evento de auditoria, sem conteúdo nem e-mail</td><td class="nowrap">29.7</td></tr>
+            <tr><td>A varredura encerra e devolve como a seção 29.5, e duas varreduras ao mesmo tempo não duplicam efeito</td><td class="nowrap">29.5</td></tr>
+            <tr><td>Os limites de pedidos, mensagens e fluxos respondem 429 com <code>retry_after_seconds</code></td><td class="nowrap">NFR-20</td></tr>
+            <tr><td>A retenção apaga o texto dos encerrados há mais de 90 dias e não toca em atendimento ativo</td><td class="nowrap">29.9.9</td></tr>
+            <tr><td>A exportação traz os atendimentos e as mensagens, sem o id de quem atendeu</td><td class="nowrap">29.9.8</td></tr>
+            <tr><td>Excluir a conta apaga atendimentos e mensagens e avisa o console com <code>removed</code></td><td class="nowrap">29.9.8</td></tr>
+            <tr><td>Os logs do atendimento não têm texto de mensagem</td><td class="nowrap">NFR-7</td></tr>
+            <tr><td>A visão geral e a qualidade não contam nem mostram mensagens do atendimento</td><td class="nowrap">29.7</td></tr>
+            <tr><td>O script recusa promover um admin e grava <code>attendant.grant</code> e <code>attendant.revoke</code></td><td class="nowrap">29.3</td></tr>
+            <tr><td>A sessão de <code>attendant</code> e de <code>admin</code> vence em 12 horas</td><td class="nowrap">29.8</td></tr>
+            <tr><td>A oferta aparece só nos desfechos da seção 29.4 e com o status <code>open</code></td><td class="nowrap">FR-19</td></tr>
+            <tr><td>O leitor SSE guarda o último <code>id</code> e reconecta com <code>Last-Event-ID</code>, sem duplicar mensagens</td><td class="nowrap">FR-23</td></tr>
+            <tr><td>A mensagem da equipe usa o <code>AttendantMessage</code>, com o rótulo visível, e um link no texto não vira elemento clicável</td><td class="nowrap">29.8</td></tr>
+            <tr><td>O console não mostra conteúdo na fila nem no título da aba</td><td class="nowrap">29.9.4</td></tr>
+            <tr><td>J9, J10 e J11 no Playwright, com axe, com e sem movimento reduzido. Na suíte ao vivo, J9 e J10 rodam com visitante e atendente ao mesmo tempo.</td><td class="nowrap">29.11</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </details>
+  </section>
+
+  <!-- 29.14 Constantes -->
+  <section class="section" id="constantes" aria-labelledby="const-title">
+    <div class="section-head">
+      <span class="sec-num">29.14</span>
+      <h2 id="const-title">Configuração e constantes</h2>
+      <p><code>HANDOFF_ENABLED</code> liga o serviço e vale <code>false</code> por padrão. Em production, só liga depois da Etapa 17.8. As demais regras são constantes de <code>domain/handoff.py</code>, testadas com o resto da seção.</p>
+    </div>
+    <div class="consts">
+      <div class="const"><b>20</b><span>atendimentos na fila, no máximo</span></div>
+      <div class="const"><b>15 min</b><span>de espera máxima na fila, desde <code>queued_at</code></span></div>
+      <div class="const"><b>5 min</b><span>sem fluxo do visitante encerram o pedido na fila</span></div>
+      <div class="const"><b>30 min</b><span>sem mensagem encerram o atendimento</span></div>
+      <div class="const"><b>45 s</b><span>de janela de presença, da equipe e do visitante</span></div>
+      <div class="const"><b>2 min</b><span>sem sinal devolvem o atendimento à fila</span></div>
+      <div class="const"><b>3</b><span>atendimentos por pessoa ao mesmo tempo</span></div>
+      <div class="const"><b>30 s</b><span>entre uma varredura e outra</span></div>
+      <div class="const"><b>15 s</b><span>por tique do fluxo, o mesmo da manutenção da seção 7.1</span></div>
+      <div class="const"><b>10 min</b><span>de duração de um fluxo</span></div>
+      <div class="const"><b>24 h</b><span>de bloqueio por abuso</span></div>
+      <div class="const"><b>1.000 e 2.000</b><span>caracteres no texto do visitante e no da equipe</span></div>
+      <div class="const"><b>10 a 500</b><span>caracteres no motivo para ler um encerrado</span></div>
+      <div class="const"><b>90 dias</b><span>de retenção do texto depois do encerramento</span></div>
+      <div class="const"><b>12 h</b><span>de sessão da equipe</span></div>
+    </div>
+    <p class="note"><code>ATTENDANT_TERMS_VERSION</code> fica com <code>LEGAL_DOCUMENT_VERSION</code>, na API.</p>
+  </section>
+
+  <!-- 29.15 Riscos -->
+  <section class="section" id="riscos" aria-labelledby="riscos-title">
+    <div class="section-head">
+      <span class="sec-num">29.15</span>
+      <h2 id="riscos-title">Riscos</h2>
+      <p>Os riscos de operar o atendimento. Os riscos aos titulares estão no RIPD, na seção 29.9.11.</p>
+    </div>
+    <div class="table-wrap narrow">
+      <table>
+        <thead><tr><th scope="col">Risco</th><th scope="col">O que fazemos</th></tr></thead>
+        <tbody>
+          <tr><th scope="row">A Vercel ou a Railway cortam o fluxo longo de um jeito não documentado</th><td>Fluxo de 10 minutos com <code>reconnect</code>, manutenção a cada 15 segundos e retomada pelo <code>seq</code>. A Etapa 17.4 mede um fluxo de 12 minutos em development e registra o resultado na PR.</td></tr>
+          <tr><th scope="row">O <code>LISTEN</code> cai e um aviso se perde</th><td>Leitura das mensagens a cada tique, métrica <code>atrium_realtime_listener_up</code> e alerta Canal parado</td></tr>
+          <tr><th scope="row">Muitos fluxos numa réplica</th><td>Limites por conversa, por atendente e por processo. Uma conexão a mais no banco, só para o <code>LISTEN</code>.</td></tr>
+          <tr><th scope="row">Equipe indisponível vira beco sem saída</th><td>Disponibilidade honesta, telefone da mesa e fila que vence em 15 minutos</td></tr>
+          <tr><th scope="row">A equipe dá orientação médica ou confirma um paciente</th><td>Normas, ação de orientação de emergência, compromisso e leitura de encerrados quando há reclamação</td></tr>
+          <tr><th scope="row">A equipe fotografa a tela</th><td>Não se impede por software. Compromisso, auditoria de cada leitura e rótulo sem identidade reduzem o dano.</td></tr>
+          <tr><th scope="row">Um deploy derruba os fluxos</th><td>Reconexão e retomada. A sessão e o estado ficam no banco.</td></tr>
+          <tr><th scope="row"><code>NOTIFY</code> aumenta a disputa no commit sob muita escrita</th><td>Com uma réplica e poucos atendimentos, o custo é pequeno. O caminho de escala da seção 6.5 reavalia.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Fase 17 -->
+  <section class="section" id="fase-17" aria-labelledby="fase-title">
+    <div class="section-head">
+      <span class="sec-num">Plano de ação · Fase 17 · SDD 23, passo 12</span>
+      <h2 id="fase-title">Fase 17 em etapas</h2>
+      <p>Cada etapa é uma PR, aprovada antes da próxima começar (plano de ação, seção 1). Cada bloco começa quando o anterior termina. Clique numa etapa para ver o detalhe.</p>
+    </div>
+    <div class="attack">
+      <div class="panel">
+        <div class="panel-top"><span class="chip chip-b1">Bloco 1 · Aprovar e fundar</span><span class="when">Primeiro</span></div>
+        <h3>Decidir e montar a base pura</h3>
+        <ul>
+          <li><a href="#etapa-17-0"><span class="id">17.0</span><span class="t">Revisão da especificação</span></a></li>
+          <li><a href="#etapa-17-1"><span class="id">17.1</span><span class="t">Domínio do atendimento</span></a></li>
+          <li><a href="#etapa-17-2"><span class="id">17.2</span><span class="t">Dados, papel e sessão da equipe</span></a></li>
+        </ul>
+      </div>
+      <div class="panel">
+        <div class="panel-top"><span class="chip chip-b2">Bloco 2 · Servidor</span><span class="when">Depois da 15.1</span></div>
+        <h3>Canal em tempo real e as duas APIs</h3>
+        <ul>
+          <li><a href="#etapa-17-3"><span class="id">17.3</span><span class="t">Canal em tempo real</span></a></li>
+          <li><a href="#etapa-17-4"><span class="id">17.4</span><span class="t">API do visitante</span></a></li>
+          <li><a href="#etapa-17-5"><span class="id">17.5</span><span class="t">API da equipe</span></a></li>
+        </ul>
+      </div>
+      <div class="panel">
+        <div class="panel-top"><span class="chip chip-b3">Bloco 3 · Telas e produção</span><span class="when">Por último</span></div>
+        <h3>Telas, privacidade e publicação</h3>
+        <ul>
+          <li><a href="#etapa-17-6"><span class="id">17.6</span><span class="t">Telas do visitante</span></a></li>
+          <li><a href="#etapa-17-7"><span class="id">17.7</span><span class="t">Console e encerrados do admin</span></a></li>
+          <li><a href="#etapa-17-8"><span class="id">17.8</span><span class="t">Privacidade, operação e publicação</span></a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="legend">
+      <span><code>HANDOFF_ENABLED</code> liga na máquina local nos testes, em development na 17.7 e em production só depois da 17.8.</span>
+      <span><span class="confirm">depende da 15.1</span> a Etapa 15.1 precisa estar aprovada antes</span>
+    </div>
+    <div class="toolbar">
+      <div class="filters" role="group" aria-label="Filtrar etapas por área">
+        <button type="button" class="filter" data-area="todas" aria-pressed="true">Todas <span class="count">9</span></button>
+        <button type="button" class="filter" data-area="spec" aria-pressed="false">Especificação <span class="count">1</span></button>
+        <button type="button" class="filter" data-area="servidor" aria-pressed="false">Servidor <span class="count">5</span></button>
+        <button type="button" class="filter" data-area="telas" aria-pressed="false">Telas <span class="count">2</span></button>
+        <button type="button" class="filter" data-area="seguranca" aria-pressed="false">Segurança <span class="count">4</span></button>
+        <button type="button" class="filter" data-area="lgpd" aria-pressed="false">LGPD <span class="count">4</span></button>
+        <button type="button" class="filter" data-area="operacao" aria-pressed="false">Operação <span class="count">1</span></button>
+      </div>
+      <div class="progress">
+        <span class="progress-label" id="progress-label">0 de 9 etapas feitas</span>
+        <div class="bar" aria-hidden="true"><span id="progress-fill"></span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Bloco 1 -->
+  <section class="prio" id="bloco-1" aria-labelledby="b1-title">
+    <div class="prio-head">
+      <div class="prio-row"><span class="chip chip-b1">Bloco 1 · Aprovar e fundar</span><span class="when"><span class="prio-count">3 etapas</span></span></div>
+      <h2 id="b1-title">Decidir e montar a base pura</h2>
+      <p>A especificação aprovada, as regras puras testadas sem banco e os dados com o papel novo.</p>
+    </div>
+    <p class="prio-empty" hidden>Nenhuma etapa desta área neste bloco.</p>
+    <div class="items">
+
+      <article class="item" id="etapa-17-0" data-areas="spec">
+        <div class="item-head">
+          <span class="item-id">Etapa 17.0</span><span class="tag">Especificação</span>
+          <label class="done"><input type="checkbox" data-id="17.0"> Feito</label>
+        </div>
+        <h3>Revisão da especificação do atendimento humano</h3>
+        <div class="item-body">
+          <div><div><h4>Objetivo</h4><p>Fechar a seção 29 antes da primeira linha de código, como a Etapa 0.1 fez com o SDD.</p></div></div>
+          <div><div><h4>Entregas</h4><ul>
+            <li>Você confirma ou altera as decisões D-5 a D-9, nesta página ou no chat.</li>
+            <li>A IA atualiza a seção 29 e os dois ADRs com as decisões, troca o status para aprovada e registra a revisão na seção 28.</li>
+            <li>Ponteiros para a seção 29 nas seções 8.1, 10, 11, 12, 15.3, 15.4 e 18.3.</li>
+          </ul></div></div>
+        </div>
+        <div class="item-foot">
+          <div>
+            <div><h4>Como testar</h4><p>Leia a seção 29, o ADR-015 e o ADR-016, e confira no diff que só mudou o que você decidiu.</p></div>
+            <div><h4>Seções</h4><ul class="refs"><li>5.1, 5.2, 26, 28 e 29</li><li>ADR-015 e ADR-016</li></ul></div>
+          </div>
+          <div><div><h4>Critérios de aceite</h4><ul>
+            <li>CA-1. A seção 26 não tem decisão do atendimento em aberto.</li>
+            <li>CA-2. A seção 29, o ADR-015 e o ADR-016 mostram a decisão final, sem "Proposta".</li>
+            <li>CA-3. A seção 28 registra a aprovação.</li>
+          </ul></div></div>
+        </div>
+      </article>
+
+      <article class="item" id="etapa-17-1" data-areas="servidor lgpd">
+        <div class="item-head">
+          <span class="item-id">Etapa 17.1</span><span class="tag">Servidor</span><span class="tag">LGPD</span>
+          <label class="done"><input type="checkbox" data-id="17.1"> Feito</label>
+        </div>
+        <h3>Domínio do atendimento</h3>
+        <div class="item-body">
+          <div><div><h4>Objetivo</h4><p>As regras puras do atendimento, testadas sem banco, sem rede e sem modelo.</p></div></div>
+          <div><div><h4>Entregas</h4><ul>
+            <li><code>domain/handoff.py</code>: estados, transições, motivos de encerramento, <code>handoff_offer</code>, fila, capacidade, bloqueio por abuso e as constantes da seção 29.14.</li>
+            <li><code>domain/redaction.py</code> com <code>redact_identifiers</code>, usando o catálogo de telefones de <code>domain/phones.py</code>.</li>
+            <li>A janela do histórico só com mensagens da conversa com a IA.</li>
+            <li><code>RetentionRule.HANDOFF_CONTENT</code>, com o corte de 90 dias.</li>
+            <li><code>.claude/rules/atendimento.md</code>, com as regras das seções 29.8 e 29.9 para agentes de código.</li>
+          </ul></div></div>
+        </div>
+        <div class="item-foot">
+          <div>
+            <div><h4>Como testar</h4><p><code>uv run pytest tests/unit -k "handoff or redaction or history or retention"</code> em <code>apps/api</code>.</p></div>
+            <div><h4>Seções</h4><ul class="refs"><li>6.2 e 7.1 (histórico)</li><li>29.4, 29.5, 29.9.7, 29.9.9 e 29.14</li></ul></div>
+          </div>
+          <div><div><h4>Critérios de aceite</h4><ul>
+            <li>CA-1. Cada transição fora do diagrama da seção 29.5 levanta <code>Conflict</code>.</li>
+            <li>CA-2. <code>handoff_offer</code> segue a tabela da seção 29.4, e <code>refused</code> nunca oferece (FR-19).</li>
+            <li>CA-3. <code>redact_identifiers</code> passa nos casos da seção 29.13, inclusive os que ficam no texto (FR-25).</li>
+            <li>CA-4. Nenhuma mensagem do atendimento entra no histórico do modelo (FR-21).</li>
+            <li>CA-5. O teste de arquitetura continua verde (NFR-1).</li>
+          </ul></div></div>
+        </div>
+      </article>
+
+      <article class="item" id="etapa-17-2" data-areas="servidor seguranca">
+        <div class="item-head">
+          <span class="item-id">Etapa 17.2</span><span class="tag">Servidor</span><span class="tag">Segurança</span>
+          <label class="done"><input type="checkbox" data-id="17.2"> Feito</label>
+        </div>
+        <h3>Dados, papel de atendente e sessão da equipe</h3>
+        <div class="item-body">
+          <div><div><h4>Objetivo</h4><p>As tabelas, o papel <code>attendant</code>, o script que o concede e o compromisso de confidencialidade.</p></div></div>
+          <div><div><h4>Entregas</h4><ul>
+            <li>Migração com <code>handoffs</code>, as colunas novas de <code>messages</code>, o papel em <code>users</code>, <code>attendant_presence</code> e <code>attendant_acknowledgements</code>, com downgrade.</li>
+            <li>Modelos e <code>HandoffRepository</code>, com o <code>pg_notify</code> dentro da transação.</li>
+            <li><code>python -m app.scripts.attendants grant|revoke &lt;email&gt; --by &lt;email do admin&gt;</code>, com a auditoria.</li>
+            <li>Dependência <code>require_attendant</code>, que roda antes de o corpo ser lido.</li>
+            <li>Sessão de 12 horas para <code>attendant</code> e <code>admin</code>, se a D-8 for aprovada.</li>
+            <li><code>GET /v1/attendance/me</code> e <code>POST /v1/attendance/acknowledgement</code>, e o OpenAPI com os tipos.</li>
+          </ul></div></div>
+        </div>
+        <div class="item-foot">
+          <div>
+            <div><h4>Como testar</h4><ol>
+              <li>Crie uma conta pelo formulário e rode o <code>grant</code> do script.</li>
+              <li>Entre com a conta e confira o prazo do cookie nas ferramentas do navegador.</li>
+              <li>Abra <code>/admin</code> com a conta: aparece a página 403.</li>
+              <li><code>psql</code>: confira <code>role = attendant</code> e o evento <code>attendant.grant</code>.</li>
+            </ol></div>
+            <div><h4>Seções</h4><ul class="refs"><li>8.1, 10.3 e 10.5</li><li>29.3, 29.7 e 29.8</li></ul></div>
+          </div>
+          <div><div><h4>Critérios de aceite</h4><ul>
+            <li>CA-1. A migração passa no upgrade e no downgrade.</li>
+            <li>CA-2. O script só promove <code>member</code>, recusa admin e grava os eventos de auditoria.</li>
+            <li>CA-3. <code>attendant</code> recebe 403 em <code>/v1/admin/*</code>, e <code>member</code> em <code>/v1/attendance/*</code>.</li>
+            <li>CA-4. A sessão da equipe vence em 12 horas, com o cookie no mesmo prazo.</li>
+            <li>CA-5. Sem o aceite vigente, <code>GET /v1/attendance/me</code> devolve <code>acknowledged</code> falso.</li>
+          </ul></div></div>
+        </div>
+      </article>
+
+    </div>
+  </section>
+
+  <!-- Bloco 2 -->
+  <section class="prio" id="bloco-2" aria-labelledby="b2-title">
+    <div class="prio-head">
+      <div class="prio-row"><span class="chip chip-b2">Bloco 2 · Servidor</span><span class="when">Depois da Etapa 15.1 · <span class="prio-count">3 etapas</span></span></div>
+      <h2 id="b2-title">Canal em tempo real e as duas APIs</h2>
+      <p>O aviso entre processos, a retomada dos fluxos e as rotas do visitante e da equipe, com a auditoria.</p>
+    </div>
+    <p class="prio-empty" hidden>Nenhuma etapa desta área neste bloco.</p>
+    <div class="items">
+
+      <article class="item" id="etapa-17-3" data-areas="servidor seguranca">
+        <div class="item-head">
+          <span class="item-id">Etapa 17.3</span><span class="tag">Servidor</span><span class="tag">Segurança</span>
+          <label class="done"><input type="checkbox" data-id="17.3"> Feito</label>
+        </div>
+        <h3>Canal em tempo real</h3>
+        <div class="item-body">
+          <div><div><h4>Objetivo</h4><p>Avisar e entregar eventos com retomada, sem WebSocket.</p></div></div>
+          <div><div><h4>Entregas</h4><ul>
+            <li>Porta <code>RealtimeBroker</code>, o <code>PostgresNotifyBroker</code>, com o <code>LISTEN</code> fora do pool e reconexão com espera crescente, e o <code>InMemoryBroker</code> dos testes.</li>
+            <li>O ouvinte aberto e fechado no <code>lifespan</code>, como o <code>AiRuntime</code>.</li>
+            <li><code>core/sse.py</code> com o campo <code>id:</code>, o <code>reconnect</code> aos 10 minutos e o tique de 15 segundos que confere a autorização e lê o <code>seq</code>.</li>
+            <li>Limites de fluxos por conversa, por atendente e por processo.</li>
+            <li>Métricas <code>atrium_sse_streams</code> e <code>atrium_realtime_listener_up</code>.</li>
+          </ul></div></div>
+        </div>
+        <div class="item-foot">
+          <div>
+            <div><h4>Como testar</h4><p><code>uv run pytest tests/integration -k realtime</code> em <code>apps/api</code>.</p></div>
+            <div><h4>Seções</h4><ul class="refs"><li>6.2, 6.4, 7.1 e 18.3</li><li>29.6, ADR-015 e ADR-016</li></ul></div>
+          </div>
+          <div><div><h4>Critérios de aceite</h4><ul>
+            <li>CA-1. Um rollback não entrega aviso, e a carga tem só <code>handoff_id</code>, <code>seq</code> e <code>kind</code> (NFR-18).</li>
+            <li>CA-2. Reconectar com <code>Last-Event-ID</code> entrega o que tem <code>seq</code> maior, sem repetir (FR-23, NFR-19).</li>
+            <li>CA-3. O fluxo fecha aos 10 minutos com <code>reconnect</code>, com relógio falso (NFR-19).</li>
+            <li>CA-4. Uma sessão revogada fecha o fluxo em até um tique (NFR-18).</li>
+            <li>CA-5. Com o ouvinte derrubado, a mensagem chega pelo tique, e o ouvinte volta.</li>
+          </ul></div></div>
+        </div>
+      </article>
+
+      <article class="item" id="etapa-17-4" data-areas="servidor lgpd">
+        <div class="item-head">
+          <span class="item-id">Etapa 17.4</span><span class="tag">Servidor</span><span class="tag">LGPD</span><span class="confirm">depende da 15.1</span>
+          <label class="done"><input type="checkbox" data-id="17.4"> Feito</label>
+        </div>
+        <h3>API do visitante</h3>
+        <div class="item-body">
+          <div><div><h4>Objetivo</h4><p>Pedir, conversar, encerrar e acompanhar o atendimento pelo lado do visitante.</p></div></div>
+          <div><div><h4>Entregas</h4><ul>
+            <li><code>GET /v1/handoff/availability</code> e as rotas de <code>/v1/conversations/{id}/handoff</code>: pedido, leitura, <code>messages</code>, <code>end</code> e <code>events</code>.</li>
+            <li>A pergunta à IA com 409 <code>handoff_active</code> durante o atendimento, e a conversa com <code>handoffs</code>, <code>handoff_id</code> e <code>redaction</code>.</li>
+            <li>Remoção de identificadores antes de gravar e os baldes do visitante na seção 10.4.</li>
+            <li>A varredura do <code>lifespan</code>: fila vencida, visitante ausente, atendimento parado e serviço desligado.</li>
+            <li>A fumaça confere <code>/backend/v1/handoff/availability</code> com <code>no-store</code>.</li>
+            <li><code>app.scripts.attendance_dev present &lt;email&gt;</code>, que mantém a presença de um atendente por 10 minutos, só em <code>local</code> e <code>test</code>.</li>
+          </ul></div></div>
+        </div>
+        <div class="item-foot">
+          <div>
+            <div><h4>Como testar</h4><ol>
+              <li>Com <code>HANDOFF_ENABLED=true</code>, rode o <code>attendance_dev present</code>.</li>
+              <li>Pergunte algo fora do corpus e peça o atendimento com <code>curl</code>.</li>
+              <li>Em outro terminal, abra o fluxo com <code>curl -N</code> e veja o <code>ready</code>.</li>
+              <li>Envie um CPF inventado, de dígitos válidos, e veja o marcador.</li>
+              <li>Pergunte à IA na mesma conversa e veja o 409.</li>
+            </ol></div>
+            <div><h4>Seções</h4><ul class="refs"><li>7.1, 10.4 e 22.3</li><li>29.4, 29.5, 29.8, 29.9.7 e 29.10</li></ul></div>
+          </div>
+          <div><div><h4>Critérios de aceite</h4><ul>
+            <li>CA-1. O pedido fora da tabela da seção 29.4 responde 409 <code>handoff_not_offered</code> (FR-19).</li>
+            <li>CA-2. Durante o atendimento, a pergunta à IA responde 409, e o <code>FakeChatProvider</code> não recebe chamada (FR-21).</li>
+            <li>CA-3. A mensagem gravada já tem os marcadores da seção 29.9.7 (FR-25).</li>
+            <li>CA-4. Um segundo pedido devolve o mesmo atendimento, e outra conversa do sujeito recebe 409.</li>
+            <li>CA-5. O visitante sai da fila e encerra quando quer (FR-24).</li>
+            <li>CA-6. Os limites respondem 429 com <code>retry_after_seconds</code> (NFR-20).</li>
+            <li>CA-7. A varredura encerra e devolve sem duplicar com duas tarefas ao mesmo tempo.</li>
+            <li>CA-8. Em development, um fluxo de 12 minutos pela Vercel recebe o <code>reconnect</code> e retoma sem perda. O resultado fica na PR.</li>
+          </ul></div></div>
+        </div>
+      </article>
+
+      <article class="item" id="etapa-17-5" data-areas="servidor seguranca">
+        <div class="item-head">
+          <span class="item-id">Etapa 17.5</span><span class="tag">Servidor</span><span class="tag">Segurança</span>
+          <label class="done"><input type="checkbox" data-id="17.5"> Feito</label>
+        </div>
+        <h3>API da equipe</h3>
+        <div class="item-body">
+          <div><div><h4>Objetivo</h4><p>Presença, fila, assumir, responder, remover, devolver e encerrar, e a leitura de encerrados pelo admin.</p></div></div>
+          <div><div><h4>Entregas</h4><ul>
+            <li>Presença, fila, fluxo do console e as rotas de <code>/v1/attendance/handoffs/{id}</code>: <code>take</code>, leitura, <code>messages</code> com o modelo <code>medical_emergency</code>, <code>release</code>, <code>close</code> e <code>redact</code>.</li>
+            <li><code>GET /v1/admin/handoffs</code> e <code>POST /v1/admin/handoffs/{id}/view</code>.</li>
+            <li>Auditoria de cada ação, sem conteúdo nem e-mail.</li>
+            <li>Devolução à fila por ausência, capacidade de 3 e bloqueio por abuso.</li>
+            <li>O balde de mensagens da equipe e as métricas, spans e logs da seção 29.12.</li>
+          </ul></div></div>
+        </div>
+        <div class="item-foot">
+          <div>
+            <div><h4>Como testar</h4><ol>
+              <li>Abra o fluxo do console com <code>curl -N</code> e peça um atendimento como visitante.</li>
+              <li>Assuma com <code>curl</code>, responda e veja a mensagem no fluxo do visitante.</li>
+              <li>Tente assumir com outro atendente e veja o 409.</li>
+              <li>Remova uma mensagem e confira o marcador e a categoria na auditoria.</li>
+              <li>Encerre e leia como admin, sem motivo e com motivo.</li>
+            </ol></div>
+            <div><h4>Seções</h4><ul class="refs"><li>8.1 e 10.4</li><li>29.3, 29.5, 29.6, 29.8, 29.9.4 e 29.10</li></ul></div>
+          </div>
+          <div><div><h4>Critérios de aceite</h4><ul>
+            <li>CA-1. Dois atendentes assumem ao mesmo tempo, e um recebe 409 <code>handoff_taken</code> (FR-22).</li>
+            <li>CA-2. A fila e o evento <code>queue</code> não têm conteúdo nem dado do perfil (FR-22).</li>
+            <li>CA-3. O atendente B recebe 404 no atendimento de A, e o fluxo de B não recebe as mensagens de A (NFR-18).</li>
+            <li>CA-4. Remover apaga o texto na mesma transação, grava só a categoria e avisa o visitante (FR-25).</li>
+            <li>CA-5. Ler um encerrado exige motivo e grava <code>handoff.view</code> (FR-26).</li>
+            <li>CA-6. A equipe só encerra com um motivo da lista (FR-24).</li>
+            <li>CA-7. O atendimento de quem fica 2 minutos sem sinal volta para a fila.</li>
+          </ul></div></div>
+        </div>
+      </article>
+
+    </div>
+  </section>
+
+  <!-- Bloco 3 -->
+  <section class="prio" id="bloco-3" aria-labelledby="b3-title">
+    <div class="prio-head">
+      <div class="prio-row"><span class="chip chip-b3">Bloco 3 · Telas e produção</span><span class="when"><span class="prio-count">3 etapas</span></span></div>
+      <h2 id="b3-title">Telas, privacidade e publicação</h2>
+      <p>As jornadas J9 a J11 no navegador e os documentos de privacidade antes de ligar o serviço em production.</p>
+    </div>
+    <p class="prio-empty" hidden>Nenhuma etapa desta área neste bloco.</p>
+    <div class="items">
+
+      <article class="item" id="etapa-17-6" data-areas="telas lgpd">
+        <div class="item-head">
+          <span class="item-id">Etapa 17.6</span><span class="tag">Telas</span><span class="tag">LGPD</span>
+          <label class="done"><input type="checkbox" data-id="17.6"> Feito</label>
+        </div>
+        <h3>Telas do visitante</h3>
+        <div class="item-body">
+          <div><div><h4>Objetivo</h4><p>A jornada J9 no navegador.</p></div></div>
+          <div><div><h4>Entregas</h4><ul>
+            <li><code>HandoffOffer</code>, <code>HandoffDialog</code>, <code>HandoffStatusBar</code> e <code>AttendantMessage</code>, com histórias no Storybook.</li>
+            <li>O modo de atendimento na conversa: compositor, aviso, posição na fila e divisor de encerramento.</li>
+            <li><code>src/lib/sse.ts</code> com o campo <code>id:</code>, o <code>Last-Event-ID</code> e a reconexão.</li>
+            <li>Os textos da seção 29.9.5 em <code>pt.ts</code> e a regra <code>react/no-danger</code> nas pastas do atendimento.</li>
+            <li>Playwright com J9, com axe, nas respostas simuladas.</li>
+          </ul></div></div>
+        </div>
+        <div class="item-foot">
+          <div>
+            <div><h4>Como testar</h4><ol>
+              <li>Pergunte algo fora do corpus e clique em Falar com uma pessoa.</li>
+              <li>Leia o diálogo, chame a equipe e veja a posição na fila.</li>
+              <li>Responda como atendente pelo <code>curl</code> da Etapa 17.5.</li>
+              <li>Desligue a rede por alguns segundos e confira que nada se perde.</li>
+            </ol></div>
+            <div><h4>Seções</h4><ul class="refs"><li>15.5, 15.6, 15.8 e 16.3</li><li>29.11</li></ul></div>
+          </div>
+          <div><div><h4>Critérios de aceite</h4><ul>
+            <li>CA-1. A oferta aparece só nos desfechos da seção 29.4 e com o status <code>open</code> (FR-19).</li>
+            <li>CA-2. O diálogo mostra o texto da seção 29.9.5 e só chama a API depois de Chamar a equipe (FR-20).</li>
+            <li>CA-3. A reconexão não duplica nem perde mensagens (FR-23).</li>
+            <li>CA-4. Um link na mensagem da equipe aparece como texto (seção 29.8).</li>
+            <li>CA-5. J9 passa no Playwright com axe, com e sem movimento reduzido (DP-8).</li>
+          </ul></div></div>
+        </div>
+      </article>
+
+      <article class="item" id="etapa-17-7" data-areas="telas seguranca">
+        <div class="item-head">
+          <span class="item-id">Etapa 17.7</span><span class="tag">Telas</span><span class="tag">Segurança</span>
+          <label class="done"><input type="checkbox" data-id="17.7"> Feito</label>
+        </div>
+        <h3>Console da equipe e encerrados do admin</h3>
+        <div class="item-body">
+          <div><div><h4>Objetivo</h4><p>As jornadas J10 e J11 no navegador.</p></div></div>
+          <div><div><h4>Entregas</h4><ul>
+            <li><code>/attendance</code>, <code>/attendance/commitment</code> e <code>/admin/attendance</code>.</li>
+            <li><code>PresenceToggle</code>, <code>QueueList</code>, <code>HandoffThread</code> e <code>RedactDialog</code>, com histórias no Storybook.</li>
+            <li>O grupo Atendimento na navegação e a contagem no título da aba, sem conteúdo.</li>
+            <li>Playwright com J10 e J11, e a suíte ao vivo com J9 e J10 em dois contextos do navegador.</li>
+            <li><code>HANDOFF_ENABLED=true</code> em development.</li>
+          </ul></div></div>
+        </div>
+        <div class="item-foot">
+          <div>
+            <div><h4>Como testar</h4><ol>
+              <li>Abra uma janela anônima como visitante e outra com a conta de atendente em <code>/attendance</code>.</li>
+              <li>Marque Disponível, peça o atendimento, assuma, responda e encerre.</li>
+              <li>Como admin, abra o atendimento em <code>/admin/attendance</code> com um motivo e confira <code>handoff.view</code>.</li>
+            </ol></div>
+            <div><h4>Seções</h4><ul class="refs"><li>13.3, 14.6, 15.4 e 15.8</li><li>29.11</li></ul></div>
+          </div>
+          <div><div><h4>Critérios de aceite</h4><ul>
+            <li>CA-1. A fila não mostra conteúdo, e o título da aba só tem a contagem (seção 29.9.4).</li>
+            <li>CA-2. Sem o aceite vigente, Assumir leva ao compromisso (seção 29.3).</li>
+            <li>CA-3. J10 e J11 passam no Playwright com axe (DP-8).</li>
+            <li>CA-4. J9 e J10 passam na suíte ao vivo, com visitante e atendente ao mesmo tempo.</li>
+            <li>CA-5. O console funciona só com o teclado (NFR-14).</li>
+          </ul></div></div>
+        </div>
+      </article>
+
+      <article class="item" id="etapa-17-8" data-areas="lgpd operacao">
+        <div class="item-head">
+          <span class="item-id">Etapa 17.8</span><span class="tag">LGPD</span><span class="tag">Operação</span>
+          <label class="done"><input type="checkbox" data-id="17.8"> Feito</label>
+        </div>
+        <h3>Privacidade, operação e publicação</h3>
+        <div class="item-body">
+          <div><div><h4>Objetivo</h4><p>Documentos de privacidade, retenção e operação antes de ligar o serviço em production.</p></div></div>
+          <div><div><h4>Entregas</h4><ul>
+            <li>Aviso de Privacidade e Termos de Uso com o atendimento, e a <code>LEGAL_DOCUMENT_VERSION</code> nova.</li>
+            <li><code>ropa.md</code>, <code>ripd.md</code>, <code>lia.md</code> e <code>incident-playbook.md</code> com as linhas e os riscos da seção 29.9.</li>
+            <li>A regra <code>handoff_content</code> no <code>retention-job</code>, e a regra de conversas sem apagar conversa com atendimento ativo.</li>
+            <li>A exportação da conta com os atendimentos.</li>
+            <li>O painel "Atrium, atendimento" e os três alertas em <code>ops/grafana/</code>.</li>
+            <li>A parte nova do guia, os READMEs de pasta e o resumo em <code>docs/engenharia/README.md</code>.</li>
+            <li>As linhas que a seção 29 marca para outras seções passam para as tabelas delas.</li>
+            <li><code>HANDOFF_ENABLED=true</code> em production, depois da sua aprovação.</li>
+          </ul></div></div>
+        </div>
+        <div class="item-foot">
+          <div>
+            <div><h4>Como testar</h4><ol>
+              <li>Leia o Aviso novo e aceite de novo como membro.</li>
+              <li>Crie em development um atendimento encerrado há 91 dias, rode o <code>retention</code> e confira o marcador.</li>
+              <li>Exporte os dados de um membro que teve atendimento.</li>
+              <li>Depois do deploy aprovado, faça J9 e J10 em production.</li>
+            </ol></div>
+            <div><h4>Seções</h4><ul class="refs"><li>11.3, 11.5, 11.6, 11.11 e 18.3</li><li>29.9 e 29.12</li></ul></div>
+          </div>
+          <div><div><h4>Critérios de aceite</h4><ul>
+            <li>CA-1. A retenção apaga só o texto dos atendimentos encerrados há mais de 90 dias.</li>
+            <li>CA-2. A exportação traz os atendimentos, sem o id de quem atendeu.</li>
+            <li>CA-3. Os quatro documentos de privacidade e o Aviso batem com a seção 29.9.</li>
+            <li>CA-4. Os alertas existem no Grafana, com o contato da seção 18.3.</li>
+            <li>CA-5. Em production, J9 e J10 funcionam com uma pessoa de verdade no console e dados fictícios.</li>
+          </ul></div></div>
+        </div>
+      </article>
+
+    </div>
+  </section>
+
+  <!-- O que não muda -->
+  <section class="section" id="nao-muda" aria-labelledby="nao-muda-title">
+    <div class="section-head">
+      <h2 id="nao-muda-title">O que não muda</h2>
+      <p>Proteções que já existem e que o atendimento humano preserva. Nenhuma etapa da Fase 17 mexe nelas.</p>
+    </div>
+    <div class="panel">
+      <ul class="checks">
+        <li>O navegador fala só com a origem da Vercel, com cookie <code>HttpOnly</code> e <code>SameSite=Lax</code>, sem CORS no tráfego normal (seção 2.1).</li>
+        <li>O segredo da borda continua exigido em <code>/v1</code>, e o IP dos limites continua vindo da Vercel (seções 10.3 e 10.4).</li>
+        <li>Todo <code>POST</code> passa pela conferência de <code>Origin</code>, e toda resposta de <code>/v1</code> sai com <code>no-store</code> (NFR-11 e NFR-12).</li>
+        <li>A CSP continua com <code>connect-src 'self'</code> (seção 13.4).</li>
+        <li>A mensagem de orientação médica continua sem conteúdo gravado e fora do LangSmith (FR-17).</li>
+        <li>O inspetor de qualidade continua só com convidados e com membros que deram o consentimento de melhoria (seção 11.8).</li>
+        <li>Logs e rastros continuam redigidos antes de sair do processo (NFR-7).</li>
+        <li>O orçamento diário de tokens não muda: o atendimento não chama o modelo (NFR-13).</li>
+      </ul>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <p><strong>Como esta página foi feita.</strong> Ela mostra, para ler no navegador, a seção 29 do SDD (<a href="atendimento-humano.md"><code>docs/sdd/atendimento-humano.md</code></a>), o <a href="../adr/015-atendimento-por-sse.md">ADR-015</a>, o <a href="../adr/016-listen-notify.md">ADR-016</a> e a Fase 17 do <a href="../plano-de-acao.md">plano de ação</a>, na branch <code>docs/atendimento-humano</code>. Se esta página e o Markdown divergirem, vale o Markdown, e a mudança corrige os dois.</p>
+    <p>As etapas marcadas como feitas e as escolhas das decisões ficam salvas só neste navegador.</p>
+  </footer>
+
+</main>
+
+<script>
+(function () {
+  /* Guarda um valor no localStorage, quando ele existe. Numa aba privada ou com o
+     armazenamento bloqueado, a página continua funcionando só nesta visita. */
+  function load(key) {
+    try { return JSON.parse(localStorage.getItem(key) || "{}") || {}; } catch (e) { return {}; }
+  }
+  function save(key, value) {
+    try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) { /* só nesta visita */ }
+  }
+
+  /* 1. Etapas feitas e progresso, como no plano da Leemia. */
+  var DONE_KEY = "atrium-sdd29-etapas-feitas";
+  var items = Array.prototype.slice.call(document.querySelectorAll(".item"));
+  var label = document.getElementById("progress-label");
+  var fill = document.getElementById("progress-fill");
+  var done = load(DONE_KEY);
+
+  function refreshProgress() {
+    var count = items.filter(function (it) { return it.classList.contains("is-done"); }).length;
+    label.textContent = count + " de " + items.length + (count === 1 ? " etapa feita" : " etapas feitas");
+    fill.style.width = (items.length ? (count / items.length) * 100 : 0) + "%";
+  }
+
+  items.forEach(function (card) {
+    var box = card.querySelector(".done input");
+    if (!box) return;
+    var id = box.getAttribute("data-id");
+    if (done[id]) {
+      box.checked = true;
+      card.classList.add("is-done");
+    }
+    box.addEventListener("change", function () {
+      card.classList.toggle("is-done", box.checked);
+      if (box.checked) done[id] = true; else delete done[id];
+      save(DONE_KEY, done);
+      refreshProgress();
+    });
+  });
+
+  /* 2. Filtros por área. */
+  var filters = Array.prototype.slice.call(document.querySelectorAll(".filter"));
+  filters.forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var area = btn.getAttribute("data-area");
+      filters.forEach(function (b) { b.setAttribute("aria-pressed", String(b === btn)); });
+      items.forEach(function (it) {
+        var areas = (it.getAttribute("data-areas") || "").split(" ");
+        it.hidden = area !== "todas" && areas.indexOf(area) === -1;
+      });
+      Array.prototype.forEach.call(document.querySelectorAll(".prio"), function (sec) {
+        var visible = sec.querySelectorAll(".item:not([hidden])").length;
+        sec.querySelector(".prio-empty").hidden = visible !== 0;
+        sec.querySelector(".prio-count").textContent = visible + (visible === 1 ? " etapa" : " etapas");
+      });
+    });
+  });
+
+  refreshProgress();
+
+  /* 3. Decisões D-5 a D-9: escolha salva e resumo para copiar. */
+  var DEC_KEY = "atrium-sdd29-decisoes";
+  var decisions = Array.prototype.slice.call(document.querySelectorAll(".decision"));
+  var picked = load(DEC_KEY);
+  var summary = document.getElementById("decisions-text");
+  var status = document.getElementById("copy-status");
+
+  function summaryText() {
+    var lines = ["Decisões do atendimento humano, Etapa 17.0:"];
+    decisions.forEach(function (card) {
+      var id = card.getAttribute("data-id");
+      var choice = picked[id];
+      var text = "sem escolha ainda";
+      if (choice === "proposta") text = "proposta, " + card.getAttribute("data-proposta");
+      if (choice === "alternativa") text = "alternativa, " + card.getAttribute("data-alternativa");
+      lines.push(id + " (" + card.getAttribute("data-label") + "): " + text);
+    });
+    return lines.join("\n");
+  }
+
+  function refreshSummary() { summary.textContent = summaryText(); }
+
+  decisions.forEach(function (card) {
+    var id = card.getAttribute("data-id");
+    Array.prototype.forEach.call(card.querySelectorAll("input[type=radio]"), function (radio) {
+      if (picked[id] === radio.value) radio.checked = true;
+      radio.addEventListener("change", function () {
+        if (!radio.checked) return;
+        picked[id] = radio.value;
+        save(DEC_KEY, picked);
+        status.textContent = "";
+        refreshSummary();
+      });
+    });
+  });
+
+  function copyFallback(text) {
+    var area = document.createElement("textarea");
+    area.value = text;
+    area.setAttribute("readonly", "");
+    area.style.position = "fixed";
+    area.style.opacity = "0";
+    document.body.appendChild(area);
+    area.select();
+    var ok = false;
+    try { ok = document.execCommand("copy"); } catch (e) { ok = false; }
+    document.body.removeChild(area);
+    return ok;
+  }
+
+  document.getElementById("copy-decisions").addEventListener("click", function () {
+    var text = summaryText();
+    function report(ok) {
+      status.textContent = ok ? "Resumo copiado. Cole no chat." : "Não deu para copiar. Selecione o resumo abaixo e copie.";
+    }
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(text).then(function () { report(true); }, function () { report(copyFallback(text)); });
+    } else {
+      report(copyFallback(text));
+    }
+  });
+
+  document.getElementById("clear-decisions").addEventListener("click", function () {
+    picked = {};
+    save(DEC_KEY, picked);
+    Array.prototype.forEach.call(document.querySelectorAll(".decision input[type=radio]"), function (r) { r.checked = false; });
+    status.textContent = "Escolhas limpas.";
+    refreshSummary();
+  });
+
+  refreshSummary();
+
+  /* 4. Demonstração da remoção de identificadores (seção 29.9.7). As regras rodam nesta
+     ordem: telefones do catálogo protegidos, e-mail, CPF, cartão, telefone e número longo.
+     A função de verdade, em Python, nasce na Etapa 17.1. */
+  var input = document.getElementById("demo-in");
+  var output = document.getElementById("demo-out");
+  var countsEl = document.getElementById("demo-counts");
+  var CATALOG_RE = /\(555\)\s?014-26(?:00|20|30|40)|555-014-26(?:00|20|30|40)|\b014-26(?:00|20|30|40)\b/g;
+  var EMAIL_RE = /[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+/g;
+  var CPF_RE = /(^|\D)(\d{3}\.?\d{3}\.?\d{3}-?\d{2})(?!\d)/g;
+  var CARD_RE = /(^|\D)(\d(?:[ -]?\d){12,18})(?!\d)/g;
+  /* O bloco inteiro de dígitos e separadores: a quantidade de dígitos decide depois se é
+     telefone (7 a 15) ou número longo (mais de 15). */
+  var PHONE_RE = /(^|[^\w+(])((?:\+|\()?\d(?:[ ()-]*\d)+)(?!\w)/g;
+  var DIGITS_RE = /\d{6,}/g;
+  var DATE_START_RE = /^\d{1,2}-\d{1,2}-\d{4}/;
+  var LABELS = { email: "e-mail", cpf: "CPF", card: "cartão", phone: "telefone", digits: "número longo" };
+
+  function validCpf(raw) {
+    var d = raw.replace(/\D/g, "");
+    if (d.length !== 11 || /^(\d)\1{10}$/.test(d)) return false;
+    for (var t = 9; t < 11; t++) {
+      var sum = 0;
+      for (var i = 0; i < t; i++) sum += Number(d.charAt(i)) * (t + 1 - i);
+      if ((sum * 10) % 11 % 10 !== Number(d.charAt(t))) return false;
+    }
+    return true;
+  }
+
+  function luhn(d) {
+    var sum = 0;
+    for (var i = 0; i < d.length; i++) {
+      var n = Number(d.charAt(d.length - 1 - i));
+      if (i % 2 === 1) { n *= 2; if (n > 9) n -= 9; }
+      sum += n;
+    }
+    return sum % 10 === 0;
+  }
+
+  function redact(text) {
+    var counts = {};
+    var kept = [];
+    function hit(kind) { counts[kind] = (counts[kind] || 0) + 1; }
+    var s = text.replace(CATALOG_RE, function (m) {
+      kept.push(m);
+      return "" + String.fromCharCode(65 + kept.length - 1) + "";
+    });
+    s = s.replace(EMAIL_RE, function () { hit("email"); return "[e-mail removido]"; });
+    s = s.replace(CPF_RE, function (m, pre, body) {
+      if (!validCpf(body)) return m;
+      hit("cpf");
+      return pre + "[CPF removido]";
+    });
+    s = s.replace(CARD_RE, function (m, pre, body) {
+      var d = body.replace(/\D/g, "");
+      if (d.length < 13 || d.length > 19 || !luhn(d)) return m;
+      hit("card");
+      return pre + "[cartão removido]";
+    });
+    s = s.replace(PHONE_RE, function (m, pre, body) {
+      var d = body.replace(/\D/g, "");
+      var separated = /[+() -]/.test(body);
+      if (d.length < 7 || !separated || DATE_START_RE.test(body)) return m;
+      if (d.length > 15) { hit("digits"); return pre + "[número removido]"; }
+      hit("phone");
+      return pre + "[telefone removido]";
+    });
+    s = s.replace(DIGITS_RE, function () { hit("digits"); return "[número removido]"; });
+    s = s.replace(/([A-Z])/g, function (m, c) { return kept[c.charCodeAt(0) - 65]; });
+    return { text: s, counts: counts };
+  }
+
+  function escapeHtml(t) {
+    return t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+
+  function refreshDemo() {
+    var result = redact(input.value);
+    output.innerHTML = escapeHtml(result.text).replace(/\[[^\]]+ removido\]/g, function (m) { return "<mark>" + m + "</mark>"; });
+    var parts = [];
+    Object.keys(LABELS).forEach(function (k) {
+      if (result.counts[k]) parts.push(result.counts[k] + " " + LABELS[k]);
+    });
+    countsEl.textContent = parts.length ? "Removidos: " + parts.join(", ") + "." : "Nada para remover.";
+  }
+
+  input.addEventListener("input", refreshDemo);
+  refreshDemo();
+})();
+</script>
+</body>
+</html>

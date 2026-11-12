@@ -36,6 +36,7 @@ async def refresh_database_metrics(database_url: str, clock: Clock) -> None:
             within, overdue = await repository.open_requests(clock.now())
             deleted = await repository.retention_deleted_by_rule()
             last_run = await repository.last_retention_run()
+            queued, present = await repository.handoff_counts(clock.now())
     except Exception:
         structlog.get_logger("atrium").warning("metrics.database_refresh_failed")
         return
@@ -43,5 +44,7 @@ async def refresh_database_metrics(database_url: str, clock: Clock) -> None:
     SNAPSHOT.dsr_overdue = overdue
     SNAPSHOT.retention_deleted = deleted
     SNAPSHOT.retention_last_run_seconds = last_run.timestamp() if last_run else None
+    SNAPSHOT.handoff_queue = queued
+    SNAPSHOT.handoff_attendants_available = present
     # Até a primeira leitura bem-sucedida, o coletor não emite estas séries.
     SNAPSHOT.loaded = True

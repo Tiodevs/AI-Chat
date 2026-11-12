@@ -24,6 +24,7 @@ import { api } from "@/lib/api/client.ts"
 import type { components } from "@/lib/api/schema.ts"
 import { postEventStream, readEventStream } from "@/lib/sse.ts"
 
+import { seedHandoffs } from "./handoff-store.ts"
 import {
   applyStreamEvent,
   assistantAfter,
@@ -45,13 +46,15 @@ import {
   takeQuestion,
   updateAssistant,
 } from "./store.ts"
-import type { AssistantTurn, StoredMessage } from "./types.ts"
+import type { AssistantTurn, StoredHandoff, StoredMessage } from "./types.ts"
 
 /** Intervalo da consulta de reserva: a cada segundo (seção 7.1). */
 const reserveEveryMs = 1000
 
 /** Mensagem como o OpenAPI a descreve (`schema.ts`, seção 6.6). */
 type ApiMessage = components["schemas"]["MessageResponse"]
+/** Resumo de um atendimento humano da conversa (seção 29.10). */
+type ApiHandoff = components["schemas"]["HandoffSummaryResponse"]
 
 /**
  * Hook da conversa. Sem `conversationId`, serve à tela inicial.
@@ -200,12 +203,13 @@ async function load(conversationId: string, force = false) {
       })
       return
     }
-    // A thread lida não traz resposta nova, então nada é anunciado.
-    replaceMessages(
-      conversationId,
-      turnsFromStored(result.data.messages.map(toStored)),
-      false
-    )
+    // A thread lida não traz resposta nova, então nada é anunciado. Os
+    // atendimentos humanos vão para o store deles, e a thread guarda só onde
+    // cada bloco aparece (seção 29.11).
+    const stored = result.data.messages.map(toStored)
+    const handoffs = (result.data.handoffs ?? []).map(toHandoff)
+    seedHandoffs(conversationId, handoffs, stored)
+    replaceMessages(conversationId, turnsFromStored(stored, handoffs), false)
   } catch {
     // Com um fluxo no ar, ele cuida da tela, e o erro da leitura é
     // descartado.
@@ -293,6 +297,7 @@ async function submit(conversationId: string, text: string) {
         return
       }
       const stored = result.data.messages.map(toStored)
+      const handoffs = (result.data.handoffs ?? []).map(toHandoff)
       const settled = assistantAfter(stored, clientMessageId)
       if (!settled?.outcome) {
         return
@@ -300,7 +305,7 @@ async function submit(conversationId: string, text: string) {
       settledByPoll = true
       window.clearInterval(timer)
       // Sem eventos, a região ao vivo ainda não anunciou nada.
-      replaceMessages(conversationId, turnsFromStored(stored), true)
+      replaceMessages(conversationId, turnsFromStored(stored, handoffs), true)
       if (settled.outcome === "degraded") {
         markBudgetExceeded()
       }
@@ -546,12 +551,25 @@ function toStored(message: ApiMessage): StoredMessage {
     content: message.content,
     clientMessageId: message.client_message_id,
     outcome: message.outcome,
+    createdAt: message.created_at,
+    handoffId: message.handoff_id ?? null,
+    redaction: message.redaction ?? null,
     citations: message.citations.map((citation) => ({
       index: citation.index,
       documentTitle: citation.document_title,
       heading: citation.heading,
       chunkId: citation.chunk_id,
     })),
+  }
+}
+
+/** Converte o resumo do atendimento do OpenAPI no tipo da tela. */
+function toHandoff(handoff: ApiHandoff): StoredHandoff {
+  return {
+    id: handoff.id,
+    status: handoff.status,
+    closeReason: handoff.close_reason,
+    requestedAt: handoff.requested_at,
   }
 }
 

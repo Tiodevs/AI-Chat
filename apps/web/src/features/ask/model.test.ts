@@ -81,6 +81,9 @@ describe("conversa", () => {
           clientMessageId: "user",
           citations: [],
           outcome: null,
+          createdAt: "2026-11-12T15:00:00Z",
+          handoffId: null,
+          redaction: null,
         },
         {
           id: "assistant",
@@ -89,6 +92,9 @@ describe("conversa", () => {
           clientMessageId: null,
           citations: [],
           outcome: "refused",
+          createdAt: "2026-11-12T15:00:01Z",
+          handoffId: null,
+          redaction: null,
         },
       ])
     )

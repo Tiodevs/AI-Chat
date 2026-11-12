@@ -10,7 +10,9 @@ import { useState } from "react"
 import { useNavigate } from "react-router"
 
 import { queryClient } from "@/app/query-client.ts"
+import { resetHandoffState } from "@/features/ask/handoff-store.ts"
 import { resetAskState } from "@/features/ask/store.ts"
+import { resetAttendanceState } from "@/features/attendance/useAttendance.ts"
 import { pt } from "@/i18n/pt.ts"
 import { api } from "@/lib/api/client.ts"
 
@@ -28,9 +30,8 @@ import { meQuery } from "./useSession.ts"
  * 5. Volta para `/` com `replace`, que troca a entrada atual do histórico:
  *    o Voltar do navegador não retorna à página onde a pessoa saiu.
  *
- * Se a API falhar, a sessão continua e `error` avisa (seção 14.6). O
- * cookie `atrium_guest` continua no navegador; a Etapa 15.1 passa a
- * apagá-lo na saída.
+ * Se a API falhar, a sessão continua e `error` avisa (seção 14.6). A
+ * resposta da saída também apaga o cookie `atrium_guest` (Etapa 15.1).
  */
 export function useSignOut() {
   const navigate = useNavigate()
@@ -57,6 +58,9 @@ export function useSignOut() {
       queryClient.setQueryData(meQuery.queryKey, null)
       // 4.
       resetAskState()
+      // O atendimento humano e o console também saem com a conta (seção 29.8).
+      resetHandoffState()
+      resetAttendanceState()
       // 5.
       await navigate("/", { replace: true })
     } catch {

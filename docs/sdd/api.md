@@ -4,7 +4,7 @@ Parte da [especificação do Atrium](../sdd.md). A numeração das seções é a
 
 ## 12. API HTTP
 
-O prefixo da API é `/v1`. O navegador chama `/backend/v1/...`. Os corpos são JSON, salvo uploads. Os erros usam uma forma só:
+O prefixo da API é `/v1`. O navegador chama `/backend/v1/...`. Os corpos são JSON, salvo uploads. As rotas do atendimento humano, de `/v1/handoff`, `/v1/conversations/{id}/handoff`, `/v1/attendance` e `/v1/admin/handoffs`, e os códigos de erro dele estão na seção 29.10. Os erros usam uma forma só:
 
 ```json
 {
@@ -28,7 +28,7 @@ Erros de validação usam `validation_error` e HTTP 422. Falhas de autorização
 | `GET /v1/diagnostics/stream` | Qualquer um, limitado | Emite três eventos `tick`, com `{ "index": 1 }`, `{ "index": 2 }` e `{ "index": 3 }`, um por segundo. O limite é 60 por hora por IP. |
 | `POST /v1/conversations` | Visitante | Cria uma conversa para a sessão válida ou, sem sessão, para a chave de convidado. Devolve `{ "id", "created_at" }`. |
 | `GET /v1/conversations` | Membro ou admin | Lista as conversas desse usuário, da mais recente para a mais antiga: `{ "conversations": [ { "id", "created_at", "first_question" } ] }`. `first_question` é a primeira pergunta gravada da conversa, ou `null`. A aba Conversas da conta a mostra. |
-| `GET /v1/conversations/{id}` | Dono | Devolve `{ "id", "created_at", "messages" }`. Cada mensagem traz `id`, `role`, `content`, `client_message_id`, `citations`, `outcome` e `created_at`. |
+| `GET /v1/conversations/{id}` | Dono | Devolve `{ "id", "created_at", "messages" }`. Cada mensagem traz `id`, `role`, `content`, `client_message_id`, `citations`, `outcome` e `created_at`. Quem não é dono recebe o 404 de uma conversa inexistente, também na pergunta e no feedback. |
 | `POST /v1/conversations/{id}/messages` | Dono | `{ "text", "client_message_id" }`, texto com até 1.000 caracteres. Responde `text/event-stream`. |
 | `POST /v1/messages/{id}/feedback` | Dono | `{ "rating": 1 }` ou `{ "rating": -1 }`, só numa mensagem do assistente. Uma vez. Devolve `{ "message_id", "rating" }`. |
 | `POST /v1/registration/sessions` | Visitante | Começa um cadastro por chat e devolve a saudação. |

@@ -3,7 +3,8 @@
 Camada de entidade de persistência (seção 6.2 do SDD). `ConversationRepository` grava e lê as
 mensagens de uma conversa, `InsightsRepository` as agrega para o admin, e `RetentionRepository`
 usa a mais nova para saber a última atividade. Criada na migração `0004_conversations`; a
-`0009_message_request_id` acrescentou `request_id`.
+`0009_message_request_id` acrescentou `request_id`, e a `0010_handoffs`, as colunas do
+atendimento humano (seção 29.7).
 """
 
 import uuid
@@ -24,12 +25,16 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
+from app.domain.handoff import RedactionCategory, check_sql
 from app.domain.outcomes import OUTCOME_CHECK_SQL
 from app.models.base import Base
 
 
 class Message(Base):
     """Uma mensagem. A pergunta tem `role = user`, e a resposta, `role = assistant`.
+
+    No atendimento humano, o visitante escreve com `role = user` e a equipe com
+    `role = attendant`, as duas com `handoff_id` e `seq` (seção 29.7).
 
     Uma pergunta gera duas linhas, em duas transações curtas (seção 6.4). A pergunta não tem
     desfecho, citação, modelo nem tokens. A resposta traz tudo isso. Retenção: a mensagem some
@@ -47,7 +52,20 @@ class Message(Base):
             "client_message_id",
             name="messages_conversation_id_client_message_id_key",
         ),
-        CheckConstraint("role IN ('user', 'assistant')", name="messages_role"),
+        # `attendant` é a pessoa da equipe no atendimento humano (seção 29.7).
+        CheckConstraint("role IN ('user', 'assistant', 'attendant')", name="messages_role"),
+        # A mensagem da equipe é sempre do atendimento, e a do atendimento sempre tem `seq`.
+        CheckConstraint(
+            "role <> 'attendant' OR handoff_id IS NOT NULL",
+            name="messages_attendant_handoff",
+        ),
+        CheckConstraint("handoff_id IS NULL OR seq IS NOT NULL", name="messages_handoff_seq"),
+        CheckConstraint(
+            f"redaction IS NULL OR {check_sql('redaction', RedactionCategory)}",
+            name="messages_redaction",
+        ),
+        # O cursor da retomada do fluxo: um `seq` por mensagem do atendimento (seção 29.6).
+        UniqueConstraint("handoff_id", "seq", name="messages_handoff_id_seq_key"),
         # Nulo ou um dos desfechos de `Outcome` (seção 7.1).
         CheckConstraint(OUTCOME_CHECK_SQL, name="messages_outcome"),
         CheckConstraint("input_tokens >= 0 AND output_tokens >= 0", name="messages_tokens"),
@@ -93,3 +111,18 @@ class Message(Base):
     # Sem padrão no banco. O serviço grava `allocate_created_at`: o horário atual ou, se ele
     # não passa da mensagem mais nova da conversa, um microssegundo depois dela.
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    # As cinco colunas abaixo são do atendimento humano (seção 29.7, migração `0010`). Uma
+    # mensagem com `handoff_id` é do atendimento e nunca vai ao modelo (FR-21).
+    handoff_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("handoffs.id", ondelete="CASCADE"),
+        nullable=True,
+    )
+    # O cursor da retomada do fluxo. Uma remoção dá à mensagem um `seq` novo (seção 29.6).
+    seq: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # Quem da equipe escreveu. Sem chave estrangeira, como em `audit_events`: a autoria
+    # sobrevive à revogação do papel e à exclusão da conta.
+    author_user_id: Mapped[uuid.UUID | None] = mapped_column(Uuid(as_uuid=True), nullable=True)
+    # A categoria da remoção do conteúdo, ou `retention` quando a regra de 90 dias apagou.
+    redaction: Mapped[str | None] = mapped_column(Text, nullable=True)
+    redacted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import time
 from types import TracebackType
+from typing import Literal
 
 import structlog
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -47,10 +48,11 @@ class UnitOfWork:
         exc_type: type[BaseException] | None,
         exc: BaseException | None,
         traceback: TracebackType | None,
-    ) -> bool:
+    ) -> Literal[False]:
         """Commit ou rollback, aviso de lentidão e fechamento da sessão.
 
-        Devolve `False`: o `async with` não engole a exceção do bloco.
+        Devolve `False`: o `async with` não engole a exceção do bloco. O tipo `Literal[False]`
+        diz isso ao mypy, que então aceita um `return` dentro do bloco.
         """
         try:
             if exc_type is None:

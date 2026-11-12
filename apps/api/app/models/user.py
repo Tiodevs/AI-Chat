@@ -1,4 +1,4 @@
-"""Tabela `users`: membros e admins. Seção 8.1 do SDD.
+"""Tabela `users`: membros, admins e atendentes. Seções 8.1 e 29.3 do SDD.
 
 Camada de entidade de persistência (seção 6.2 do SDD). `UserRepository` lê e grava a tabela, e
 `RetentionRepository` apaga membros inativos. Os serviços de autenticação, conta e cadastro
@@ -33,8 +33,9 @@ class User(Base):
     __table_args__ = (
         # O banco garante o e-mail em minúsculas (seção 8). Quem grava normaliza antes.
         CheckConstraint("email = lower(email)", name="users_email_lowercase"),
-        # Só dois papéis. O cadastro público fixa `member` no código (seção 10.5).
-        CheckConstraint("role IN ('member', 'admin')", name="users_role"),
+        # Três papéis. O cadastro público fixa `member` no código (seção 10.5), e só o script
+        # `app.scripts.attendants` muda uma conta para `attendant` (seção 29.3).
+        CheckConstraint("role IN ('member', 'admin', 'attendant')", name="users_role"),
         CheckConstraint(
             "visitor_type IS NULL OR visitor_type IN ('patient', 'visitor', 'caregiver')",
             name="users_visitor_type",

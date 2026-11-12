@@ -10,7 +10,7 @@ O movimento do app com GSAP, num lugar só: o registro do GSAP, os tokens, um pr
 | [flip.ts](flip.ts) | Registra o plugin Flip à parte, para ele ficar fora do JavaScript inicial de `/` | `components/patterns/app-sidebar.tsx` (M13) |
 | [tokens.ts](tokens.ts) | `motionTokens`: durações, curvas, intervalo de lista e distância de entrada da seção 16.2 | `gsap.ts` e `presets.ts` |
 | [MotionProvider.tsx](MotionProvider.tsx) | `MotionProvider` e `useMotion`: `reduced`, `isDesktop`, `isMobile` e a preferência System, On ou Off guardada no `localStorage`. Grava `data-motion` no `html` | `app/providers.tsx`; leem `useMotion` a casca, os componentes que animam, o `ProfileButton` e a aba Perfil da conta |
-| [presets.ts](presets.ts) | Os 20 presets: cada um recebe o alvo e o `reduced` e usa `gsap.set` com movimento reduzido | `app/shell.tsx`, `useGsapPresence.ts` e os componentes de `components/patterns` |
+| [presets.ts](presets.ts) | Os 23 presets, com os três do atendimento humano (seção 29.11): cada um recebe o alvo e o `reduced` e usa `gsap.set` com movimento reduzido | `app/shell.tsx`, `useGsapPresence.ts` e os componentes de `components/patterns` |
 | [useGsapPresence.ts](useGsapPresence.ts) | Diz se um painel fica montado e anima a entrada e a saída (M14) | `search-dialog.tsx`, `guest-header.tsx` e o menu do celular em `app-sidebar.tsx` |
 | [presets.test.ts](presets.test.ts) | Testes dos presets, com o GSAP trocado por espiões | Vitest, projeto `dom` |
 

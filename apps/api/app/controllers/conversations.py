@@ -44,6 +44,7 @@ from app.schemas.conversations import (
     ConversationSummaryResponse,
     FeedbackRequest,
     FeedbackResponse,
+    HandoffSummaryResponse,
     MessageResponse,
 )
 from app.schemas.errors import ErrorResponse
@@ -131,9 +132,9 @@ async def get_conversation(
     service: Annotated[Any, Depends(get_conversation_service)],
 ) -> ConversationResponse:
     """Devolve a conversa do dono, com mensagens e citações."""
-    # Conversa inexistente responde 404, e cookie que não é do dono, 403. É a rota que a visão
-    # consulta quando o fluxo não entrega o primeiro evento (seção 7.1).
-    conversation, messages = await service.get(
+    # Conversa inexistente e cookie que não é do dono respondem o mesmo 404 (Etapa 15.1). É a
+    # rota que a visão consulta quando o fluxo não entrega o primeiro evento (seção 7.1).
+    conversation, messages, handoffs = await service.get(
         conversation_id,
         session_secret=request.cookies.get(SESSION_COOKIE_NAME),
         guest_secret=request.cookies.get(GUEST_COOKIE_NAME),
@@ -141,6 +142,17 @@ async def get_conversation(
     return ConversationResponse(
         id=conversation.id,
         created_at=conversation.created_at,
+        handoffs=[
+            HandoffSummaryResponse(
+                id=handoff.id,
+                status=handoff.status,
+                close_reason=handoff.close_reason,
+                requested_at=handoff.requested_at,
+                assigned_at=handoff.assigned_at,
+                closed_at=handoff.closed_at,
+            )
+            for handoff in handoffs
+        ],
         messages=[
             MessageResponse(
                 id=message.id,
@@ -158,6 +170,8 @@ async def get_conversation(
                 ],
                 outcome=message.outcome,
                 created_at=message.created_at,
+                handoff_id=message.handoff_id,
+                redaction=message.redaction,
             )
             for message in messages
         ],
@@ -237,7 +251,7 @@ async def create_feedback(
     service: Annotated[Any, Depends(get_conversation_service)],
 ) -> FeedbackResponse:
     """Marca uma resposta do assistente como útil ou não útil, uma vez."""
-    # Responde 201. Mensagem inexistente responde 404; conversa de outro dono, 403; mensagem do
+    # Responde 201. Mensagem inexistente ou de conversa de outro dono responde 404; mensagem do
     # visitante, 422; segunda nota na mesma mensagem, 409. Quando a resposta tem rastro, o
     # envio ao LangSmith (`user_helpful`) vai para uma tarefa de fundo, que o Starlette roda
     # depois de enviar a resposta; uma falha nela só gera log (seção 18.4).
@@ -320,10 +334,15 @@ def render_ask_event(event: AskEvent) -> str:
     raise TypeError(type(event))
 
 
-def _role(value: str) -> Literal["user", "assistant"]:
-    """Estreita o papel gravado para o `Literal` do schema: o que não é `assistant` é `user`."""
+def _role(value: str) -> Literal["user", "assistant", "attendant"]:
+    """Estreita o papel gravado para o `Literal` do schema. O resto vira `user`.
+
+    `attendant` é a equipe no atendimento humano (seção 29.10).
+    """
     if value == "assistant":
         return "assistant"
+    if value == "attendant":
+        return "attendant"
     return "user"
 
 

@@ -27,6 +27,9 @@ const fetchMessage =
 const apiImportMessage =
   "O cliente em src/lib/api só é importado por hooks de feature (SDD 6.2)."
 
+const dangerMessage =
+  "O atendimento mostra texto puro: sem dangerouslySetInnerHTML (SDD 29.8)."
+
 // Os blocos valem na ordem, e um bloco posterior sobrepõe as regras de um
 // anterior nos arquivos que ele cobre. As pastas de build ficam de fora.
 export default defineConfig([globalIgnores(["dist", "storybook-static", "coverage", "node_modules"]), {
@@ -90,5 +93,31 @@ export default defineConfig([globalIgnores(["dist", "storybook-static", "coverag
   files: ["src/features/**/use*.ts", "src/features/**/use*.tsx"],
   rules: {
     "no-restricted-imports": "off",
+  },
+}, {
+  // O atendimento humano mostra texto livre de visitante e de equipe: nada de
+  // HTML cru nessas pastas (seção 29.8). O bloco repete a regra do `fetch`,
+  // porque um `no-restricted-syntax` posterior troca a lista inteira.
+  files: [
+    "src/features/ask/**/*.tsx",
+    "src/features/attendance/**/*.tsx",
+    "src/components/patterns/handoff-*.tsx",
+    "src/components/patterns/attendant-message.tsx",
+    "src/components/patterns/queue-list.tsx",
+    "src/components/patterns/redact-dialog.tsx",
+  ],
+  rules: {
+    "no-restricted-syntax": [
+      "error",
+      {
+        selector:
+          "CallExpression[callee.name='fetch'], CallExpression[callee.property.name='fetch']",
+        message: fetchMessage,
+      },
+      {
+        selector: "JSXAttribute[name.name='dangerouslySetInnerHTML']",
+        message: dangerMessage,
+      },
+    ],
   },
 }, ...storybook.configs["flat/recommended"]])

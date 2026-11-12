@@ -98,6 +98,7 @@ def test_claude_rules_cite_their_sdd_sections() -> None:
     assert "6.2" in (rules / "camadas.md").read_text(encoding="utf-8")
     assert "14.8" in (rules / "design-system.md").read_text(encoding="utf-8")
     assert "16.5" in (rules / "gsap.md").read_text(encoding="utf-8")
+    assert "29.8" in (rules / "atendimento.md").read_text(encoding="utf-8")
 
 
 def test_env_example_lists_section_17_without_secrets() -> None:

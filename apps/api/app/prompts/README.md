@@ -19,6 +19,7 @@ Os caminhos de "Quem usa" são relativos a `apps/api/app`.
 | [`documents.py`](documents.py) | Erros de `/admin/documents` e o texto de cada `UploadIssue` | `services/documents.py` |
 | [`insights.py`](insights.py) | Erros de `/admin` e `/admin/quality` | `services/insights.py` |
 | [`privacy.py`](privacy.py) | Erros do canal de `/privacy` e da fila de `/admin/privacy`, e a linha final do script de retenção | `services/privacy.py`, `scripts/retention.py` |
+| [`handoff.py`](handoff.py) | As mensagens dos erros do atendimento humano, o prefixo do rótulo e as do script `attendants` | `services/handoff.py`, `services/attendance.py`, `services/attendant_roles.py`, `controllers/attendance.py` e `controllers/event_stream.py` |
 
 ## Como ler
 

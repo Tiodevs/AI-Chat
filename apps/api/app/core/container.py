@@ -291,3 +291,53 @@ def get_privacy_queue_service(
     from app.services.privacy import PrivacyQueueService
 
     return PrivacyQueueService(database_url=settings.database_url, clock=clock)
+
+
+def get_realtime_broker(request: Request) -> Any:
+    """O broker dos avisos do atendimento humano, um por app (ADR-016).
+
+    O `lifespan` guarda em `app.state` o `PostgresNotifyBroker`, que ouve o `LISTEN`. Sem
+    `lifespan`, como num `TestClient` fora de `with`, nasce um `InMemoryBroker` no primeiro
+    uso, que entrega os avisos só neste processo.
+    """
+    from app.adapters.realtime import InMemoryBroker
+
+    broker = getattr(request.app.state, "realtime_broker", None)
+    if broker is None:
+        broker = InMemoryBroker()
+        request.app.state.realtime_broker = broker
+    return broker
+
+
+def get_handoff_service(
+    settings: Annotated[Settings, Depends(get_settings)],
+    clock: Annotated[Clock, Depends(get_clock)],
+    broker: Annotated[Any, Depends(get_realtime_broker)],
+) -> Any:
+    """`HandoffService` do visitante a cada pedido, sem provedor de IA nenhum (FR-21)."""
+    from app.services.handoff import HandoffService
+
+    return HandoffService(
+        database_url=settings.database_url,
+        clock=clock,
+        hmac_key=settings.rate_limit_hmac_key,
+        enabled=settings.handoff_enabled,
+        broker=broker,
+    )
+
+
+def get_attendance_service(
+    settings: Annotated[Settings, Depends(get_settings)],
+    clock: Annotated[Clock, Depends(get_clock)],
+    broker: Annotated[Any, Depends(get_realtime_broker)],
+) -> Any:
+    """`AttendanceService` da equipe e do admin a cada pedido, sem provedor de IA (NFR-17)."""
+    from app.services.attendance import AttendanceService
+
+    return AttendanceService(
+        database_url=settings.database_url,
+        clock=clock,
+        hmac_key=settings.rate_limit_hmac_key,
+        pseudonym_key=settings.pseudonym_key,
+        broker=broker,
+    )

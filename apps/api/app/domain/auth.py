@@ -21,6 +21,10 @@ from typing import Literal
 # Nome do cookie de sessão e validade de 14 dias, a mesma da sessão gravada (seção 10.3).
 SESSION_COOKIE_NAME = "atrium_session"
 SESSION_MAX_AGE_SECONDS = 14 * 24 * 60 * 60
+# A equipe usa computador compartilhado no balcão: a sessão de `attendant` e de `admin` dura
+# um turno, 12 horas, no banco e no cookie (seção 29.8, decisão D-8).
+STAFF_SESSION_MAX_AGE_SECONDS = 12 * 60 * 60
+STAFF_ROLES = frozenset({"admin", "attendant"})
 # Login: 10 tentativas por e-mail a cada 15 minutos e 30 por IP a cada hora (seção 10.4).
 LOGIN_EMAIL_LIMIT = 10
 LOGIN_EMAIL_WINDOW = timedelta(minutes=15)
@@ -123,8 +127,24 @@ def session_cookie_is_secure(app_env: str) -> bool:
     return app_env != "local"
 
 
-def session_cookie(*, secret: str, app_env: str) -> SessionCookie:
-    """Monta o cookie `atrium_session` com o segredo recém-criado, válido por 14 dias."""
+def session_max_age_seconds(role: str) -> int:
+    """Duração da sessão pelo papel: 12 horas para a equipe, 14 dias para o membro.
+
+    Vale para o `expires_at` gravado e para o `Max-Age` do cookie, que ficam iguais (seções
+    10.3 e 29.8).
+    """
+    if role in STAFF_ROLES:
+        return STAFF_SESSION_MAX_AGE_SECONDS
+    return SESSION_MAX_AGE_SECONDS
+
+
+def session_cookie(
+    *, secret: str, app_env: str, max_age: int = SESSION_MAX_AGE_SECONDS
+) -> SessionCookie:
+    """Monta o cookie `atrium_session` com o segredo recém-criado.
+
+    Vale 14 dias por padrão; o login da equipe passa as 12 horas de `session_max_age_seconds`.
+    """
     return SessionCookie(
         name=SESSION_COOKIE_NAME,
         value=secret,
@@ -132,7 +152,7 @@ def session_cookie(*, secret: str, app_env: str) -> SessionCookie:
         same_site="lax",
         secure=session_cookie_is_secure(app_env),
         path="/",
-        max_age=SESSION_MAX_AGE_SECONDS,
+        max_age=max_age,
     )
 
 

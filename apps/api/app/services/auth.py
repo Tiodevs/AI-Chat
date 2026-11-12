@@ -31,7 +31,6 @@ from app.db.unit_of_work import UnitOfWork
 from app.domain.auth import (
     LOGIN_EMAIL_WINDOW,
     LOGIN_IP_WINDOW,
-    SESSION_MAX_AGE_SECONDS,
     SessionCookie,
     bucket_key,
     clean_user_agent,
@@ -43,6 +42,7 @@ from app.domain.auth import (
     password_is_checkable,
     password_length_is_valid,
     session_cookie,
+    session_max_age_seconds,
 )
 from app.domain.errors import (
     Conflict,
@@ -133,7 +133,7 @@ class AuthService:
         user_agent: str,
         client_ip: str,
     ) -> LoginResult:
-        """Confere e-mail e senha e abre uma sessão de 14 dias.
+        """Confere e-mail e senha e abre uma sessão de 14 dias, ou de 12 horas para a equipe.
 
         1. Calcula os dois baldes da seção 10.4: 10 tentativas por e-mail a cada 15 minutos
            e 30 por IP por hora. A chave é o HMAC com o sal do dia, então nem o e-mail nem o
@@ -196,9 +196,11 @@ class AuthService:
         if record is None:
             raise Unauthenticated(INVALID_CREDENTIALS)
 
-        # 5. O cookie leva o segredo; o banco, só o hash dele.
+        # 5. O cookie leva o segredo; o banco, só o hash dele. A equipe ganha 12 horas, e o
+        # membro, 14 dias (seção 29.8).
         secret = new_session_secret()
-        expires_at = now + timedelta(seconds=SESSION_MAX_AGE_SECONDS)
+        max_age = session_max_age_seconds(record.role)
+        expires_at = now + timedelta(seconds=max_age)
         async with open_session(self._database_url) as session, UnitOfWork(session):
             await AuthSessionRepository(session).create(
                 token_hash=hash_session_secret(secret),
@@ -209,7 +211,7 @@ class AuthService:
             await UserRepository(session).touch(record.id, now)
         return LoginResult(
             profile=_profile(record),
-            cookie=session_cookie(secret=secret, app_env=self._app_env),
+            cookie=session_cookie(secret=secret, app_env=self._app_env, max_age=max_age),
         )
 
     async def authenticate(self, secret: str | None) -> Profile:

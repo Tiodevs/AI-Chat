@@ -9,14 +9,17 @@ A montagem do app: os provedores, o roteador com os guards, a casca em volta das
 | [providers.tsx](providers.tsx) | `AppProviders`: o `QueryClientProvider` e o `MotionProvider` | `src/main.tsx`, `.storybook/preview.tsx` e os testes de tela |
 | [query-client.ts](query-client.ts) | O `queryClient` único, sem nova tentativa automática e sem releitura ao voltar o foco | `providers.tsx`, `guards.ts`, os hooks que gravam ou limpam o cache e `src/test/setup.ts` |
 | [router.tsx](router.tsx) | A árvore de rotas (`routes`), com `lazy` em cada página e os guards como `loader`, e o roteador do navegador (`router`) | `src/main.tsx` e os testes, com `createMemoryRouter` |
-| [guards.ts](guards.ts) | `requireSession`, `requireUser` e `requireAdmin`: leem `GET /v1/me` pelo cache e mandam para `/sign-in?returnTo=`, para `/legal/accept?returnTo=` ou para a página 403 | `router.tsx` |
+| [guards.ts](guards.ts) | `requireSession`, `requireUser`, `requireAdmin` e `requireStaff`, da equipe de atendimento: leem `GET /v1/me` pelo cache e mandam para `/sign-in?returnTo=`, para `/legal/accept?returnTo=` ou para a página 403 | `router.tsx` |
 | [shell.tsx](shell.tsx) | A casca, rota raiz: barra lateral ou `GuestHeader`, o `main` que rola, a entrada M1 e o foco no título na troca de rota, o link para pular ao conteúdo e o ⌘K | `router.tsx`, por `lazy` |
 | [route-frame.tsx](route-frame.tsx) | A moldura sem `path` das páginas e o `ErrorBoundary` comum: 403, erro da API com `request_id` e erro genérico | `router.tsx`, por `lazy` |
 | [page-heading.tsx](page-heading.tsx) | `PageHeading`, o `h1` de id `page-title` que também grava o título da aba, e `focusPageTitle` | As telas de `features`, `routes/sign-in.tsx`, `route-frame.tsx` e `shell.tsx` |
 | [navigation.ts](navigation.ts) | Os grupos da navegação da seção 15.4, o filtro por tipo de pessoa (`viewerOf`, `navigationFor`), a lista da busca e as ações do visitante | `shell.tsx` e, em `components/patterns`, `sidebar-body.tsx`, `search-dialog.tsx`, `guest-header.tsx` e `app-sidebar.tsx` |
 | [shell.test.tsx](shell.test.tsx) | Testes da casca, das guardas e da navegação, com o roteador em memória | Vitest, projeto `dom` |
 | [routes/home.tsx](routes/home.tsx) | `/`: `useAskConversation` sem `id` e `HomeScreen`. A primeira pergunta cria a conversa e leva a `/ask/:id` | `router.tsx` |
-| [routes/ask.tsx](routes/ask.tsx) | `/ask/:id?`: `useAskConversation(id)` e `ConversationScreen` | `router.tsx` |
+| [routes/ask.tsx](routes/ask.tsx) | `/ask/:id?`: `useAskConversation(id)`, `useHandoff(id)` e `ConversationScreen` | `router.tsx` |
+| [routes/attendance.tsx](routes/attendance.tsx) | `/attendance`: `useAttendance` e `AttendanceScreen`; sem o compromisso, Assumir leva a `/attendance/commitment` | `router.tsx` |
+| [routes/attendance-commitment.tsx](routes/attendance-commitment.tsx) | `/attendance/commitment`: o aceite do compromisso de confidencialidade e a volta ao console | `router.tsx` |
+| [routes/admin-attendance.tsx](routes/admin-attendance.tsx) | `/admin/attendance`: `useClosedHandoffs` e `ClosedScreen` | `router.tsx` |
 | [routes/register.tsx](routes/register.tsx) | `/register`: `useRegistrationChat` e `RegistrationScreen` | `router.tsx` |
 | [routes/register-form.tsx](routes/register-form.tsx) | `/register/form`: `useRegistrationForm` e `RegistrationFormScreen` | `router.tsx` |
 | [routes/sign-in.tsx](routes/sign-in.tsx) | `/sign-in`: `useSignIn` e o `SignInForm` num `Card`, a única rota com marcação própria | `router.tsx` |

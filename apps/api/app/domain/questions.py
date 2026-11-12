@@ -60,11 +60,14 @@ def owns_conversation(
 ) -> bool:
     """Diz se quem pede é dono da conversa: o mesmo usuário ou a mesma chave de convidado.
 
-    Uma conversa anexada a uma conta no fim do cadastro guarda também a chave de convidado,
-    então a chave antiga ainda a abre. A Etapa 15.1 do plano corrige isso.
+    A chave de convidado só vale numa conversa sem membro (Etapa 15.1, FR-9). O cadastro
+    zera o `guest_key_id` ao anexar a conversa à conta, e esta regra também recusa a chave
+    numa conversa anexada antes dessa mudança, que ainda guarda os dois donos.
     """
     if actor_user_id is not None and actor_user_id == owner_user_id:
         return True
+    if owner_user_id is not None:
+        return False
     return actor_guest_key_id is not None and actor_guest_key_id == owner_guest_key_id
 
 

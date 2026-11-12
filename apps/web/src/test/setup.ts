@@ -16,7 +16,9 @@ import "@testing-library/jest-dom/vitest"
 import { afterEach, beforeEach, vi } from "vitest"
 
 import { queryClient } from "@/app/query-client.ts"
+import { resetHandoffState } from "@/features/ask/handoff-store.ts"
 import { resetAskState } from "@/features/ask/store.ts"
+import { resetAttendanceState } from "@/features/attendance/useAttendance.ts"
 
 // `window.__media` diz quais media queries casam. Um teste o troca antes
 // de montar a tela, como os do celular em `app/shell.test.tsx`.
@@ -74,6 +76,8 @@ afterEach(() => {
   cleanup()
   queryClient.clear()
   resetAskState()
+  resetHandoffState()
+  resetAttendanceState()
   // Desfaz o `fetch` falso e qualquer outro `vi.stubGlobal` do teste.
   vi.unstubAllGlobals()
 })

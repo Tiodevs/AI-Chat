@@ -16,6 +16,7 @@ Modelos Pydantic de pedido e resposta da API: a camada de schema, a parte do con
 | [`insights.py`](insights.py) | Visão geral, qualidade, inspetor e revelação de identidade do admin | Controlador `admin_insights` |
 | [`privacy.py`](privacy.py) | Canal público do titular e a fila de pedidos do admin | Controladores `privacy` e `admin_privacy` |
 | [`registration.py`](registration.py) | Turnos, senha, revisão, aceite, formulário e a resposta da sessão de cadastro | Controlador `registration` |
+| [`handoff.py`](handoff.py) | Pedidos e respostas do atendimento humano: disponibilidade, atendimento do visitante, mensagem, presença, aceite, fila sem conteúdo, detalhe para quem assumiu e a lista de encerrados | Controladores `handoff`, `attendance` e `admin_handoffs` |
 
 ## Como ler
 

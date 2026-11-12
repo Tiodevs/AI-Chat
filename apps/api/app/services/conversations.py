@@ -64,7 +64,7 @@ from app.domain.auth import (
 from app.domain.errors import (
     Conflict,
     DuplicateMessage,
-    Forbidden,
+    HandoffActive,
     NotFound,
     RateLimited,
     Unauthenticated,
@@ -72,6 +72,7 @@ from app.domain.errors import (
 )
 from app.domain.feedback import USER_HELPFUL, user_helpful_score
 from app.domain.grounding import Citation
+from app.domain.history import ai_messages
 from app.domain.outcomes import Outcome
 from app.domain.pseudonym import subject_pseudonym
 from app.domain.questions import (
@@ -102,10 +103,10 @@ from app.prompts.conversations import (
     DUPLICATE_MESSAGE,
     FEEDBACK_NOT_ASSISTANT,
     MESSAGE_NOT_FOUND,
-    NOT_OWNER,
     RATE_LIMITED,
     STREAM_FAILED,
 )
+from app.prompts.handoff import ACTIVE_HERE
 from app.repositories.auth_sessions import AuthSessionRepository
 from app.repositories.conversations import (
     ConversationRecord,
@@ -113,6 +114,7 @@ from app.repositories.conversations import (
     DuplicateClientMessage,
     MessageRecord,
 )
+from app.repositories.handoffs import HandoffRecord, HandoffRepository
 from app.repositories.rate_limits import RateLimitRepository
 from app.services.conversation_events import (
     AskEvent,
@@ -281,27 +283,29 @@ class ConversationService:
         *,
         session_secret: str | None,
         guest_secret: str | None,
-    ) -> tuple[ConversationRecord, list[MessageRecord]]:
-        """A conversa com as mensagens, só para o dono.
+    ) -> tuple[ConversationRecord, list[MessageRecord], list[HandoffRecord]]:
+        """A conversa com as mensagens e os atendimentos humanos, só para o dono.
 
-        Erros: 401 sem sessão nem chave de convidado válidas, 404 para id desconhecido e 403
-        para quem não é o dono. A leitura é uma transação curta, e os erros sobem depois que
-        ela fecha.
+        As mensagens incluem as do atendimento, com `handoff_id` (seção 29.10).
+
+        Erros: 401 sem sessão nem chave de convidado válidas e 404 para id desconhecido ou
+        para quem não é o dono, sem revelar que o id existe (Etapa 15.1, seção 29.8). A
+        leitura é uma transação curta, e os erros sobem depois que ela fecha.
         """
         actor = await self._actor(session_secret, guest_secret)
         conversation: ConversationRecord | None
         messages: list[MessageRecord]
+        handoffs: list[HandoffRecord] = []
         async with open_session(self._database_url) as session, UnitOfWork(session):
             repository = ConversationRepository(session)
             conversation = await repository.get_conversation(conversation_id)
             messages = []
-            if conversation is not None:
+            if conversation is not None and _owns(actor, conversation):
                 messages = await repository.list_messages(conversation_id)
-        if conversation is None:
+                handoffs = await HandoffRepository(session).list_for_conversation(conversation_id)
+        if conversation is None or not _owns(actor, conversation):
             raise NotFound(CONVERSATION_NOT_FOUND)
-        if not _owns(actor, conversation):
-            raise Forbidden(NOT_OWNER)
-        return conversation, messages
+        return conversation, messages, handoffs
 
     async def prepare_ask(
         self,
@@ -320,7 +324,8 @@ class ConversationService:
            para quem chama sem HTTP.
         2. Exige a chave HMAC dos baldes.
         3. Resolve quem pede pela sessão e pela chave de convidado (401).
-        4. Numa transação: conversa (404), dono (403), reenvio do mesmo
+        4. Numa transação: conversa e dono (404 para os dois), atendimento humano ativo (409
+           `handoff_active`, seção 29.5), reenvio do mesmo
            `client_message_id` e, se não for reenvio, o balde de perguntas e o histórico.
         5. Fora da transação, levanta o 409 do reenvio, com o `message_id` já gravado, ou o
            429 do limite. O contador incrementado fica confirmado.
@@ -345,10 +350,14 @@ class ConversationService:
         async with open_session(self._database_url) as session, UnitOfWork(session):
             repository = ConversationRepository(session)
             conversation = await repository.get_conversation(conversation_id)
-            if conversation is None:
+            if conversation is None or not _owns(actor, conversation):
                 raise NotFound(CONVERSATION_NOT_FOUND)
-            if not _owns(actor, conversation):
-                raise Forbidden(NOT_OWNER)
+            # Com a conversa na equipe, a pergunta não grava nada nem chama o modelo (FR-21).
+            active = await HandoffRepository(session).active_for_conversation(conversation_id)
+            if active is not None:
+                raise HandoffActive(
+                    ACTIVE_HERE, handoff_id=active.id, conversation_id=conversation_id
+                )
             # A chave de idempotência é o par (conversa, `client_message_id`).
             existing = await repository.find_user_message(conversation_id, client_message_id)
             if existing is not None:
@@ -398,7 +407,7 @@ class ConversationService:
     ) -> FeedbackNotice | None:
         """Grava a nota do visitante para uma resposta do assistente, uma vez só.
 
-        Numa transação: mensagem (404), dono da conversa (403), papel `assistant` (422) e a
+        Numa transação: mensagem e dono da conversa (404), papel `assistant` (422) e a
         nota. A chave primária de `feedback` é o id da mensagem, então a segunda nota
         levanta `IntegrityError` e responde 409. Depois da transação, conta
         `atrium_feedback{rating}`. Devolve o aviso que o controlador agenda para o LangSmith
@@ -414,7 +423,7 @@ class ConversationService:
                     raise NotFound(MESSAGE_NOT_FOUND)
                 conversation = await repository.get_conversation(message.conversation_id)
                 if conversation is None or not _owns(actor, conversation):
-                    raise Forbidden(NOT_OWNER)
+                    raise NotFound(MESSAGE_NOT_FOUND)
                 if message.role != "assistant":
                     raise ValidationFailed(FEEDBACK_NOT_ASSISTANT)
                 await repository.insert_feedback(message_id, rating, self._clock.now())
@@ -607,8 +616,7 @@ class ConversationService:
 def _owns(actor: _Actor, conversation: ConversationRecord) -> bool:
     """A regra de dono do domínio: o membro pelo `user_id`, o convidado pela chave.
 
-    Uma conversa de convidado anexada a um membro mantém o `guest_key_id`, então a chave
-    antiga ainda a abre. A Etapa 15.1 fecha isso.
+    A chave de convidado só abre a conversa que ainda não tem membro (Etapa 15.1).
     """
     return owns_conversation(
         actor_user_id=actor.user_id,
@@ -622,10 +630,11 @@ def _turns(rows: Sequence[MessageRecord]) -> tuple[ConversationTurn, ...]:
     """As mensagens gravadas como turnos do histórico, na ordem da conversa.
 
     O conteúdo vem do banco, então uma pergunta de saúde aparece só como o marcador. Uma
-    resposta `cancelled` entra com o conteúdo vazio. Outros papéis são ignorados.
+    resposta `cancelled` entra com o conteúdo vazio. As mensagens do atendimento humano saem
+    antes, por `ai_messages` (FR-21), e outros papéis são ignorados.
     """
     turns: list[ConversationTurn] = []
-    for row in rows:
+    for row in ai_messages(rows):
         if row.role == "user":
             turns.append(ConversationTurn(role="user", content=row.content))
         elif row.role == "assistant":

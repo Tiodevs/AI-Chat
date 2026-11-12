@@ -262,7 +262,9 @@ def _exhaust_email(client: TestClient, email: str) -> Any:
 
 def _cookie_value(response: Any) -> str:
     """Valor do primeiro cookie do `set-cookie`."""
-    header = response.headers["set-cookie"]
+    # O primeiro `Set-Cookie` é o da sessão; o login e o cadastro também apagam o
+    # `atrium_guest` num segundo cabeçalho (Etapa 15.1).
+    header = response.headers.get_list("set-cookie")[0]
     if not isinstance(header, str):
         raise AssertionError(header)
     return header.split(";", 1)[0].split("=", 1)[1]
@@ -270,7 +272,9 @@ def _cookie_value(response: Any) -> str:
 
 def _cookie_attributes(response: Any) -> dict[str, str]:
     """Atributos do `set-cookie` em minúsculas, com valor vazio quando não têm valor."""
-    header = response.headers["set-cookie"]
+    # O primeiro `Set-Cookie` é o da sessão; o login e o cadastro também apagam o
+    # `atrium_guest` num segundo cabeçalho (Etapa 15.1).
+    header = response.headers.get_list("set-cookie")[0]
     if not isinstance(header, str):
         raise AssertionError(header)
     attributes: dict[str, str] = {}

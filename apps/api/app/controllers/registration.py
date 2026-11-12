@@ -21,7 +21,7 @@ from fastapi import APIRouter, Depends, Request, Response
 from app.core.client_ip import client_ip
 from app.core.container import get_registration_service
 from app.core.context import current_request_id
-from app.core.cookies import apply_session_cookie
+from app.core.cookies import apply_session_cookie, clear_guest_cookie
 from app.domain.questions import GUEST_COOKIE_NAME
 from app.domain.registration import Acceptance
 from app.schemas.auth import ProfileResponse
@@ -233,8 +233,13 @@ def _session(view: Any) -> RegistrationSessionResponse:
 
 
 def _profile(result: Any, response: Response) -> ProfileResponse:
-    """Grava o cookie `atrium_session` da sessão nova e devolve o perfil de `GET /v1/me`."""
+    """Grava o cookie `atrium_session` da sessão nova e devolve o perfil de `GET /v1/me`.
+
+    Apaga também o `atrium_guest`: as conversas da chave já passaram para o membro, e a
+    chave deixa de abri-las (Etapa 15.1). O `Secure` do cookie novo vale para a remoção.
+    """
     apply_session_cookie(response, result.cookie)
+    clear_guest_cookie(response, secure=result.cookie.secure)
     profile = result.profile
     return ProfileResponse(
         id=profile.id,

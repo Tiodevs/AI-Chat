@@ -167,6 +167,14 @@ Uma fila, armazenamento de objetos, várias réplicas da API e um ambiente separ
 | FR-16 | Qualquer pessoa pode abrir um pedido de titular pelo canal de privacidade. O admin vê a fila com prazos. |
 | FR-17 | Uma mensagem classificada como orientação médica não tem o conteúdo gravado nem enviado ao LangSmith. |
 | FR-18 | Um visitante pode interromper uma resposta em andamento. |
+| FR-19 | Depois de uma resposta que não ajudou, o visitante pode chamar uma pessoa da equipe. Uma recusa médica nunca oferece o atendimento. |
+| FR-20 | Antes de chamar a equipe, o visitante vê o que vai ser lido, por quem e por quanto tempo fica guardado, e confirma. |
+| FR-21 | Com o atendimento ativo, as mensagens do visitante vão só para a equipe. O texto do atendimento nunca chega ao Gemini nem ao LangSmith, nem como histórico de uma pergunta posterior. |
+| FR-22 | Um atendente ou admin vê a fila sem conteúdo, assume um atendimento que nenhuma outra pessoa assumiu, lê a conversa e responde. Assumir grava `handoff.take`. |
+| FR-23 | Visitante e equipe recebem mensagens e mudanças de status em tempo real e, depois de uma reconexão, recebem o que perderam, sem repetir. |
+| FR-24 | O visitante encerra o atendimento quando quiser. A equipe encerra com um motivo de uma lista fechada. |
+| FR-25 | Identificadores na mensagem do visitante são removidos antes de gravar, e a equipe apaga o conteúdo de uma mensagem com dado sensível, com auditoria. |
+| FR-26 | O admin só abre um atendimento encerrado com um motivo, gravado em `handoff.view`. |
 
 ### 5.2 Não funcionais
 
@@ -188,6 +196,12 @@ Uma fila, armazenamento de objetos, várias réplicas da API e um ambiente separ
 | NFR-14 | A interface cumpre WCAG 2.2 nível AA. |
 | NFR-15 | Todo movimento respeita `prefers-reduced-motion` e a preferência salva pelo usuário. |
 | NFR-16 | O contrato OpenAPI e os tipos do frontend não divergem. A CI falha quando divergem. |
+| NFR-17 | O atendimento humano usa SSE e `POST` pelo rewrite de mesma origem, sem WebSocket e sem operador novo (ADR-015). |
+| NFR-18 | Toda leitura de conteúdo pela equipe é autorizada em cada pedido e em cada tique do fluxo. O aviso entre processos leva só ids (ADR-016). |
+| NFR-19 | Um fluxo do atendimento dura no máximo 10 minutos e é retomado pelo último `seq`, sem perda. |
+| NFR-20 | Pedidos de atendimento, mensagens e fluxos têm limites por sujeito, por IP, por atendente e por processo (seção 29.8). |
+
+FR-19 a FR-26 e NFR-17 a NFR-20 são do atendimento humano, seção 29, aprovada na Etapa 17.0 e implementada nas Etapas 17.1 a 17.8.
 
 ### 5.3 Metas para medir
 
@@ -224,10 +238,11 @@ O documento completo fica dividido por assunto. A numeração das seções não 
 | [Experiência](sdd/experiencia.md) | 13 a 16 | Frontend, design system, plano de UI/UX e GSAP |
 | [Provedores e observabilidade](sdd/observabilidade.md) | 17 e 18 | Portas, logs, rastros, métricas e LangSmith |
 | [Entrega](sdd/entrega.md) | 19 a 25 | Ambientes, testes, CI/CD, ordem de construção, ADRs e riscos |
+| [Atendimento humano](sdd/atendimento-humano.md) | 29 | Oferta, fila, canal em tempo real, dados, segurança e LGPD do atendimento por uma pessoa |
 
 ## 26. Decisões em aberto
 
-Não há decisões em aberto. Nenhuma decisão bloqueia as Etapas 1 a 4.
+Nenhuma decisão está em aberto. As decisões D-1 a D-4 fecharam na Etapa 0.1, e as D-5 a D-9, do atendimento humano (seção 29), na Etapa 17.0, em 2026-11-12, todas como a proposta.
 
 | ID | Decisão | Onde ficou |
 |---|---|---|
@@ -235,6 +250,11 @@ Não há decisões em aberto. Nenhuma decisão bloqueia as Etapas 1 a 4.
 | D-2 | LangSmith na região dos Estados Unidos | Seções 2.1, 11.7 e 18.4 |
 | D-3 | Dados só fictícios | Seção 2.1 |
 | D-4 | Sem domínio próprio | Seção 2.1 |
+| D-5 | O atendimento usa SSE e `POST` pelo rewrite de mesma origem, sem WebSocket. A alternativa era WebSocket direto na Railway ou com um domínio próprio. | Seções 29.2 e 29.6, ADR-015 |
+| D-6 | O papel `attendant` é separado, e o admin também atende. A alternativa era só o admin atender. | Seções 29.2 e 29.3 |
+| D-7 | O texto do atendimento fica 90 dias depois do encerramento, ou menos, com a conversa. A alternativa era 30 dias. | Seções 29.2 e 29.9.9 |
+| D-8 | A sessão de `attendant` e de `admin` dura 12 horas. A alternativa era manter os 14 dias. | Seções 29.2 e 29.8 |
+| D-9 | O visitante vê só "Equipe do Harborlight", sem o nome de quem atende. A alternativa era o primeiro nome. | Seções 29.2 e 29.9.5 |
 
 ## 27. Glossário
 
@@ -253,6 +273,11 @@ Não há decisões em aberto. Nenhuma decisão bloqueia as Etapas 1 a 4.
 | Token de design | Um nome para uma decisão visual, como uma cor ou uma duração |
 | Movimento reduzido | O modo em que as animações são trocadas por mudanças diretas |
 | Ambiente de development | O ambiente Railway usado pelo laptop e pela primeira etapa do deploy |
+| Atendimento humano (`handoff`) | A conversa que passa da IA para uma pessoa da equipe, seção 29 |
+| Atendente (`attendant`) | A pessoa da equipe com o papel que só atende, sem acesso ao admin |
+| Fila de atendimento | Os atendimentos `queued`, pela ordem do pedido |
+| `seq` | O número crescente de cada mensagem de um atendimento, usado para retomar o fluxo |
+| `LISTEN/NOTIFY` | O aviso do PostgreSQL entre conexões, entregue só depois do commit |
 
 ## 28. Histórico de revisão
 
@@ -284,3 +309,7 @@ Não há decisões em aberto. Nenhuma decisão bloqueia as Etapas 1 a 4.
 | 1.19 | 2026-11-07 | Segredo da borda: a rota de `/backend` da Vercel manda `x-atrium-edge` com o `EDGE_SECRET` do ambiente, e a API recusa `/v1` sem ele em development e production. O `vercel.ts` passa a declarar só `routes` (seções 10.3, 10.4, 10.6, 17, 19, 21.1, 22.1 e 22.2, ADR-001). |
 | 1.20 | 2026-11-07 | Segredo da borda obrigatório: em development e production, a API não sobe sem `EDGE_SECRET`, e a fumaça confere o 403 de `/v1` e o 200 de `/health` direto na Railway (seções 7.1, 10.3, 19, 21.1 e 22.3). |
 | 1.21 | 2026-11-08 | Documentação, sem mudança de comportamento: disposição do repositório com as pastas atuais e os READMEs de pasta (seção 6.3), Docker Compose como alternativa opcional e não requisito (seção 4.2), API construída pelo Dockerfile (seção 6.1), API em `0.0.0.0` (seção 18.3), testes do frontend sem MSW e Playwright simulado no job `web` (seções 21.1 e 22.3), tabelas, paleta e avisos sem TanStack Table, `cmdk` e Sonner (seção 13.1), `vercel.ts` descrito pelas rotas (seção 13.4), `PSEUDONYM_KEY` entre os segredos (seção 10.6), nome do repositório, mapa da documentação em `docs/README.md` e guia do código em `docs/guia/`. |
+| 1.23 | 2026-11-10 | Proposta do atendimento humano, em revisão na Etapa 17.0: seção 29, FR-19 a FR-26, NFR-17 a NFR-20, decisões D-5 a D-9, ADR-015 (SSE e `POST` pelo rewrite em vez de WebSocket), ADR-016 (`LISTEN/NOTIFY`), passo 12 da ordem de construção e Fase 17 do plano de ação. Nenhum comportamento existente muda até a aprovação. |
+| 1.24 | 2026-11-12 | Atendimento humano aprovado na Etapa 17.0: D-5 a D-9 fechadas como a proposta, seção 29, ADR-015 e ADR-016 sem o status de proposta, e ponteiros para a seção 29 nas seções 8.1, 10, 11, 12, 15.3, 15.4 e 18.3. |
+| 1.25 | 2026-11-12 | Conversa do membro só para o membro (Etapa 15.1): o cadastro zera o `guest_key_id` das conversas anexadas, a chave de convidado só abre conversa sem membro, o `atrium_guest` sai no login, no fim do cadastro e no logout, e quem não é dono recebe 404 nas rotas de conversa (seções 7.2, 10.3 e 12). |
+| 1.26 | 2026-11-12 | Atendimento humano implementado nas Etapas 17.1 a 17.7, em revisão: domínio, migração `0010_handoffs`, papel `attendant` e sessão de 12 horas, `LISTEN/NOTIFY`, fluxos SSE com retomada, rotas do visitante, da equipe e do admin, telas da conversa, do console e dos encerrados. Na seção 29.11, o motivo da capacidade aparece em texto, a categoria da remoção usa um `ToggleGroup` de escolha única e o som opcional fica para depois. Na seção 29.14, o `docker-compose.yml` liga o serviço e cria as contas de teste. Os scripts `attendants` e `attendance_dev` entram na seção 6.3. |

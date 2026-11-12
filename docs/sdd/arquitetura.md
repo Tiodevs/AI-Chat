@@ -131,7 +131,7 @@ apps/
       repositories/    consultas, inclusive a busca vetorial e por texto completo
       db/              sessão, pool e unidade de trabalho
       evals/           casos, avaliadores e sincronização do conjunto do LangSmith
-      scripts/         seed, search, ask, bootstrap_admin, retention, sync_eval_dataset, run_evals, export_openapi
+      scripts/         seed, search, ask, bootstrap_admin, retention, sync_eval_dataset, run_evals, export_openapi, attendants, attendance_dev
     tests/
       unit/
       integration/
@@ -335,7 +335,7 @@ A conclusão, usada tanto pelo endpoint de aceite quanto pelo endpoint do formul
 2. Descartar `visitor_type` e `visit_reason` se a personalização não foi consentida.
 3. Inserir o usuário com `role = member` e os registros de consentimento numa transação.
 4. Abrir uma sessão de autenticação e definir o cookie.
-5. Anexar as conversas de convidado que compartilham a chave de convidado atual.
+5. Anexar as conversas de convidado que compartilham a chave de convidado atual. O `guest_key_id` delas vira nulo, e a chave deixa de abri-las.
 6. Marcar a sessão de cadastro como `completed` e apagar a transcrição dela.
 
 A chave de idempotência do aceite é o id da sessão de cadastro. Um aceite repetido devolve a mesma resposta de sucesso e não cria um segundo usuário.
@@ -360,6 +360,8 @@ Pelo admin, o controlador grava a versão e a auditoria numa transação e respo
 Os identificadores são UUIDs. Os timestamps são `timestamptz` em UTC. O e-mail é gravado em minúsculas. A coluna de vetor é `vector(768)`. Toda tabela com dado pessoal tem uma regra de retenção na seção 11.6.
 
 ### 8.1 Tabelas
+
+As tabelas do atendimento humano (`handoffs`, `attendant_presence` e `attendant_acknowledgements`) e as colunas que ele acrescenta a `messages` e `users` estão na seção 29.7.
 
 **users.** `email` único, `password_hash`, `full_name`, `phone` anulável, `visitor_type` anulável (`patient`, `visitor`, `caregiver`), `visit_reason` anulável, `role` (`member`, `admin`), `last_seen_at`, `created_at`, `updated_at`.
 

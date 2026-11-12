@@ -4,8 +4,9 @@
  *
  * Recebe os turnos prontos do store da conversa (`features/ask`) e
  * escolhe o balão: `UserMessage` à direita, `AssistantMessage` à esquerda,
- * sem balão. Não chama a API: avaliação e nova tentativa sobem por
- * callback para o `useAskConversation` (seção 13.2).
+ * sem balão. Um atendimento humano entra no ponto do pedido, desenhado por
+ * `renderHandoff` (seção 29.11). Não chama a API: avaliação e nova
+ * tentativa sobem por callback para o `useAskConversation` (seção 13.2).
  *
  * Acessibilidade (seção 15.8): uma região `aria-live="polite"`, escondida
  * com `sr-only`, lê o texto de `live`. O store só troca esse texto quando
@@ -13,6 +14,8 @@
  * o leitor de tela ouve a resposta inteira uma vez, e não token a token.
  * Seções 14.6 e 15.8.
  */
+import type { ReactNode } from "react"
+
 import { AssistantMessage } from "@/components/patterns/assistant-message.tsx"
 import { UserMessage } from "@/components/patterns/user-message.tsx"
 import type { Turn } from "@/features/ask/types.ts"
@@ -24,6 +27,7 @@ export function ChatThread({
   live,
   onFeedback,
   onRetry,
+  renderHandoff,
 }: {
   messages: Turn[]
   /**
@@ -36,6 +40,8 @@ export function ChatThread({
   onFeedback: (messageId: string, rating: 1 | -1) => void
   /** Manda de novo a pergunta que originou o turno que falhou. */
   onRetry: (text: string) => void
+  /** Desenha o bloco de um atendimento humano, pelo id dele. */
+  renderHandoff?: (handoffId: string) => ReactNode
 }) {
   // O `aria-label` num `div` sem papel não cria uma região nomeada. A
   // Etapa 14.3 do plano põe `role="log"` na conversa.
@@ -55,7 +61,9 @@ export function ChatThread({
       <ol className="m-0 flex list-none flex-col gap-4 p-0">
         {messages.map((message) => (
           <li key={message.key}>
-            {message.role === "user" ? (
+            {message.role === "handoff" ? (
+              (renderHandoff?.(message.handoffId) ?? null)
+            ) : message.role === "user" ? (
               <UserMessage text={message.text} privacy={message.privacy} />
             ) : (
               <AssistantMessage

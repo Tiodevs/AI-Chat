@@ -376,6 +376,54 @@ def test_registration_guest_conversation_belongs_to_the_member(
         _run(_cleanup(migrated_database, [email], []))
 
 
+def test_old_guest_key_gets_404_after_registration_and_logout(
+    api: TestClient,
+    migrated_database: str,
+) -> None:
+    """Etapa 15.1, CA-1: a chave antiga não abre mais a conversa que passou para a conta."""
+    email = _email("guestkey")
+    created = api.post("/v1/conversations", headers=_headers())
+    assert created.status_code == 201
+    guest = created.cookies.get("atrium_guest")
+    assert isinstance(guest, str) and guest
+    conversation_id = created.json()["id"]
+    api.cookies.clear()
+    try:
+        registered = api.post(
+            "/v1/registration/form",
+            headers={**_headers(), "cookie": f"atrium_guest={guest}"},
+            json=_form(email),
+        )
+        assert registered.status_code == 200
+        # A conclusão do cadastro apaga o `atrium_guest` no navegador.
+        assert _deletes_guest_cookie(registered)
+        session = _cookie(registered)
+        api.cookies.clear()
+        logout = api.post(
+            "/v1/auth/logout",
+            headers={**_headers(), "cookie": f"atrium_session={session}"},
+        )
+        assert logout.status_code == 204
+        assert _deletes_guest_cookie(logout)
+        api.cookies.clear()
+        # Quem guardou o cookie antigo recebe o 404 de uma conversa inexistente.
+        old_key = api.get(
+            f"/v1/conversations/{conversation_id}",
+            headers={"cookie": f"atrium_guest={guest}"},
+        )
+        assert old_key.status_code == 404
+    finally:
+        _run(_cleanup(migrated_database, [email], []))
+
+
+def _deletes_guest_cookie(response: Any) -> bool:
+    """Se a resposta traz o `Set-Cookie` que apaga o `atrium_guest` (`Max-Age=0`)."""
+    return any(
+        header.startswith("atrium_guest=") and "max-age=0" in header.lower()
+        for header in response.headers.get_list("set-cookie")
+    )
+
+
 def test_registration_duplicate_email_is_a_field_error(
     api: TestClient,
     chat: FakeChatProvider,
@@ -577,7 +625,9 @@ def _headers(ip: str | None = None) -> dict[str, str]:
 
 def _cookie(response: Any) -> str:
     """Valor do primeiro cookie do `set-cookie`, o `atrium_session` da conclusão."""
-    header = response.headers["set-cookie"]
+    # O primeiro `Set-Cookie` é o da sessão; o login e o cadastro também apagam o
+    # `atrium_guest` num segundo cabeçalho (Etapa 15.1).
+    header = response.headers.get_list("set-cookie")[0]
     if not isinstance(header, str):
         raise AssertionError(header)
     return header.split(";", 1)[0].split("=", 1)[1]

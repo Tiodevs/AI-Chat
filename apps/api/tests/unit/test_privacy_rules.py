@@ -81,6 +81,8 @@ def test_the_sixth_request_of_the_day_is_limited() -> None:
         (RetentionRule.RATE_LIMIT_WINDOWS, timedelta(hours=48)),
         (RetentionRule.AUDIT_EVENTS, timedelta(days=730)),
         (RetentionRule.PRIVACY_REQUESTS, timedelta(days=730)),
+        # O texto do atendimento humano (seção 29.9.9).
+        (RetentionRule.HANDOFF_CONTENT, timedelta(days=90)),
     ],
 )
 def test_each_rule_uses_the_period_of_section_11_6(rule: RetentionRule, period: timedelta) -> None:

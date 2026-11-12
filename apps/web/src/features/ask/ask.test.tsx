@@ -47,7 +47,9 @@ function Harness() {
         <p key={message.key}>
           {message.role === "user"
             ? message.text
-            : `${message.phase}:${message.text}`}
+            : message.role === "assistant"
+              ? `${message.phase}:${message.text}`
+              : null}
         </p>
       ))}
     </div>

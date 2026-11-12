@@ -60,3 +60,14 @@ class OpsMetricsRepository:
         Usa `retention_runs_ran_at_idx`. Alimenta o alerta de retenção parada (seção 18.3).
         """
         return await self._session.scalar(select(func.max(RetentionRun.ran_at)))
+
+    async def handoff_counts(self, now: datetime) -> tuple[int, int]:
+        """Atendimentos na fila e pessoas da equipe presentes (seção 29.12).
+
+        Alimentam `atrium_handoff_queue`, `atrium_handoff_attendants_available` e o alerta
+        Fila sem equipe. Vêm do banco para valerem com mais de uma réplica.
+        """
+        from app.repositories.handoffs import HandoffRepository
+
+        handoffs = HandoffRepository(self._session)
+        return await handoffs.count_queued(), await handoffs.count_present_staff(now)

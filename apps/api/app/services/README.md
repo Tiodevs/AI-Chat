@@ -24,6 +24,12 @@ Casos de uso da API, um por método público. É a camada de serviço do "M" do 
 | [`ops_metrics.py`](ops_metrics.py) | `refresh_database_metrics`: as métricas que vêm do banco, lidas a cada coleta. | [`controllers/metrics.py`](../controllers/metrics.py). |
 | [`readiness.py`](readiness.py) | `ReadinessService`: banco, extensão `vector` e dimensão do embedding. | [`controllers/readiness.py`](../controllers/readiness.py), em `GET /ready`. |
 | [`README.md`](README.md) | Este mapa. | Quem estuda a pasta. |
+| [`handoff.py`](handoff.py) | `HandoffService`: disponibilidade, pedido do atendimento na ordem da seção 29.5, mensagem do visitante sem identificadores, encerramento e o fluxo `VisitorStream`, com retomada pelo `seq`. | [`controllers/handoff.py`](../controllers/handoff.py), montado por `get_handoff_service`. |
+| [`attendance.py`](attendance.py) | `AttendanceService`: presença, aceite, fila sem conteúdo, assumir, responder, remover, devolver, encerrar, a leitura de encerrados pelo admin e o fluxo `ConsoleStream`. | [`controllers/attendance.py`](../controllers/attendance.py) e [`controllers/admin_handoffs.py`](../controllers/admin_handoffs.py), montado por `get_attendance_service`. |
+| [`handoff_sweep.py`](handoff_sweep.py) | `HandoffSweeper`: a varredura de 30 segundos que encerra a fila vencida, o visitante ausente e o atendimento parado, e devolve à fila o de quem saiu. | O `lifespan` de [`main.py`](../main.py). |
+| [`attendant_roles.py`](attendant_roles.py) | `AttendantRoleService`: concede e revoga o papel `attendant`, com auditoria. | Os scripts [`attendants`](../scripts/attendants.py) e [`attendance_dev`](../scripts/attendance_dev.py). |
+| [`visitor.py`](visitor.py) | `resolve_visitor` e `Visitor`: o membro da sessão ou a chave de convidado, e a regra de dono. | `handoff.py`, em cada pedido e em cada tique do fluxo. |
+| [`stream_limits.py`](stream_limits.py) | `StreamLimiter`: os limites de fluxos por conversa, por atendente e por processo, e a métrica `atrium_sse_streams`. | `handoff.py` e `attendance.py`, antes de abrir um fluxo. |
 
 ## Como ler
 

@@ -20,7 +20,12 @@
  */
 import { createBrowserRouter, type RouteObject } from "react-router"
 
-import { requireAdmin, requireSession, requireUser } from "@/app/guards.ts"
+import {
+  requireAdmin,
+  requireSession,
+  requireStaff,
+  requireUser,
+} from "@/app/guards.ts"
 import { pt } from "@/i18n/pt.ts"
 
 /**
@@ -95,6 +100,23 @@ export const routes: RouteObject[] = [
           {
             path: "admin/privacy",
             lazy: () => import("./routes/admin-privacy.tsx"),
+            loader: requireAdmin,
+          },
+          // Atendimento humano (seção 29.11): a fila e o compromisso para
+          // `attendant` e `admin`, e os encerrados só para o admin.
+          {
+            path: "attendance",
+            lazy: () => import("./routes/attendance.tsx"),
+            loader: requireStaff,
+          },
+          {
+            path: "attendance/commitment",
+            lazy: () => import("./routes/attendance-commitment.tsx"),
+            loader: requireStaff,
+          },
+          {
+            path: "admin/attendance",
+            lazy: () => import("./routes/admin-attendance.tsx"),
             loader: requireAdmin,
           },
         ],

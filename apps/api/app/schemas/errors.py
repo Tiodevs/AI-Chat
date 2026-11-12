@@ -23,6 +23,11 @@ class ErrorBody(BaseModel):
     retry_after_seconds: int | None = None
     message_id: UUID | None = None
     field_errors: dict[str, str] | None = None
+    # Do atendimento humano (seção 29.10): os ids do 409 `handoff_active` e o status do 503
+    # `handoff_unavailable`.
+    handoff_id: UUID | None = None
+    conversation_id: UUID | None = None
+    availability: str | None = None
 
 
 # O corpo de toda resposta de erro: `{"error": {...}}`.

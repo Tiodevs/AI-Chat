@@ -35,6 +35,7 @@ from app.models.user import User
 from app.ports.clock import Clock
 from app.prompts.account import (
     ADMIN_CANNOT_DELETE,
+    ATTENDANT_CANNOT_DELETE,
     PERSONALIZATION_REQUIRED,
     PROFILE_NOT_CHANGED,
     PURPOSE_NOT_CHANGEABLE,
@@ -297,7 +298,9 @@ class AccountService:
             users = UserRepository(session)
             user = await _require_user(users, user_id)
             if not delete_is_allowed(user.role):
-                raise Forbidden(ADMIN_CANNOT_DELETE)
+                raise Forbidden(
+                    ATTENDANT_CANNOT_DELETE if user.role == "attendant" else ADMIN_CANNOT_DELETE
+                )
             # 1.
             await AuditRepository(session).record(
                 actor_user_id=user_id,
