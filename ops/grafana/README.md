@@ -11,9 +11,10 @@ Painéis, fonte de dados e alertas do Grafana em arquivos, provisionados pela im
 | [`dashboards/ai-quality.json`](dashboards/ai-quality.json) | Painel "Atrium, qualidade de IA" | O provedor `atrium` |
 | [`dashboards/registration.json`](dashboards/registration.json) | Painel "Atrium, cadastro" | O provedor `atrium` |
 | [`dashboards/privacy.json`](dashboards/privacy.json) | Painel "Atrium, privacidade" | O provedor `atrium` |
+| [`dashboards/whatsapp.json`](dashboards/whatsapp.json) | Painel "Atrium, WhatsApp": eventos, pendentes, saídas por status, erros de envio, latência e a cota mensal (seção 30.12) | O provedor `atrium` |
 | [`provisioning/datasources/prometheus.yaml`](provisioning/datasources/prometheus.yaml) | Fonte de dados `Prometheus`, padrão, com o uid fixo `prometheus`, a URL de `${PROMETHEUS_URL}` e `timeInterval` de 30 s, o intervalo da coleta | Os painéis e os alertas, pelo uid |
 | [`provisioning/dashboards/atrium.yaml`](provisioning/dashboards/atrium.yaml) | Provedor `atrium`: carrega os JSON de `/etc/grafana/dashboards` na pasta Atrium, sem edição pela interface (`allowUiUpdates: false`) nem exclusão (`disableDeletion: true`) | O Grafana, na subida |
-| [`provisioning/alerting/alerting.json`](provisioning/alerting/alerting.json) | As oito regras do grupo `atrium`, o contato `atrium-operacao` no Discord, a política de notificação e a exclusão do contato de e-mail antigo | O Grafana, na subida |
+| [`provisioning/alerting/alerting.json`](provisioning/alerting/alerting.json) | As doze regras do grupo `atrium`, oito da seção 18.3 e quatro do WhatsApp (seção 30.12), o contato `atrium-operacao` no Discord, a política de notificação e a exclusão do contato de e-mail antigo | O Grafana, na subida |
 | `README.md` | Este arquivo | |
 
 Os arquivos `.yaml` contêm JSON, que o YAML aceita; o Grafana só lê fontes de dados e provedores de painel com extensão YAML. JSON não aceita comentário, então cada painel e cada alerta está explicado aqui.
