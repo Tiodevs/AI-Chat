@@ -56,8 +56,8 @@ def test_get_does_not_require_origin_and_v1_is_not_stored(
     assert response.status_code == 200
     assert response.headers["cache-control"] == "no-store"
     assert response.json() == {
-        "terms": "2026-10-25.1",
-        "privacy_notice": "2026-10-25.1",
+        "terms": "2026-11-12.1",
+        "privacy_notice": "2026-11-12.1",
         "privacy_contact_email": "privacidade@harborlight.example",
     }
     assert client.get("/health").headers.get("cache-control") is None

@@ -86,7 +86,9 @@ describe("console de atendimento", () => {
     const state = selectConsole()
     expect(state.availableAttendants).toBe(2)
     expect(state.queue).toHaveLength(1)
+    // O canal é um enum sem identidade (seção 30.11).
     expect(Object.keys(state.queue[0] ?? {}).sort()).toEqual([
+      "channel",
       "handoffId",
       "label",
       "queuedAt",

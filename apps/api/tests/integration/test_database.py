@@ -134,7 +134,7 @@ EXPECTED_COLUMNS: dict[str, set[str]] = {
     },
     "token_usage_days": {"day", "input_tokens", "output_tokens"},
     "guest_keys": {"id", "token_hash", "created_at"},
-    "conversations": {"id", "user_id", "guest_key_id", "created_at"},
+    "conversations": {"id", "user_id", "guest_key_id", "created_at", "channel"},
     "messages": {
         "id",
         "conversation_id",
@@ -173,6 +173,59 @@ EXPECTED_COLUMNS: dict[str, set[str]] = {
         "visitor_seen_at",
         "last_seq",
         "content_purged_at",
+        "channel",
+    },
+    "whatsapp_contacts": {
+        "id",
+        "identity",
+        "phone",
+        "guest_key_id",
+        "notice_version",
+        "first_seen_at",
+        "last_inbound_at",
+    },
+    "whatsapp_inbound_events": {
+        "id",
+        "event_key",
+        "kind",
+        "identity",
+        "phone",
+        "previous_identity",
+        "message_type",
+        "body",
+        "button_id",
+        "wamid",
+        "delivery_status",
+        "error_code",
+        "wa_timestamp",
+        "received_at",
+        "status",
+        "attempts",
+        "claimed_at",
+        "processed_at",
+    },
+    "whatsapp_outbound_messages": {
+        "id",
+        "contact_id",
+        "conversation_id",
+        "message_id",
+        "handoff_id",
+        "kind",
+        "payload",
+        "status",
+        "wamid",
+        "attempts",
+        "used_phone",
+        "next_attempt_at",
+        "error_code",
+        "created_at",
+        "updated_at",
+    },
+    "whatsapp_handoff_relay": {
+        "handoff_id",
+        "delivered_seq",
+        "announced_status",
+        "announced_assigned_at",
     },
     "attendant_presence": {"user_id", "status", "last_seen_at"},
     "attendant_acknowledgements": {"user_id", "version", "accepted_at"},
@@ -240,6 +293,7 @@ EXPECTED_CONSTRAINTS: dict[str, set[str]] = {
     "conversations": {
         "conversations_pkey",
         "conversations_owner",
+        "conversations_channel",
         "conversations_user_id_fkey",
         "conversations_guest_key_id_fkey",
     },
@@ -267,6 +321,31 @@ EXPECTED_CONSTRAINTS: dict[str, set[str]] = {
         "handoffs_conversation_id_fkey",
         "handoffs_trigger_message_id_fkey",
         "handoffs_attendant_id_fkey",
+        "handoffs_channel",
+    },
+    "whatsapp_contacts": {
+        "whatsapp_contacts_pkey",
+        "whatsapp_contacts_identity_key",
+        "whatsapp_contacts_guest_key_id_key",
+        "whatsapp_contacts_guest_key_id_fkey",
+    },
+    "whatsapp_inbound_events": {
+        "whatsapp_inbound_events_pkey",
+        "whatsapp_inbound_events_event_key_key",
+        "whatsapp_inbound_kind",
+        "whatsapp_inbound_status",
+        "whatsapp_inbound_message_type",
+    },
+    "whatsapp_outbound_messages": {
+        "whatsapp_outbound_messages_pkey",
+        "whatsapp_outbound_messages_wamid_key",
+        "whatsapp_outbound_kind",
+        "whatsapp_outbound_status",
+        "whatsapp_outbound_messages_contact_id_fkey",
+    },
+    "whatsapp_handoff_relay": {
+        "whatsapp_handoff_relay_pkey",
+        "whatsapp_handoff_relay_handoff_id_fkey",
     },
     "attendant_presence": {
         "attendant_presence_pkey",
@@ -352,7 +431,7 @@ def test_ready_fails_without_the_vector_extension(
 
 
 async def _assert_schema(database_url: str) -> None:
-    """Confere a extensão, a revisão `0010_handoffs`, as colunas e as restrições."""
+    """Confere a extensão, a revisão `0011_whatsapp`, as colunas e as restrições."""
     engine = create_async_engine(database_url)
     try:
         async with engine.connect() as connection:
@@ -361,7 +440,7 @@ async def _assert_schema(database_url: str) -> None:
             )
             assert extension == 1
             revision = await connection.scalar(text("SELECT version_num FROM alembic_version"))
-            assert revision == "0010_handoffs"
+            assert revision == "0011_whatsapp"
             await _assert_columns(connection)
             await _assert_constraints(connection)
         await _exercise_rows(engine)

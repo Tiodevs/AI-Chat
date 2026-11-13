@@ -9,7 +9,7 @@
  */
 import type { Page, Route } from "@playwright/test"
 
-const version = "2026-10-25.1"
+const version = "2026-11-12.1"
 const stamp = "2026-11-03T12:00:00.000Z"
 
 /** O perfil de `GET /v1/me` (seção 12). */

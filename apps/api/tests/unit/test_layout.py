@@ -72,6 +72,11 @@ EMPTY_SECRET_KEYS = {
     "LANGSMITH_API_KEY",
     "DATABASE_URL",
     "LANGSMITH_ENDPOINT",
+    "WHATSAPP_PHONE_NUMBER_ID",
+    "WHATSAPP_BUSINESS_ACCOUNT_ID",
+    "WHATSAPP_APP_SECRET",
+    "WHATSAPP_ACCESS_TOKEN",
+    "WHATSAPP_VERIFY_TOKEN",
 }
 ADR_HEADINGS = ("## Contexto", "## Decisão", "## Consequências", "## Alternativas")
 

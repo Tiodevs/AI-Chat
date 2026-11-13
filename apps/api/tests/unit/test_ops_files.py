@@ -27,6 +27,7 @@ DASHBOARD_TITLES = {
     "Atrium, qualidade de IA",
     "Atrium, cadastro",
     "Atrium, privacidade",
+    "Atrium, WhatsApp",
 }
 ALERT_TITLES = {
     "Erros da API",
@@ -37,6 +38,11 @@ ALERT_TITLES = {
     "Ingestão",
     "Pedido de titular atrasado",
     "Retenção parada",
+    # Canal WhatsApp (seção 30.12).
+    "WhatsApp parado",
+    "Envio falhando",
+    "Assinatura inválida",
+    "Cota de serviço",
 }
 
 
@@ -89,21 +95,21 @@ def _expressions() -> list[tuple[str, str]]:
     return found
 
 
-def test_four_dashboards_with_unique_uids_and_panels() -> None:
+def test_five_dashboards_with_unique_uids_and_panels() -> None:
     loaded = [json.loads(path.read_text(encoding="utf-8")) for path in DASHBOARDS]
     assert {item["title"] for item in loaded} == DASHBOARD_TITLES
-    assert len({item["uid"] for item in loaded}) == 4
+    assert len({item["uid"] for item in loaded}) == 5
     for item in loaded:
         ids = [panel["id"] for panel in item["panels"]]
         assert ids and len(ids) == len(set(ids))
         assert all(panel["datasource"]["uid"] == "prometheus" for panel in item["panels"])
 
 
-def test_eight_alerts_match_section_18_3() -> None:
+def test_twelve_alerts_match_sections_18_3_and_30_12() -> None:
     alerting = json.loads(ALERTING.read_text(encoding="utf-8"))
     rules = alerting["groups"][0]["rules"]
     assert {rule["title"] for rule in rules} == ALERT_TITLES
-    assert len({rule["uid"] for rule in rules}) == 8
+    assert len({rule["uid"] for rule in rules}) == 12
     for rule in rules:
         assert rule["condition"] == "C"
         assert [step["refId"] for step in rule["data"]] == ["A", "B", "C"]
@@ -145,6 +151,10 @@ def test_alert_thresholds_follow_the_sdd() -> None:
     assert by_title["Circuito aberto"]["for"] == "5m"
     assert limit("Retenção parada") == 26 * 3600
     assert by_title["Retenção parada"]["noDataState"] == "Alerting"
+    assert limit("WhatsApp parado") == 120
+    assert limit("Envio falhando") == 0.1
+    assert limit("Assinatura inválida") == 20
+    assert limit("Cota de serviço") == 800
 
 
 @pytest.mark.parametrize(("where", "expr"), _expressions())

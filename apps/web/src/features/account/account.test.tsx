@@ -52,7 +52,7 @@ function consentsBody(options: { personalization?: boolean; quality?: boolean })
   const state = (purpose: string, on: boolean) => ({
     purpose,
     granted: on,
-    document_version: on ? "2026-10-25.1" : null,
+    document_version: on ? "2026-11-12.1" : null,
     granted_at: on ? granted : null,
   })
   return {
@@ -348,7 +348,7 @@ describe("aba Privacidade", () => {
     })
     await openPrivacy(user)
     expect(
-      await screen.findByText(/Versão 2026-10-25\.1/),
+      await screen.findByText(/Versão 2026-11-12.1/),
     ).toBeInTheDocument()
     expect(screen.getByRole("switch", { name: pt.account.privacy.quality })).toBeChecked()
   })

@@ -29,7 +29,7 @@ import { consentIssues, emptyConsents } from "./model.ts"
 
 const sessionId = "00000000-0000-4000-8000-0000000000f1"
 /** Versão vigente dos Termos e do Aviso, a de `GET /v1/legal/versions`. */
-const version = "2026-10-25.1"
+const version = "2026-11-12.1"
 /** A frase que a API manda quando o e-mail já tem conta (seção 8.5). */
 const taken = "Este e-mail já tem uma conta. Entre para continuar."
 

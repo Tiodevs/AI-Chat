@@ -170,7 +170,7 @@ def test_migration_0010_downgrades_and_upgrades(migrated_database: str) -> None:
     command.downgrade(config, "0009_message_request_id")
     assert _run(_revision(migrated_database)) == "0009_message_request_id"
     command.upgrade(config, "head")
-    assert _run(_revision(migrated_database)) == "0010_handoffs"
+    assert _run(_revision(migrated_database)) == "0011_whatsapp"
 
 
 def test_script_promotes_only_members_and_audits(people: People, migrated_database: str) -> None:
@@ -405,6 +405,8 @@ def test_queue_has_no_content_and_the_other_attendant_gets_404(
         "returned",
         "visitor_present",
         "seq",
+        # O canal é um enum sem identidade (seção 30.11).
+        "channel",
     }
     assert item["label"].startswith("Visitante ") and len(item["label"]) == len("Visitante ") + 8
     taken = _post(first, f"/v1/attendance/handoffs/{handoff_id}/take", None)

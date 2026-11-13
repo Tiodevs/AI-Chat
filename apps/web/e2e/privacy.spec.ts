@@ -24,8 +24,8 @@ test.beforeEach(async ({ page }) => {
         status: 200,
         contentType: "application/json",
         body: JSON.stringify({
-          terms: "2026-10-25.1",
-          privacy_notice: "2026-10-25.1",
+          terms: "2026-11-12.1",
+          privacy_notice: "2026-11-12.1",
           privacy_contact_email: "privacidade@harborlight.example",
         }),
       })
@@ -97,6 +97,6 @@ test("os Termos abrem com a versão vigente", async ({ page }) => {
     page.getByRole("heading", { level: 1, name: pt.pages.terms })
   ).toBeVisible()
   // A versão vem do `GET /v1/legal/versions` simulado (seção 11.11).
-  await expect(page.getByText("Versão 2026-10-25.1")).toBeVisible()
+  await expect(page.getByText("Versão 2026-11-12.1")).toBeVisible()
   await expectNoSeriousViolations(page)
 })

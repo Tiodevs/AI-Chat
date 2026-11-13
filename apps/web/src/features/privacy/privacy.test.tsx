@@ -3,7 +3,7 @@
  * NFR-14, seções 10.4, 11.5, 11.7, 11.9, 11.11, 12 e 15.5 do SDD.
  *
  * As regras do canal validam e-mail, tipo e descrição de até 2.000
- * caracteres. Na tela, o Aviso lista os quatro operadores com país e
+ * caracteres. Na tela, o Aviso lista os cinco operadores com país e
  * finalidade, explica os dois cookies e mostra a versão, o contato do
  * encarregado e as âncoras; uma pessoa sem conta envia um pedido e vê o
  * prazo; os campos vazios não enviam; o 429 mostra o limite diário; quem
@@ -27,8 +27,8 @@ import { requestSchema, sentMessage } from "./model.ts"
 
 /** Corpo de `GET /v1/legal/versions`, com o contato do encarregado. */
 const versions = {
-  terms: "2026-10-25.1",
-  privacy_notice: "2026-10-25.1",
+  terms: "2026-11-12.1",
+  privacy_notice: "2026-11-12.1",
   privacy_contact_email: "privacidade@harborlight.example",
 }
 
@@ -120,7 +120,7 @@ describe("regras do canal", () => {
 })
 
 describe("Aviso de Privacidade", () => {
-  it("lista os quatro operadores com país e finalidade", async () => {
+  it("lista os cinco operadores com país e finalidade", async () => {
     installApi({ "GET /v1/legal/versions": () => json(versions) })
     renderAt("/privacy")
     const section = await screen.findByRole("region", {
@@ -136,7 +136,7 @@ describe("Aviso de Privacidade", () => {
     }
     expect(
       within(section).getAllByRole("row").map((row) => row.textContent),
-    ).toHaveLength(5)
+    ).toHaveLength(6)
   })
 
   it("explica os dois cookies", async () => {
@@ -164,7 +164,7 @@ describe("Aviso de Privacidade", () => {
         ),
       ),
     ).toBeInTheDocument()
-    expect(screen.getByText(/Versão 2026-10-25\.1/)).toBeInTheDocument()
+    expect(screen.getByText(/Versão 2026-11-12.1/)).toBeInTheDocument()
     const nav = screen.getByRole("navigation", {
       name: pt.privacyNotice.contentsLabel,
     })
@@ -318,6 +318,6 @@ describe("Termos de Uso", () => {
         await screen.findByRole("heading", { level: 2, name: section.title }),
       ).toBeInTheDocument()
     }
-    expect(screen.getByText(/Versão 2026-10-25\.1/)).toBeInTheDocument()
+    expect(screen.getByText(/Versão 2026-11-12.1/)).toBeInTheDocument()
   })
 })

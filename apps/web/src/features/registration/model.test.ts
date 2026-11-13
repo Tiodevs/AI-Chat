@@ -93,7 +93,7 @@ describe("cadastro", () => {
     if (!parsed.success) {
       return
     }
-    const payload = toFormPayload(parsed.data, "2026-10-25.1", null)
+    const payload = toFormPayload(parsed.data, "2026-11-12.1", null)
     expect(payload.password).toBe("senha-segura-1")
     expect(payload).not.toHaveProperty("fields")
     expect(payload.profile_personalization).toBe(false)

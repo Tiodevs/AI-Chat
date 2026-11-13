@@ -13,7 +13,7 @@ import { expect, type Page, type Route } from "@playwright/test"
 import { pt } from "../src/i18n/pt.ts"
 
 const sessionId = "00000000-0000-4000-8000-0000000000f1"
-const version = "2026-10-25.1"
+const version = "2026-11-12.1"
 const taken = "Este e-mail já tem uma conta. Entre para continuar."
 
 /** Os campos entendidos, como em `fields` da seção 12. */
