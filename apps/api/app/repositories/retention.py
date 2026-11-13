@@ -25,6 +25,8 @@ from app.models.rate_limit_window import RateLimitWindow
 from app.models.registration_session import RegistrationSession
 from app.models.retention_run import RetentionRun
 from app.models.user import User
+from app.models.whatsapp import WhatsAppContact
+from app.repositories.whatsapp import WhatsAppRepository
 
 
 class RetentionRepository:
@@ -90,8 +92,10 @@ class RetentionRepository:
 
         Devolve quantas chaves saíram.
         """
-        # 1.
-        expired = select(GuestKey.id).where(GuestKey.created_at < cutoff)
+        # 1. A chave interna de um contato do WhatsApp fica: ela sai com o contato, pela
+        # regra `whatsapp_contacts`, contada da última mensagem (seção 30.9.7).
+        of_contact = exists().where(WhatsAppContact.guest_key_id == GuestKey.id)
+        expired = select(GuestKey.id).where(GuestKey.created_at < cutoff, ~of_contact)
         await self._session.execute(
             update(Conversation)
             .where(Conversation.guest_key_id.in_(expired), Conversation.user_id.is_not(None))
@@ -99,9 +103,23 @@ class RetentionRepository:
         )
         # 2.
         result = await self._session.execute(
-            delete(GuestKey).where(GuestKey.created_at < cutoff).returning(GuestKey.id)
+            delete(GuestKey)
+            .where(GuestKey.created_at < cutoff, ~of_contact)
+            .returning(GuestKey.id)
         )
         return len(result.all())
+
+    async def delete_whatsapp_contacts(self, cutoff: datetime) -> int:
+        """Contatos do WhatsApp sem mensagem há 30 dias e sem atendimento ativo (30.9.7).
+
+        Apaga a chave interna do contato; a cascata leva o contato, as conversas, os
+        atendimentos, as mensagens e a caixa de saída dele.
+        """
+        return await WhatsAppRepository(self._session).delete_stale_contacts(cutoff)
+
+    async def delete_whatsapp_events(self, cutoff: datetime) -> int:
+        """Linhas das caixas de entrada e de saída paradas há mais de 7 dias (30.9.7)."""
+        return await WhatsAppRepository(self._session).delete_old_events(cutoff)
 
     async def delete_registration_sessions(self, cutoff: datetime) -> int:
         """Sessões de cadastro com `expires_at` antes do corte.

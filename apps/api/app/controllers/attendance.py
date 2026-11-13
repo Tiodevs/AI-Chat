@@ -233,6 +233,7 @@ def staff_handoff(item: Any) -> StaffHandoffResponse:
         returned=item.returned,
         visitor_present=item.visitor_present,
         seq=item.last_seq,
+        channel="whatsapp" if item.channel == "whatsapp" else "web",
     )
 
 
@@ -258,7 +259,10 @@ def handoff_detail(detail: Any) -> HandoffDetailResponse:
             )
             for line in detail.conversation
         ],
-        messages=[message_response(message) for message in detail.messages],
+        messages=[
+            message_response(message, detail.deliveries.get(message.id))
+            for message in detail.messages
+        ],
     )
 
 

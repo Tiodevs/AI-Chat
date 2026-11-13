@@ -27,6 +27,12 @@ from app.models.registration_session import RegistrationSession
 from app.models.retention_run import RetentionRun
 from app.models.token_usage_day import TokenUsageDay
 from app.models.user import User
+from app.models.whatsapp import (
+    WhatsAppContact,
+    WhatsAppHandoffRelay,
+    WhatsAppInboundEvent,
+    WhatsAppOutboundMessage,
+)
 
 __all__ = [
     "AttendantAcknowledgement",
@@ -49,4 +55,8 @@ __all__ = [
     "RetentionRun",
     "TokenUsageDay",
     "User",
+    "WhatsAppContact",
+    "WhatsAppHandoffRelay",
+    "WhatsAppInboundEvent",
+    "WhatsAppOutboundMessage",
 ]

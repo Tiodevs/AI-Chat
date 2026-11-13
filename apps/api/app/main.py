@@ -2,9 +2,9 @@
 
 É a raiz da camada de controle (seção 6.2). Junta os middlewares de `app.core.middleware`, o
 CORS do Starlette, os tratadores de erro de `app.core.errors` e os 16 roteadores de
-`app.controllers`. O Uvicorn importa `app.main:app`, no `CMD` do `Dockerfile` e no
-`uv run uvicorn` local. Os testes chamam `create_app()` para ter um app novo com a
-configuração do momento.
+`app.controllers`, mais o do webhook do WhatsApp com o canal ligado. O Uvicorn importa
+`app.main:app`, no `CMD` do `Dockerfile` e no `uv run uvicorn` local. Os testes chamam
+`create_app()` para ter um app novo com a configuração do momento.
 
 Importar este módulo não carrega o SQLAlchemy, o asyncpg nem o LangChain: o `lifespan`, a raiz
 de composição e os controladores importam serviços e adaptadores dentro das funções. Assim o
@@ -37,6 +37,7 @@ from app.controllers.metrics import router as metrics_router
 from app.controllers.privacy import router as privacy_router
 from app.controllers.readiness import router as readiness_router
 from app.controllers.registration import router as registration_router
+from app.controllers.whatsapp import router as whatsapp_router
 from app.core.config import edge_guard_secret, require_safeguards
 from app.core.container import ensure_ai_runtime, get_settings
 from app.core.errors import register_exception_handlers
@@ -61,14 +62,18 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     4. Abre o ouvinte `LISTEN atrium_handoff` do atendimento humano, fora do pool, e a
        varredura de 30 segundos (seções 29.5 e 29.6, ADR-016). Os dois rodam mesmo com
        `HANDOFF_ENABLED` desligado: a varredura então encerra a fila que sobrou.
-    5. No desligamento, para a varredura e o ouvinte, fecha o pool e espera os rastros
-       pendentes do LangSmith, para não perder rastros num deploy (seção 18.4).
+    5. Com `WHATSAPP_ENABLED`, abre o laço do canal WhatsApp: o processador da caixa de
+       entrada, o repasse do atendimento e o enviador, com o adaptador da Graph API (seção 30).
+    6. No desligamento, para o laço do WhatsApp, a varredura e o ouvinte, fecha o pool e
+       espera os rastros pendentes do LangSmith, para não perder rastros num deploy (18.4).
     """
     # 1. Mesmo objeto que `get_ai_runtime` entrega às rotas, então um circuito só por processo.
     settings = get_settings()
     ensure_ai_runtime(app.state, settings)
     broker = None
     sweeper: asyncio.Task[None] | None = None
+    whatsapp_task: asyncio.Task[None] | None = None
+    whatsapp_channel = None
     if settings.database_url:
         from app.adapters.clock import SystemClock
         from app.db.session import start_pool
@@ -97,10 +102,35 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
                 broker=app.state.realtime_broker,
             ).run()
         )
+        # 5. O canal WhatsApp: processador, repasse e enviador num laço (ADR-017). Um laço
+        # que o teste já pôs em `app.state` fica.
+        if settings.whatsapp_enabled and getattr(app.state, "whatsapp_worker", None) is None:
+            from app.adapters.whatsapp_cloud import MetaCloudApiChannel
+            from app.core.container import build_whatsapp_worker
+
+            whatsapp_channel = MetaCloudApiChannel(
+                access_token=settings.whatsapp_access_token,
+                phone_number_id=settings.whatsapp_phone_number_id,
+                graph_version=settings.whatsapp_graph_version,
+            )
+            worker = build_whatsapp_worker(
+                settings,
+                runtime=app.state.ai_runtime,
+                broker=app.state.realtime_broker,
+                channel=whatsapp_channel,
+            )
+            app.state.whatsapp_worker = worker
+            whatsapp_task = asyncio.create_task(worker.run())
     try:
         yield
     finally:
-        # 5. O Uvicorn chega aqui no desligamento, depois de encerrar os pedidos em curso.
+        # 6. O Uvicorn chega aqui no desligamento, depois de encerrar os pedidos em curso.
+        if whatsapp_task is not None:
+            whatsapp_task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await whatsapp_task
+        if whatsapp_channel is not None:
+            await whatsapp_channel.aclose()
         if sweeper is not None:
             sweeper.cancel()
             with contextlib.suppress(asyncio.CancelledError):
@@ -180,6 +210,9 @@ def create_app() -> FastAPI:
     app.include_router(admin_insights_router)
     app.include_router(admin_privacy_router)
     app.include_router(admin_handoffs_router)
+    # O webhook do WhatsApp só existe com o canal ligado: desligado, a rota responde 404.
+    if settings.whatsapp_enabled:
+        app.include_router(whatsapp_router)
     return app
 
 

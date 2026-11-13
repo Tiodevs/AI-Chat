@@ -153,6 +153,7 @@ class HandoffService:
         session_secret: str | None,
         guest_secret: str | None,
         client_ip: str,
+        visitor: Visitor | None = None,
     ) -> tuple[HandoffView, bool]:
         """Pede o atendimento. Devolve o atendimento e se ele foi criado agora (201 ou 200).
 
@@ -167,9 +168,9 @@ class HandoffService:
         3. Grava o atendimento `queued` com o `trigger` e o `NOTIFY`, na mesma transação.
         4. Depois do commit, entrega o aviso aos fluxos do processo e conta a métrica.
         """
-        # 1.
+        # 1. O canal WhatsApp passa o visitante já resolvido: o contato não tem cookie.
         self._require_hmac()
-        visitor = await self._visitor(session_secret, guest_secret)
+        visitor = visitor or await self._visitor(session_secret, guest_secret)
         now = self._clock.now()
         rate = await self._count_request(visitor, client_ip, now)
         created = False
@@ -242,6 +243,7 @@ class HandoffService:
         client_message_id: UUID,
         session_secret: str | None,
         guest_secret: str | None,
+        visitor: Visitor | None = None,
     ) -> HandoffMessageRecord:
         """Grava a mensagem do visitante, já sem identificadores (seções 29.5 e 29.9.7).
 
@@ -257,7 +259,7 @@ class HandoffService:
         if cleaned is None:
             raise ValidationFailed(INVALID_TEXT.format(max_chars=MAX_VISITOR_CHARS))
         self._require_hmac()
-        visitor = await self._visitor(session_secret, guest_secret)
+        visitor = visitor or await self._visitor(session_secret, guest_secret)
         now = self._clock.now()
         redacted = redact_identifiers(cleaned)
         limited: RateDecision | None = None
@@ -311,13 +313,14 @@ class HandoffService:
         *,
         session_secret: str | None,
         guest_secret: str | None,
+        visitor: Visitor | None = None,
     ) -> HandoffView:
         """O visitante sai da fila ou encerra o atendimento (FR-24). Repetir devolve o mesmo.
 
         Na fila, o motivo é `visitor_cancelled`; em atendimento, `visitor_ended`. Sem nenhum
-        atendimento, 404.
+        atendimento, 404. O canal WhatsApp passa o `visitor` do contato.
         """
-        visitor = await self._visitor(session_secret, guest_secret)
+        visitor = visitor or await self._visitor(session_secret, guest_secret)
         now = self._clock.now()
         notices: list[HandoffNotice] = []
         closed: HandoffRecord | None = None

@@ -89,6 +89,8 @@ class TraceMetadata:
     conversation_id: str | None = None
     subject: str | None = None
     trace_id: str | None = None
+    # `whatsapp` na pergunta do canal WhatsApp (seção 30.12). Na web fica de fora.
+    channel: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -327,7 +329,7 @@ def _shared_metadata(
     output_tokens: int,
 ) -> dict[str, object]:
     """Metadados comuns à raiz e ao filho da pergunta (seção 18.4)."""
-    return {
+    shared: dict[str, object] = {
         "request_id": request_id,
         "trace_id": trace.trace_id,
         "app_version": trace.app_version,
@@ -339,6 +341,9 @@ def _shared_metadata(
         "input_tokens": input_tokens,
         "output_tokens": output_tokens,
     }
+    if trace.channel:
+        shared["channel"] = trace.channel
+    return shared
 
 
 def _walk(value: object) -> object:

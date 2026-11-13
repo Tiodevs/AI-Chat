@@ -341,3 +341,66 @@ def get_attendance_service(
         pseudonym_key=settings.pseudonym_key,
         broker=broker,
     )
+
+
+def get_whatsapp_webhook_service(
+    request: Request,
+    settings: Annotated[Settings, Depends(get_settings)],
+    clock: Annotated[Clock, Depends(get_clock)],
+) -> Any:
+    """`WhatsAppWebhookService` do webhook, sem provedor de IA nem porta de envio (NFR-21).
+
+    Acorda o processador do próprio processo, quando o `lifespan` o guardou em `app.state`.
+    """
+    from app.services.whatsapp_webhook import WhatsAppWebhookService
+
+    worker = getattr(request.app.state, "whatsapp_worker", None)
+    return WhatsAppWebhookService(
+        database_url=settings.database_url,
+        clock=clock,
+        app_secret=settings.whatsapp_app_secret,
+        verify_token=settings.whatsapp_verify_token,
+        phone_number_id=settings.whatsapp_phone_number_id,
+        hmac_key=settings.rate_limit_hmac_key,
+        wake=None if worker is None else worker.wake,
+    )
+
+
+def build_whatsapp_worker(
+    settings: Settings,
+    *,
+    runtime: AiRuntime,
+    broker: Any,
+    channel: Any,
+    clock: Clock | None = None,
+) -> Any:
+    """O laço do canal WhatsApp, com o `QaWorkflow` do runtime e o mesmo orçamento da web.
+
+    O `lifespan` monta um por processo. Os testes passam o `FakeMessagingChannel`.
+    """
+    from app.services.budget import PostgresTokenBudget
+    from app.services.handoff import HandoffService
+    from app.services.whatsapp import WhatsAppWorker
+
+    active_clock = clock or SystemClock()
+    return WhatsAppWorker(
+        database_url=settings.database_url,
+        clock=active_clock,
+        channel=channel,
+        workflow=runtime.qa_workflow,
+        budget=PostgresTokenBudget(
+            settings.database_url, active_clock, settings.llm_daily_token_budget
+        ),
+        handoffs=HandoffService(
+            database_url=settings.database_url,
+            clock=active_clock,
+            hmac_key=settings.rate_limit_hmac_key,
+            enabled=settings.handoff_enabled,
+            broker=broker,
+        ),
+        broker=broker,
+        hmac_key=settings.rate_limit_hmac_key,
+        pseudonym_key=settings.pseudonym_key,
+        app_env=settings.app_env,
+        web_origin=settings.web_origin,
+    )

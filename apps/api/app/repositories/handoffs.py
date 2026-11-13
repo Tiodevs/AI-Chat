@@ -67,6 +67,8 @@ class HandoffRecord:
     visitor_seen_at: datetime
     last_seq: int
     content_purged_at: datetime | None
+    # `web` ou `whatsapp`, copiado da conversa no pedido (seção 30.7).
+    channel: str = "web"
 
 
 @dataclass(frozen=True, slots=True)
@@ -285,9 +287,16 @@ class HandoffRepository:
         trigger_message_id: UUID | None,
         now: datetime,
     ) -> HandoffRecord:
-        """Grava o atendimento `queued` e avisa a fila. O `flush()` traz o id gerado."""
+        """Grava o atendimento `queued` e avisa a fila. O `flush()` traz o id gerado.
+
+        O canal vem da conversa: `whatsapp` faz o console mostrar o selo (seção 30.5).
+        """
+        channel = await self._session.scalar(
+            select(Conversation.channel).where(Conversation.id == conversation_id)
+        )
         row = Handoff(
             conversation_id=conversation_id,
+            channel=channel or "web",
             status=HandoffStatus.QUEUED.value,
             trigger=trigger,
             trigger_message_id=trigger_message_id,
@@ -590,9 +599,17 @@ class HandoffRepository:
         )
 
     async def sweep_visitor_left(self, now: datetime) -> list[UUID]:
-        """Fila sem fluxo do visitante há 5 minutos vira `visitor_left`."""
+        """Fila sem fluxo do visitante há 5 minutos vira `visitor_left`.
+
+        Não vale para o canal WhatsApp: lá não há fluxo do visitante, e a fila vence só
+        pela espera de 15 minutos (seção 30.5).
+        """
         return await self._sweep(
-            (Handoff.status == "queued", Handoff.visitor_seen_at < now - VISITOR_ABSENT),
+            (
+                Handoff.status == "queued",
+                Handoff.channel == "web",
+                Handoff.visitor_seen_at < now - VISITOR_ABSENT,
+            ),
             _closed(CloseReason.VISITOR_LEFT, now),
         )
 
@@ -694,6 +711,7 @@ def _record(row: Handoff) -> HandoffRecord:
         visitor_seen_at=row.visitor_seen_at,
         last_seq=row.last_seq,
         content_purged_at=row.content_purged_at,
+        channel=row.channel,
     )
 
 

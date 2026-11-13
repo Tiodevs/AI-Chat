@@ -11,6 +11,8 @@ Usa `OpsMetricsRepository` e grava no `SNAPSHOT` de `core/metrics.py`, que o col
 próprio lê na renderização.
 """
 
+from datetime import UTC
+
 import structlog
 
 from app.core.metrics import SNAPSHOT
@@ -18,6 +20,7 @@ from app.db.session import open_session
 from app.db.unit_of_work import UnitOfWork
 from app.ports.clock import Clock
 from app.repositories.ops_metrics import OpsMetricsRepository
+from app.repositories.whatsapp import WhatsAppRepository
 
 
 async def refresh_database_metrics(database_url: str, clock: Clock) -> None:
@@ -37,6 +40,12 @@ async def refresh_database_metrics(database_url: str, clock: Clock) -> None:
             deleted = await repository.retention_deleted_by_rule()
             last_run = await repository.last_retention_run()
             queued, present = await repository.handoff_counts(clock.now())
+            whatsapp = WhatsAppRepository(session)
+            now = clock.now()
+            pending = await whatsapp.pending_counts(now)
+            month = await whatsapp.service_messages_since(
+                now.astimezone(UTC).replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            )
     except Exception:
         structlog.get_logger("atrium").warning("metrics.database_refresh_failed")
         return
@@ -46,5 +55,8 @@ async def refresh_database_metrics(database_url: str, clock: Clock) -> None:
     SNAPSHOT.retention_last_run_seconds = last_run.timestamp() if last_run else None
     SNAPSHOT.handoff_queue = queued
     SNAPSHOT.handoff_attendants_available = present
+    SNAPSHOT.whatsapp_pending = {key: value[0] for key, value in pending.items()}
+    SNAPSHOT.whatsapp_oldest_seconds = {key: value[1] for key, value in pending.items()}
+    SNAPSHOT.whatsapp_service_messages_month = month
     # Até a primeira leitura bem-sucedida, o coletor não emite estas séries.
     SNAPSHOT.loaded = True

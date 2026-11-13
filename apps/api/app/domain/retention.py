@@ -30,6 +30,8 @@ class RetentionRule(StrEnum):
     AUDIT_EVENTS = "audit_events"
     PRIVACY_REQUESTS = "privacy_requests"
     HANDOFF_CONTENT = "handoff_content"
+    WHATSAPP_CONTACTS = "whatsapp_contacts"
+    WHATSAPP_EVENTS = "whatsapp_events"
 
 
 # Prazo de cada regra. O repositório compara com um marco diferente por regra: `last_seen_at`
@@ -49,6 +51,10 @@ RETENTION: dict[RetentionRule, timedelta] = {
     RetentionRule.PRIVACY_REQUESTS: timedelta(days=730),
     # O texto do atendimento humano, 90 dias depois de `closed_at` (seção 29.9.9).
     RetentionRule.HANDOFF_CONTENT: timedelta(days=90),
+    # O contato do WhatsApp, 30 dias depois da última mensagem, com as conversas (30.9.7).
+    RetentionRule.WHATSAPP_CONTACTS: timedelta(days=30),
+    # A caixa de entrada e a de saída, 7 dias: o prazo das novas tentativas da Meta.
+    RetentionRule.WHATSAPP_EVENTS: timedelta(days=7),
 }
 
 

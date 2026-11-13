@@ -23,6 +23,7 @@ from app.core.logging import log_http_request
 from app.core.metrics import HTTP_DURATION, HTTP_REQUESTS
 from app.domain.auth import EDGE_HEADER, edge_is_trusted, origin_is_allowed
 from app.domain.errors import BadOrigin, Forbidden
+from app.domain.whatsapp import WEBHOOK_PATH
 from app.prompts.auth import BAD_ORIGIN, EDGE_FORBIDDEN
 from app.schemas.errors import ErrorBody, ErrorResponse
 
@@ -138,7 +139,8 @@ class ApiGuardMiddleware:
 
     1. Em `/v1`, confere `x-atrium-edge` em tempo constante. Com `edge_secret` vazio, como em
        `local` e `test` (`edge_guard_secret`), o portão fica aberto. Recusa: 403 `forbidden`.
-    2. Em qualquer caminho, `POST`, `PUT`, `PATCH` e `DELETE` precisam de `Origin` igual a
+    2. Em qualquer caminho, salvo o webhook do WhatsApp (seção 30.4), `POST`, `PUT`, `PATCH`
+       e `DELETE` precisam de `Origin` igual a
        `WEB_ORIGIN` (NFR-12), o que completa o `SameSite=Lax` contra CSRF. Recusa: 403
        `bad_origin`.
     3. Toda resposta de `/v1` sai com `Cache-Control: no-store`, inclusive a de erro (NFR-11).
@@ -168,8 +170,10 @@ class ApiGuardMiddleware:
         ):
             await _send_error(send, code=Forbidden.code, message=EDGE_FORBIDDEN, cache=True)
             return
-        # 2. Origem em todo método que muda estado, dentro e fora de /v1.
-        if not origin_is_allowed(
+        # 2. Origem em todo método que muda estado, dentro e fora de /v1. O webhook do
+        # WhatsApp fica de fora, e só ele: a Meta não manda `Origin`, e a rota é autenticada
+        # pela assinatura do corpo (seção 30.4).
+        if request_path != WEBHOOK_PATH and not origin_is_allowed(
             method=http_method,
             origin=_header(scope, b"origin"),
             web_origin=self.web_origin,

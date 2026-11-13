@@ -59,6 +59,10 @@ class HandoffMessageResponse(BaseModel):
     content: str
     redaction: str | None
     created_at: datetime
+    # Só na mensagem da equipe num atendimento do WhatsApp, para o console (seção 30.5):
+    # `pending`, `sent`, `delivered`, `read` ou `failed`, e o motivo em texto da falha.
+    delivery: Literal["pending", "sent", "delivered", "read", "failed"] | None = None
+    delivery_error: str | None = None
 
 
 # `GET /v1/attendance/me` e as respostas do aceite e da presença.
@@ -96,6 +100,8 @@ class StaffHandoffResponse(BaseModel):
     returned: bool
     visitor_present: bool
     seq: int
+    # `whatsapp` mostra o selo do canal no console, sem identidade (seção 30.11).
+    channel: Literal["web", "whatsapp"] = "web"
 
 
 # `GET /v1/attendance/queue`: a fila, os atendimentos da pessoa e a equipe presente.

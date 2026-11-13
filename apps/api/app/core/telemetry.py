@@ -39,6 +39,10 @@ SPAN_ATTRIBUTES: dict[str, frozenset[str]] = {
     "handoff.message": frozenset({"role", "redaction_count"}),
     "handoff.close": frozenset({"close_reason", "duration_ms"}),
     "realtime.notify": frozenset({"kind"}),
+    # Canal WhatsApp (seção 30.12): contagens, enums e códigos de erro, nunca texto nem BSUID.
+    "whatsapp.webhook": frozenset({"event_count"}),
+    "whatsapp.process": frozenset({"message_type", "decision"}),
+    "whatsapp.send": frozenset({"kind", "attempt", "error_code"}),
 }
 # Valem em qualquer span: ligam o span ao log e ao rastro do LangSmith (seção 18.2).
 _COMMON = frozenset({"request_id", "langsmith.run_id"})

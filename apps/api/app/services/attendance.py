@@ -16,7 +16,7 @@ motivo ou a categoria e nunca o conteúdo (seção 29.7).
 import asyncio
 import time
 from collections.abc import AsyncIterator
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
@@ -66,6 +66,7 @@ from app.domain.handoff import (
     STAFF_MESSAGE_PURPOSE,
     STREAM_MAX_SECONDS,
     STREAM_TICK_SECONDS,
+    VISITOR_ABSENT,
     CloseReason,
     HandoffNotice,
     HandoffStatus,
@@ -98,6 +99,7 @@ from app.prompts.handoff import (
     WRONG_TERMS_VERSION,
 )
 from app.prompts.qa import MEDICAL_ADVICE
+from app.prompts.whatsapp import delivery_error_text
 from app.repositories.audit import AuditRepository
 from app.repositories.auth_sessions import AuthSessionRepository
 from app.repositories.conversations import ConversationRepository
@@ -109,6 +111,7 @@ from app.repositories.handoffs import (
 )
 from app.repositories.rate_limits import RateLimitRepository
 from app.repositories.users import UserRepository
+from app.repositories.whatsapp import WhatsAppRepository
 from app.services.handoff import count_close, message_payload
 from app.services.stream_limits import LIMITER, StreamLease
 
@@ -144,6 +147,8 @@ class StaffHandoff:
     visitor_present: bool
     last_seq: int
     content_purged: bool
+    # `web` ou `whatsapp`. O console mostra o selo WhatsApp, sem identidade (seção 30.11).
+    channel: str = "web"
 
 
 @dataclass(frozen=True, slots=True)
@@ -165,6 +170,16 @@ class HandoffDetail:
     handoff: StaffHandoff
     conversation: tuple[ConversationLine, ...]
     messages: tuple[HandoffMessageRecord, ...]
+    # O status de entrega das mensagens da equipe num atendimento do WhatsApp (seção 30.5).
+    deliveries: dict[UUID, "StaffDelivery"] = field(default_factory=dict)
+
+
+@dataclass(frozen=True, slots=True)
+class StaffDelivery:
+    """O status de entrega de uma mensagem da equipe e o motivo da falha, em texto."""
+
+    status: str
+    error_text: str | None
 
 
 @dataclass(frozen=True, slots=True)
@@ -579,10 +594,25 @@ class AttendanceService:
                 if row.handoff_id is None
             )
         messages = await handoffs.messages_after(record.id, after_seq or 0)
+        deliveries: dict[UUID, StaffDelivery] = {}
+        if record.channel == "whatsapp":
+            found = await WhatsAppRepository(session).deliveries(
+                [message.id for message in messages if message.role == "attendant"]
+            )
+            deliveries = {
+                message_id: StaffDelivery(
+                    status=item.status,
+                    error_text=delivery_error_text(item.error_code)
+                    if item.status == "failed"
+                    else None,
+                )
+                for message_id, item in found.items()
+            }
         return HandoffDetail(
             handoff=self._staff_view(record, now),
             conversation=lines,
             messages=tuple(messages),
+            deliveries=deliveries,
         )
 
     def _staff_view(self, record: HandoffRecord, now: datetime) -> StaffHandoff:
@@ -598,9 +628,13 @@ class AttendanceService:
             closed_at=record.closed_at,
             close_reason=record.close_reason,
             returned=record.assigned_at is not None and record.status == HandoffStatus.QUEUED,
-            visitor_present=now - record.visitor_seen_at <= PRESENCE_WINDOW,
+            # No WhatsApp não há fluxo do visitante: presente é ter escrito nos últimos 5
+            # minutos (seção 30.5).
+            visitor_present=now - record.visitor_seen_at
+            <= (VISITOR_ABSENT if record.channel == "whatsapp" else PRESENCE_WINDOW),
             last_seq=record.last_seq,
             content_purged=record.content_purged_at is not None,
+            channel=record.channel,
         )
 
     def label(self, handoff_id: UUID) -> str:
@@ -812,8 +846,12 @@ class ConsoleStream:
         return chunks
 
     def _is_present(self, record: HandoffRecord) -> bool:
-        """O visitante está na conversa: o fluxo dele mandou sinal nos últimos 45 segundos."""
-        return self._service._clock.now() - record.visitor_seen_at <= PRESENCE_WINDOW
+        """O visitante está na conversa: o fluxo dele mandou sinal nos últimos 45 segundos.
+
+        No WhatsApp, sem fluxo, vale a última mensagem nos últimos 5 minutos (seção 30.5).
+        """
+        window = VISITOR_ABSENT if record.channel == "whatsapp" else PRESENCE_WINDOW
+        return self._service._clock.now() - record.visitor_seen_at <= window
 
 
 def queue_item_payload(item: StaffHandoff) -> dict[str, object]:
@@ -826,4 +864,5 @@ def queue_item_payload(item: StaffHandoff) -> dict[str, object]:
         "trigger": item.trigger,
         "returned": item.returned,
         "visitor_present": item.visitor_present,
+        "channel": item.channel,
     }

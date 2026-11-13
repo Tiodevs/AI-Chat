@@ -8,7 +8,7 @@ vencidas. Criada na migração `0004_conversations`.
 import uuid
 from datetime import datetime
 
-from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Index, Uuid, text
+from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Index, Text, Uuid, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base
@@ -35,6 +35,8 @@ class Conversation(Base):
             "user_id IS NOT NULL OR guest_key_id IS NOT NULL",
             name="conversations_owner",
         ),
+        # O canal da conversa, `web` ou `whatsapp` (seção 30.7, migração `0011_whatsapp`).
+        CheckConstraint("channel IN ('web', 'whatsapp')", name="conversations_channel"),
         # B-tree da seção 8.2, para a lista de conversas do membro. Não há índice em
         # `guest_key_id`; a Etapa 13.5 cria um.
         Index("conversations_user_id_idx", "user_id"),
@@ -60,3 +62,6 @@ class Conversation(Base):
     # Sem padrão no banco. O serviço grava `allocate_conversation_created_at`: o horário atual
     # ou, se ele não passa da conversa mais nova, um microssegundo depois dela.
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    # `whatsapp` quando a conversa nasceu no canal WhatsApp: o dono é a chave de convidado
+    # interna do contato, que nunca vira cookie (seção 30.7).
+    channel: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("'web'"))

@@ -105,6 +105,33 @@ REALTIME_LISTENER_UP = Gauge(
     "atrium_realtime_listener_up", "1 com o ouvinte do LISTEN conectado", registry=REGISTRY
 )
 
+# Canal WhatsApp (seção 30.12). Contados por `services/whatsapp_webhook.py` e
+# `services/whatsapp.py`, sem texto, sem BSUID e sem telefone nos rótulos.
+WHATSAPP_EVENTS = Counter(
+    "atrium_whatsapp_events",
+    "Eventos do webhook do WhatsApp",
+    ["kind", "message_type"],
+    registry=REGISTRY,
+)
+WHATSAPP_SIGNATURE_FAILURES = Counter(
+    "atrium_whatsapp_signature_failures", "Webhooks com assinatura inválida", registry=REGISTRY
+)
+WHATSAPP_PROCESSING_LAG = Histogram(
+    "atrium_whatsapp_processing_lag_seconds",
+    "Do recebimento do webhook ao fim do processamento",
+    buckets=(1, 2, 5, 10, 15, 30, 60, 120),
+    registry=REGISTRY,
+)
+WHATSAPP_OUTBOUND = Counter(
+    "atrium_whatsapp_outbound", "Mensagens de saída", ["kind", "status"], registry=REGISTRY
+)
+WHATSAPP_SEND_ERRORS = Counter(
+    "atrium_whatsapp_send_errors",
+    "Falhas de envio pela Graph API",
+    ["error_code"],
+    registry=REGISTRY,
+)
+
 # Os valores de `event` da seção 18.3. Nenhum módulo lê esta constante hoje.
 REGISTRATION_EVENT_NAMES = frozenset(
     {"started", "extracted", "optional_skipped", "password_set", "completed", "abandoned"}
@@ -124,6 +151,11 @@ class DatabaseSnapshot:
     # A fila e a equipe presente vêm do banco para valerem com mais de uma réplica (29.12).
     handoff_queue: int = 0
     handoff_attendants_available: int = 0
+    # O canal WhatsApp (seção 30.12): pendentes por direção, a idade do mais antigo e as
+    # mensagens de serviço enviadas no mês.
+    whatsapp_pending: dict[str, int] = field(default_factory=dict)
+    whatsapp_oldest_seconds: dict[str, float] = field(default_factory=dict)
+    whatsapp_service_messages_month: int = 0
     retention_deleted: dict[str, int] = field(default_factory=dict)
     retention_last_run_seconds: float | None = None
     loaded: bool = False
@@ -155,6 +187,24 @@ class DatabaseCollector:
             "atrium_handoff_attendants_available",
             "Pessoas da equipe presentes",
             value=SNAPSHOT.handoff_attendants_available,
+        )
+        pending = GaugeMetricFamily(
+            "atrium_whatsapp_pending", "Eventos e mensagens pendentes", labels=["direction"]
+        )
+        oldest = GaugeMetricFamily(
+            "atrium_whatsapp_oldest_pending_seconds",
+            "Idade do pendente mais antigo",
+            labels=["direction"],
+        )
+        for direction in ("inbound", "outbound"):
+            pending.add_metric([direction], SNAPSHOT.whatsapp_pending.get(direction, 0))
+            oldest.add_metric([direction], SNAPSHOT.whatsapp_oldest_seconds.get(direction, 0.0))
+        yield pending
+        yield oldest
+        yield GaugeMetricFamily(
+            "atrium_whatsapp_service_messages_month",
+            "Mensagens de serviço enviadas no mês",
+            value=SNAPSHOT.whatsapp_service_messages_month,
         )
         deleted = CounterMetricFamily(
             "atrium_retention_deleted", "Registros eliminados pela retenção", labels=["rule"]

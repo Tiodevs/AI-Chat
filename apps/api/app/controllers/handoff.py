@@ -169,8 +169,11 @@ async def handoff_events(
     return event_stream_response(request, stream.events)
 
 
-def message_response(stored: Any) -> HandoffMessageResponse:
-    """A mensagem gravada no schema da resposta, sem quem da equipe escreveu."""
+def message_response(stored: Any, delivery: Any = None) -> HandoffMessageResponse:
+    """A mensagem gravada no schema da resposta, sem quem da equipe escreveu.
+
+    `delivery` é o status de entrega do WhatsApp, só para o console (seção 30.5).
+    """
     return HandoffMessageResponse(
         id=stored.id,
         seq=stored.seq,
@@ -178,6 +181,8 @@ def message_response(stored: Any) -> HandoffMessageResponse:
         content=stored.content,
         redaction=stored.redaction,
         created_at=stored.created_at,
+        delivery=None if delivery is None else delivery.status,
+        delivery_error=None if delivery is None else delivery.error_text,
     )
 
 

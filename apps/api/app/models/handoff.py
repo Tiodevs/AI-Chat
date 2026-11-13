@@ -41,6 +41,7 @@ class Handoff(Base):
             name="handoffs_closed_reason",
         ),
         CheckConstraint("last_seq >= 0", name="handoffs_last_seq"),
+        CheckConstraint("channel IN ('web', 'whatsapp')", name="handoffs_channel"),
         # Um atendimento ativo por conversa (seção 29.7).
         Index(
             "handoffs_active_conversation_idx",
@@ -97,3 +98,5 @@ class Handoff(Base):
     content_purged_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    # O canal da conversa, copiado no pedido. O console mostra o selo WhatsApp por ele.
+    channel: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("'web'"))

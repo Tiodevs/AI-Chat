@@ -79,6 +79,16 @@ class Settings(BaseSettings):
     # O atendimento humano da seção 29. Desligado por padrão; em production, só depois da
     # Etapa 17.8 (seção 29.14).
     handoff_enabled: bool = False
+    # O canal WhatsApp da seção 30. Desligado por padrão. Ligado, a API não sobe sem os três
+    # segredos e o id do número (`missing_whatsapp`).
+    whatsapp_enabled: bool = False
+    whatsapp_phone_number_id: str = ""
+    whatsapp_business_account_id: str = ""
+    # A versão da Graph API muda por PR, não por variável de ambiente em produção.
+    whatsapp_graph_version: str = "v23.0"
+    whatsapp_app_secret: str = ""
+    whatsapp_access_token: str = ""
+    whatsapp_verify_token: str = ""
     # Os rastros só saem com `langsmith_tracing` verdadeiro e `langsmith_api_key` preenchida.
     langsmith_tracing: bool = False
     langsmith_api_key: str = ""
@@ -145,9 +155,30 @@ def missing_safeguards(settings: Settings) -> list[str]:
     return missing
 
 
+def missing_whatsapp(settings: Settings) -> list[str]:
+    """O que falta para o canal WhatsApp subir ligado, em qualquer ambiente. Seção 30.8.
+
+    Sem o segredo do app, nenhum webhook passa na assinatura; sem o token, nada sai; sem o
+    token de verificação, a Meta não confirma o webhook. Com o canal desligado, nada é exigido,
+    e o `retention-job`, que lê o mesmo `Settings`, não precisa destas variáveis.
+    """
+    if not settings.whatsapp_enabled:
+        return []
+    required = {
+        "WHATSAPP_PHONE_NUMBER_ID": settings.whatsapp_phone_number_id,
+        "WHATSAPP_APP_SECRET": settings.whatsapp_app_secret,
+        "WHATSAPP_ACCESS_TOKEN": settings.whatsapp_access_token,
+        "WHATSAPP_VERIFY_TOKEN": settings.whatsapp_verify_token,
+    }
+    return [name for name, value in required.items() if not value.strip()]
+
+
 def require_safeguards(settings: Settings) -> None:
-    """Levanta `MissingSafeguards` quando falta alguma proteção. `create_app` chama na subida."""
-    missing = missing_safeguards(settings)
+    """Levanta `MissingSafeguards` quando falta alguma proteção. `create_app` chama na subida.
+
+    Junta as proteções dos ambientes da Railway e, com o canal ligado, as do WhatsApp.
+    """
+    missing = missing_safeguards(settings) + missing_whatsapp(settings)
     if missing:
         raise MissingSafeguards(settings.app_env, missing)
 

@@ -118,12 +118,17 @@ class ConversationRepository:
         user_id: UUID | None,
         guest_key_id: UUID | None,
         created_at: datetime,
+        channel: str = "web",
     ) -> ConversationRecord:
-        """Grava uma conversa. A restrição `conversations_owner` exige ao menos um dono."""
+        """Grava uma conversa. A restrição `conversations_owner` exige ao menos um dono.
+
+        `channel` é `whatsapp` para a conversa do canal WhatsApp (seção 30.7).
+        """
         row = Conversation(
             user_id=user_id,
             guest_key_id=guest_key_id,
             created_at=created_at,
+            channel=channel,
         )
         self._session.add(row)
         await self._session.flush()

@@ -206,3 +206,12 @@ class AcknowledgementRequired(Forbidden):
     """Falta o aceite do compromisso de confidencialidade vigente (seção 29.3). HTTP 403."""
 
     code: ClassVar[str] = "acknowledgement_required"
+
+
+class WhatsAppBadSignature(Unauthenticated):
+    """Webhook do WhatsApp sem assinatura válida da Meta. HTTP 401, `whatsapp_bad_signature`.
+
+    Seção 30.8: a rota confere `X-Hub-Signature-256` antes de ler o corpo e não grava nada.
+    """
+
+    code: ClassVar[str] = "whatsapp_bad_signature"
