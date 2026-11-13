@@ -104,6 +104,7 @@ BUTTON_TITLES: dict[str, str] = {
 # Motivo de não entrega mostrado no console (seção 30.5).
 DELIVERY_ERRORS: dict[int, str] = {
     131047: "A janela de 24 horas do WhatsApp terminou.",
+    130497: "A Meta bloqueou o envio para o país deste número. Avise quem opera.",
     190: "O token do WhatsApp não vale mais. Avise quem opera.",
 }
 DELIVERY_ERROR_DEFAULT = "O WhatsApp não entregou esta mensagem."
