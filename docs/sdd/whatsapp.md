@@ -157,7 +157,7 @@ Chamar a equipe faz o pedido da seção 29.5, com as mesmas conferências, e o s
 
 **Rótulo de quem fala.** No WhatsApp não há componente visual próprio. Cada mensagem da equipe começa com "*Equipe do Harborlight:*" e cada resposta da IA com "*Atrium (IA):*". A pessoa sempre sabe se fala com a IA ou com uma pessoa, como pede a seção 29.9.5.
 
-**Mensagens da equipe.** O `POST /v1/attendance/handoffs/{id}/messages` grava a mensagem como na seção 29, e o repasse a transforma em linha de saída com o rótulo. O console mostra, em cada mensagem da equipe, Enviando, Entregue, Lida ou Não entregue. Uma mensagem não entregue mostra o motivo em texto, como "A janela de 24 horas do WhatsApp terminou.".
+**Mensagens da equipe.** O `POST /v1/attendance/handoffs/{id}/messages` grava a mensagem como na seção 29, e o repasse a transforma em linha de saída com o rótulo. O console mostra, em cada mensagem da equipe, Enviando, Entregue, Lida ou Não entregue. Uma mensagem não entregue mostra o motivo em texto, como "A janela de 24 horas do WhatsApp terminou." ou, no erro 130497 de envio entre países, "A Meta bloqueou o envio para o país deste número. Avise quem opera.".
 
 **Presença do visitante.** Não há fluxo SSE do visitante. `handoffs.visitor_seen_at` é a hora do pedido ou da última mensagem dele, e a varredura não aplica `visitor_left` a este canal: a fila vence só por `queue_timeout`, em 15 minutos. O console mostra Visitante ausente quando a última mensagem tem mais de 5 minutos.
 
@@ -399,14 +399,14 @@ Os testes seguem a seção 21.1: sem Gemini, sem LangSmith e sem a Graph API da 
 | Nenhuma mensagem sai sem uma mensagem recebida do contato nas últimas 24 horas | FR-33 |
 | A retenção apaga o contato 30 dias depois da última mensagem e não toca no contato com atendimento ativo | Seção 30.9.7 |
 | O console mostra o `Badge` WhatsApp e nunca o BSUID | Seção 30.11 |
-| J12, J13 e J14 na suíte ao vivo de development, com o número de teste da Meta e uma pessoa no console | Seção 30.11 |
+| J12, J13 e J14 na suíte ao vivo de development, com o número brasileiro de estudo e uma pessoa no console. O número de teste da Meta, americano, não envia para números brasileiros (erro 130497) | Seção 30.11 |
 
 ### 30.14 Configuração e constantes
 
 | Variável | Valor |
 |---|---|
 | `WHATSAPP_ENABLED` | `false` por padrão. Liga em development na Etapa 18.3 e em production só depois da Etapa 18.6 |
-| `WHATSAPP_PHONE_NUMBER_ID` | O id do número na Meta. Em development, o número de teste que a Meta dá no app |
+| `WHATSAPP_PHONE_NUMBER_ID` | O id do número na Meta. Em development, um número brasileiro de estudo, como um eSIM pré-pago, porque o número de teste americano não envia para o Brasil |
 | `WHATSAPP_BUSINESS_ACCOUNT_ID` | O id da conta do WhatsApp Business |
 | `WHATSAPP_GRAPH_VERSION` | A versão da Graph API, `v23.0` no código, trocada por PR |
 | `WHATSAPP_APP_SECRET`, `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_VERIFY_TOKEN` | Segredos da seção 30.8 |

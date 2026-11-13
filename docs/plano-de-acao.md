@@ -1739,7 +1739,9 @@ A Fase 18 implementa a seção 30 do SDD, aprovada na Etapa 18.0 em 2026-11-12, 
 1. Troque o token de development por um inválido, mande uma pergunta e confira o alerta no Discord. Volte o token.
 2. Depois do deploy aprovado, faça J12, J13 e J14 em production pelo número próprio.
 
-**Situação em 2026-11-12.** O código, o painel, os alertas, o guia e a configuração na Meta descrita em `docs/whatsapp-configuracao-na-meta.md` estão prontos. Faltam a configuração da Meta e da Railway feita por você, o teste com o número de teste em development (CA-5 da 18.2, CA-6 da 18.3), o número próprio, a 17.8 e a aprovação para ligar em production. A medida de latência da NFR-25 e as jornadas J12 a J14 no Playwright também ficam para depois do primeiro teste em development.
+**Situação em 2026-11-12.** O código, o painel, os alertas, o guia e a configuração na Meta descrita em `docs/whatsapp-configuracao-na-meta.md` estão prontos. Faltam a configuração da Meta e da Railway feita por você, o teste em development (CA-5 da 18.2, CA-6 da 18.3), o número próprio, a 17.8 e a aprovação para ligar em production. A medida de latência da NFR-25 e as jornadas J12 a J14 no Playwright também ficam para depois do primeiro teste em development.
+
+**Situação em 2026-11-13.** O app `atrium-dev` foi criado na Meta, e o número de teste recebeu mensagens e mostrou o BSUID no formato `BR.<dígitos>`, que o parser já lê. Todo envio do número de teste para um número brasileiro volta com o erro 130497, inclusive dentro da janela de 24 horas. O teste em development passa a usar um número brasileiro de estudo, um eSIM pré-pago, como descreve o passo 4 de `docs/whatsapp-configuracao-na-meta.md`.
 
 ## 4. Status das etapas
 

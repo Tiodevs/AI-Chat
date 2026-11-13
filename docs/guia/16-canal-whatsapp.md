@@ -56,4 +56,4 @@ O contato é identificado pelo BSUID (`whatsapp_contacts.identity`). O número f
 
 1. Rode `uv run pytest tests/unit/test_whatsapp_rules.py -q` em `apps/api` e mude o corte de `MAX_TEXT_CHARS` para ver o teste do corte falhar.
 2. Com o banco local, rode `REQUIRE_INTEGRATION_DB=1 uv run pytest tests/integration/test_whatsapp.py -q -k handoff` e acompanhe, no teste, cada mensagem que o `FakeMessagingChannel` grava.
-3. Siga o [passo a passo da Meta](../whatsapp-configuracao-na-meta.md) até o item 9 e mande uma mensagem do seu celular para a API local por um túnel.
+3. Siga o [passo a passo da Meta](../whatsapp-configuracao-na-meta.md) até o passo 10 e mande uma mensagem do seu celular para a API local por um túnel. O número de teste da Meta não envia para números brasileiros, então a resposta só chega com o número brasileiro do passo 4.
