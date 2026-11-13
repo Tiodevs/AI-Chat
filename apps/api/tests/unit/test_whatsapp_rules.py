@@ -35,7 +35,7 @@ from app.domain.whatsapp import (
     verify_signature,
     within_service_window,
 )
-from app.prompts.whatsapp import BUTTON_TITLES, CLOSE_TEXTS
+from app.prompts.whatsapp import BUTTON_TITLES, CLOSE_TEXTS, delivery_error_text
 
 SECRET = "app-secret"
 PHONE_ID = "1234567890"
@@ -252,6 +252,7 @@ def test_status_only_moves_forward() -> None:
         (401, 190, False),
         (400, 130429, True),
         (400, 100, False),
+        (403, 130497, False),
     ],
 )
 def test_retry_rules(http_status: int | None, code: int | None, expected: bool) -> None:
@@ -298,3 +299,49 @@ def test_button_titles_fit_the_meta_limit() -> None:
 
 def test_every_close_reason_has_a_whatsapp_text() -> None:
     assert set(CLOSE_TEXTS) == {reason.value for reason in CloseReason}
+
+
+def test_real_meta_payloads_keep_the_bsuid_and_the_country_block() -> None:
+    """Formato real da Meta em 2026-11-12, com o número trocado: campos extras são ignorados."""
+    bsuid = "BR.1145129061758348"
+    contact = {"profile": {"name": "Visitante"}, "wa_id": "551100000000", "user_id": bsuid}
+    message = _payload(
+        {
+            "contacts": [{**contact, "country_code": "BR"}],
+            "messages": [
+                {
+                    "from": "551100000000",
+                    "from_user_id": bsuid,
+                    "from_logical_id": "2792567656633",
+                    "id": "wamid.in",
+                    "timestamp": TS,
+                    "type": "text",
+                    "text": {"body": "oi"},
+                    "internal_1p_only_data": {"account_context": {"cs_id": PHONE_ID}},
+                }
+            ],
+        }
+    )
+    status = _payload(
+        {
+            "contacts": [contact],
+            "statuses": [
+                {
+                    "id": "wamid.out",
+                    "status": "failed",
+                    "timestamp": TS,
+                    "recipient_id": "551100000000",
+                    "recipient_user_id": bsuid,
+                    "errors": [{"code": 130497, "title": "restricted country"}],
+                }
+            ],
+        }
+    )
+
+    [inbound] = parse_webhook(message, PHONE_ID)
+    [failed] = parse_webhook(status, PHONE_ID)
+
+    assert inbound.kind is InboundKind.MESSAGE and inbound.message_type is MessageType.TEXT
+    assert (inbound.identity, inbound.phone, inbound.body) == (bsuid, "551100000000", "oi")
+    assert failed.status is OutboundStatus.FAILED and failed.error_code == 130497
+    assert "país" in delivery_error_text(130497)
