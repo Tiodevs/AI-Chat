@@ -14,6 +14,7 @@
  * Atrium", e nunca conteúdo (seção 29.9.4). A espera da fila é recalculada
  * a cada 15 segundos.
  */
+import { MessageCircle } from "lucide-react"
 import { useEffect, useState } from "react"
 
 import { PageHeading } from "@/app/page-heading.tsx"
@@ -227,6 +228,12 @@ function HandoffPanel({
   return (
     <div className="flex flex-col gap-4 pt-3">
       <div className="flex flex-wrap items-center gap-2">
+        {detail.handoff.channel === "whatsapp" ? (
+          <Badge variant="outline">
+            <MessageCircle aria-hidden="true" />
+            {pt.attendance.whatsapp}
+          </Badge>
+        ) : null}
         <Badge variant="secondary">{triggerText(detail.handoff.trigger)}</Badge>
         <Badge variant="outline">
           {detail.handoff.visitorPresent
@@ -263,7 +270,11 @@ function HandoffPanel({
         error={null}
         label={pt.attendance.composerLabel}
         placeholder={pt.attendance.placeholder}
-        hint={pt.attendance.composerHint}
+        hint={
+          detail.handoff.channel === "whatsapp"
+            ? pt.attendance.whatsappComposer
+            : pt.attendance.composerHint
+        }
         maxLength={2000}
       />
       <div className="flex flex-wrap gap-2">

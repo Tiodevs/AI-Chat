@@ -5995,6 +5995,35 @@
             "type": "string",
             "format": "date-time",
             "title": "Created At"
+          },
+          "delivery": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "pending",
+                  "sent",
+                  "delivered",
+                  "read",
+                  "failed"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Delivery"
+          },
+          "delivery_error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Delivery Error"
           }
         },
         "type": "object",
@@ -7388,6 +7417,15 @@
           "seq": {
             "type": "integer",
             "title": "Seq"
+          },
+          "channel": {
+            "type": "string",
+            "enum": [
+              "web",
+              "whatsapp"
+            ],
+            "title": "Channel",
+            "default": "web"
           }
         },
         "type": "object",

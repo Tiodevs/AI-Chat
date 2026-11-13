@@ -11,6 +11,10 @@
  *
  * Cada mensagem do atendimento tem a ação Remover conteúdo, que sobe por
  * `onRedact`; com `readOnly`, a ação some.
+ *
+ * No canal WhatsApp (seção 30.5), a mensagem da equipe mostra o status de
+ * entrega em texto pequeno: Enviando, Enviada, Entregue, Lida ou Não
+ * entregue com o motivo. Só a falha é anunciada ao leitor de tela.
  */
 import { useId } from "react"
 
@@ -39,6 +43,22 @@ export type ThreadMessage = {
   role: "user" | "attendant"
   content: string
   redaction: string | null
+  /** O status de entrega no WhatsApp, só na mensagem da equipe (seção 30.5). */
+  delivery?: DeliveryStatus | null
+  deliveryError?: string | null
+}
+
+/** Os status de entrega do WhatsApp, na ordem em que acontecem. */
+export type DeliveryStatus =
+  "pending" | "sent" | "delivered" | "read" | "failed"
+
+/** O texto do status de entrega, com o motivo quando falhou. */
+export function deliveryText(
+  delivery: DeliveryStatus,
+  error: string | null | undefined
+): string {
+  const label = pt.attendance.delivery[delivery]
+  return delivery === "failed" && error ? `${label}: ${error}` : label
 }
 
 /** O selo de cada desfecho da seção 7.1, quando ele tem selo. */
@@ -158,6 +178,18 @@ export function HandoffThread({
                   ? removedText(message.redaction)
                   : message.content}
               </p>
+              {message.role === "attendant" && message.delivery ? (
+                <span
+                  className={
+                    message.delivery === "failed"
+                      ? "text-caption text-destructive"
+                      : "text-caption text-muted-foreground"
+                  }
+                  aria-live={message.delivery === "failed" ? "polite" : "off"}
+                >
+                  {deliveryText(message.delivery, message.deliveryError)}
+                </span>
+              ) : null}
               {!readOnly && !message.redaction && onRedact ? (
                 <Button
                   type="button"

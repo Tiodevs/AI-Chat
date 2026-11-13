@@ -495,6 +495,18 @@ export const pt = {
           "O texto da pergunta passa pelo Google, de forma transitória, para ser classificado e respondido.",
         ],
       },
+      // O canal WhatsApp (SDD 30.9.4).
+      whatsapp: {
+        title: "WhatsApp",
+        body: [
+          "Você pode perguntar ao Atrium pelo WhatsApp do Harborlight. A primeira resposta traz um aviso de que você fala com uma inteligência artificial.",
+          "Guardamos o identificador que o WhatsApp dá a você para o hospital e, quando o WhatsApp o envia, o seu número. O identificador é o que usamos para responder. O número fica guardado só como reserva de envio e nunca aparece para a equipe, nos registros nem nos rastros de IA.",
+          "Não baixamos fotos, áudios nem documentos. Não envie exames, receitas ou documentos.",
+          "O WhatsApp é da Meta, que trata as mensagens nos Estados Unidos para entregá-las. A pergunta segue para o Google, como no site.",
+          "A conversa do WhatsApp é apagada 30 dias depois da sua última mensagem. Para apagar antes, envie APAGAR DADOS e confirme. As mensagens no seu aparelho continuam com você.",
+          "O Atrium nunca começa uma conversa: ele só responde a quem escreve.",
+        ],
+      },
       processors: {
         title: "Com quem compartilhamos",
         lead: "Estes operadores tratam dados fora do Brasil, com as cláusulas contratuais de cada provedor (art. 33 da LGPD).",
@@ -520,6 +532,11 @@ export const pt = {
             "Estados Unidos",
             "Rastros de IA mascarados, para qualidade e diagnóstico",
           ],
+          [
+            "Meta (WhatsApp)",
+            "Estados Unidos",
+            "Entregar as mensagens do canal WhatsApp",
+          ],
         ],
       },
       retention: {
@@ -535,6 +552,10 @@ export const pt = {
             "12 meses depois da última mensagem, ou até a exclusão da conta",
           ],
           ["Conversas de convidado", "30 dias"],
+          [
+            "Conversas do WhatsApp, identificador e número",
+            "30 dias depois da sua última mensagem, ou na hora com APAGAR DADOS",
+          ],
           [
             "Sessão de cadastro",
             "Apagada na conclusão, no abandono ou em 24 horas",
@@ -1051,6 +1072,17 @@ export const pt = {
     minutesOne: "1 minuto",
     minutesMany: "{minutes} minutos",
     returned: "Devolvido",
+    // O selo do canal e o status de entrega no WhatsApp (seções 30.5 e 30.11).
+    whatsapp: "WhatsApp",
+    delivery: {
+      pending: "Enviando…",
+      sent: "Enviada",
+      delivered: "Entregue",
+      read: "Lida",
+      failed: "Não entregue",
+    },
+    whatsappComposer:
+      "A mensagem vai pelo WhatsApp. Sem formatação e sem anexos.",
     visitorAway: "Visitante ausente",
     visitorPresent: "Visitante na conversa",
     // Os rótulos do motivo da oferta (seção 29.11).

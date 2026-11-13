@@ -1546,6 +1546,10 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+            /** Delivery */
+            delivery?: ("pending" | "sent" | "delivered" | "read" | "failed") | null;
+            /** Delivery Error */
+            delivery_error?: string | null;
         };
         /** HandoffRequest */
         HandoffRequest: {
@@ -2044,6 +2048,12 @@ export interface components {
             visitor_present: boolean;
             /** Seq */
             seq: number;
+            /**
+             * Channel
+             * @default web
+             * @enum {string}
+             */
+            channel: "web" | "whatsapp";
         };
         /** StaffMessageRequest */
         StaffMessageRequest: {

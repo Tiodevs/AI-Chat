@@ -27,6 +27,7 @@ export type ApiStaffHandoff = {
   queued_at: string
   close_reason: string | null
   visitor_present: boolean
+  channel?: "web" | "whatsapp"
 }
 
 /** Uma mensagem do atendimento. */
@@ -37,6 +38,8 @@ export type ApiMessage = {
   content: string
   redaction: string | null
   created_at: string
+  delivery?: "pending" | "sent" | "delivered" | "read" | "failed" | null
+  delivery_error?: string | null
 }
 
 /** O atendimento e a conversa da seção 29.9.4. */
@@ -65,6 +68,7 @@ export type StaffHandoffView = {
   queuedAt: string
   closeReason: string | null
   visitorPresent: boolean
+  channel: "web" | "whatsapp"
 }
 
 /** Uma mensagem do atendimento, com o `seq` da retomada. */
@@ -88,6 +92,7 @@ export function queueItem(item: {
   trigger: string
   returned: boolean
   visitor_present: boolean
+  channel?: "web" | "whatsapp"
 }): QueueItemView {
   return {
     handoffId: item.handoff_id,
@@ -96,6 +101,7 @@ export function queueItem(item: {
     trigger: item.trigger,
     returned: item.returned,
     visitorPresent: item.visitor_present,
+    channel: item.channel ?? "web",
   }
 }
 
@@ -109,6 +115,7 @@ export function staffHandoff(item: ApiStaffHandoff): StaffHandoffView {
     queuedAt: item.queued_at,
     closeReason: item.close_reason,
     visitorPresent: item.visitor_present,
+    channel: item.channel ?? "web",
   }
 }
 
@@ -121,6 +128,8 @@ export function staffMessage(message: ApiMessage): StaffMessageView {
     content: message.content,
     redaction: message.redaction,
     createdAt: message.created_at,
+    delivery: message.delivery ?? null,
+    deliveryError: message.delivery_error ?? null,
   }
 }
 

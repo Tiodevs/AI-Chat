@@ -73,3 +73,21 @@ export const ComAcoes: Story = {}
 export const SoLeitura: Story = { args: { readOnly: true } }
 
 export const SemMensagens: Story = { args: { messages: [] } }
+
+// No WhatsApp, a mensagem da equipe mostra o status de entrega (seção 30.5).
+export const WhatsAppEntrega: Story = {
+  args: {
+    messages: [
+      { ...messages[0], id: "w1" },
+      { ...messages[1], id: "w2", delivery: "read" },
+      {
+        id: "w3",
+        role: "attendant",
+        content: "Posso ajudar em algo mais?",
+        redaction: null,
+        delivery: "failed",
+        deliveryError: "A janela de 24 horas do WhatsApp terminou.",
+      },
+    ],
+  },
+}

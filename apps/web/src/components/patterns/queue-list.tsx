@@ -9,9 +9,13 @@
  * `onTake`; com 3 atendimentos, o botão fica desabilitado e o motivo
  * aparece acima da lista.
  *
+ * O atendimento que veio do WhatsApp tem o selo WhatsApp, com o ícone
+ * `MessageCircle`: só o canal, nunca o número (seção 30.11).
+ *
  * Movimento: um item novo entra com `autoAlpha` e `y` de 8 a 0
  * (`enterQueueItem`), direto com movimento reduzido.
  */
+import { MessageCircle } from "lucide-react"
 import { useRef } from "react"
 
 import { Badge } from "@/components/ui/badge.tsx"
@@ -30,6 +34,8 @@ export type QueueItemView = {
   trigger: string
   returned: boolean
   visitorPresent: boolean
+  /** `whatsapp` mostra o selo do canal (seção 30.11). */
+  channel?: "web" | "whatsapp"
 }
 
 /** A espera desde `queuedAt`, em minutos, como "Esperando há 3 minutos". */
@@ -128,6 +134,12 @@ function QueueRow({
           {waitText(item.queuedAt, now)}
         </span>
         <div className="flex flex-wrap gap-1.5">
+          {item.channel === "whatsapp" ? (
+            <Badge variant="outline">
+              <MessageCircle aria-hidden="true" />
+              {pt.attendance.whatsapp}
+            </Badge>
+          ) : null}
           <Badge variant="secondary">{triggerText(item.trigger)}</Badge>
           {item.returned ? (
             <Badge variant="outline">{pt.attendance.returned}</Badge>

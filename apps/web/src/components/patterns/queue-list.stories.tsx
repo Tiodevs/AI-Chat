@@ -51,3 +51,13 @@ export const Assumindo: Story = { args: { pendingId: "a2" } }
 export const SemCapacidade: Story = { args: { canTake: false } }
 
 export const Vazia: Story = { args: { items: [] } }
+
+// Um atendimento do WhatsApp mostra o selo do canal, sem o número (seção 30.11).
+export const ComWhatsApp: Story = {
+  args: {
+    items: [
+      { ...items[0], handoffId: "w1", channel: "whatsapp" },
+      ...items.slice(1),
+    ],
+  },
+}

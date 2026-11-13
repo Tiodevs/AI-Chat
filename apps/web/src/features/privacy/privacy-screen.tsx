@@ -83,7 +83,9 @@ export function PrivacyScreen({
             {pt.privacyNotice.version.replace("{version}", version)}
           </p>
         ) : null}
-        <p className="text-body text-foreground">{pt.privacyNotice.fictional}</p>
+        <p className="text-body text-foreground">
+          {pt.privacyNotice.fictional}
+        </p>
       </div>
 
       {/* Sumário da página ("Nesta página"). São âncoras comuns, e o
@@ -122,7 +124,11 @@ export function PrivacyScreen({
         <Paragraphs items={notice.health.body} />
       </NoticeSection>
 
-      {/* Os quatro operadores, com país e finalidade (SDD 11.7). */}
+      <NoticeSection id="whatsapp" title={notice.whatsapp.title}>
+        <Paragraphs items={notice.whatsapp.body} />
+      </NoticeSection>
+
+      {/* Os operadores, com país e finalidade (SDD 11.7 e 30.9.1). */}
       <NoticeSection id="compartilhamento" title={notice.processors.title}>
         <p className="text-body text-foreground">{notice.processors.lead}</p>
         <NoticeTable
@@ -147,7 +153,10 @@ export function PrivacyScreen({
           de consentimento (SDD 11.9). */}
       <NoticeSection id="cookies" title={notice.cookies.title}>
         <p className="text-body text-foreground">{notice.cookies.lead}</p>
-        <NoticeTable columns={notice.cookies.columns} rows={notice.cookies.rows} />
+        <NoticeTable
+          columns={notice.cookies.columns}
+          rows={notice.cookies.rows}
+        />
         <p className="text-body text-foreground">{notice.cookies.storage}</p>
       </NoticeSection>
 
@@ -248,7 +257,7 @@ function NoticeTable({
                   <td key={cell} className="p-3">
                     {cell}
                   </td>
-                ),
+                )
               )}
             </tr>
           ))}

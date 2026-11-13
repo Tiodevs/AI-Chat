@@ -51,6 +51,7 @@ export const noticeSections = [
   { id: "quem-cuida", key: "controller" },
   { id: "dados", key: "data" },
   { id: "saude", key: "health" },
+  { id: "whatsapp", key: "whatsapp" },
   { id: "compartilhamento", key: "processors" },
   { id: "retencao", key: "retention" },
   { id: "direitos", key: "rights" },
@@ -81,7 +82,7 @@ export const requestSchema = z.object({
     .string()
     .refine(
       (value) => requestTypes.some((item) => item === value),
-      pt.privacyRequest.typeRequired,
+      pt.privacyRequest.typeRequired
     ),
   description: z
     .string()
