@@ -6,7 +6,7 @@ O console da equipe de atendimento humano e a lista de encerrados do admin: as t
 
 | Arquivo | O que faz | Quem usa |
 |---|---|---|
-| [`model.ts`](model.ts) | Tipos e conversões das respostas da API para as views, a junção de mensagens pelo id, o título da aba só com a contagem e a duração em minutos. | Os hooks e as telas desta pasta |
+| [`model.ts`](model.ts) | Tipos e conversões das respostas da API para as views, com o canal e o status de entrega do WhatsApp, a junção de mensagens pelo id, o título da aba só com a contagem e a duração em minutos. | Os hooks e as telas desta pasta |
 | [`useAttendance.ts`](useAttendance.ts) | Controlador e store do console: presença, aceite, fila, abas, assumir, responder, orientação de emergência, remover, devolver, encerrar e o fluxo `GET /v1/attendance/events`. | [`app/routes/attendance.tsx`](../../app/routes/attendance.tsx), [`app/routes/attendance-commitment.tsx`](../../app/routes/attendance-commitment.tsx), `useSignOut` e `src/test/setup.ts` |
 | [`useClosedHandoffs.ts`](useClosedHandoffs.ts) | A lista de encerrados pelo TanStack Query e a leitura de um encerrado com motivo. | [`app/routes/admin-attendance.tsx`](../../app/routes/admin-attendance.tsx) |
 | [`attendance-screen.tsx`](attendance-screen.tsx) | Tela `/attendance`: presença, os três `StatTile`, a `QueueList` e até 3 atendimentos em `Tabs`, com o `HandoffThread`, o compositor e as ações. | `app/routes/attendance.tsx` |

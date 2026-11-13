@@ -27,6 +27,8 @@ As implementações das portas de [`app/ports`](../ports/README.md): Gemini para
 | [`clock.py`](clock.py) | `SystemClock`: o instante atual em UTC. | `core/container.py`, o `lifespan`, `gemini_chat.py` e os scripts. |
 | [`text_extractor.py`](text_extractor.py) | `FileTextExtractor` e `extract_text`: Markdown, texto e PDF num threadpool. | O `IngestionService`, montado em `core/container.py` e no script `seed`. |
 | [`README.md`](README.md) | Este mapa. | Quem estuda a pasta. |
+| [`whatsapp_cloud.py`](whatsapp_cloud.py) | `MetaCloudApiChannel`, a porta `MessagingChannel` sobre a Graph API da Meta, com `recipient` pelo BSUID e `to` pelo número de reserva. | O `lifespan` de [`main.py`](../main.py). |
+| [`fake_messaging.py`](fake_messaging.py) | `FakeMessagingChannel`, que grava o que seria enviado à Meta e simula falhas, para os testes (NFR-24). | `tests/integration/test_whatsapp.py`. |
 | [`realtime.py`](realtime.py) | `PostgresNotifyBroker`, que ouve `LISTEN atrium_handoff` numa conexão fora do pool e reconecta com espera crescente, e o `InMemoryBroker` dos testes. | O `lifespan` de [`main.py`](../main.py) e `get_realtime_broker` em [`core/container.py`](../core/container.py). |
 
 ### Adaptador, porta e quando é escolhido

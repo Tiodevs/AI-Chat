@@ -26,6 +26,7 @@ Entidades SQLAlchemy, uma tabela por arquivo e sem tratador de pedido: a camada 
 | [`token_usage_day.py`](token_usage_day.py) | `token_usage_days`: tokens gastos por dia UTC | `TokenUsageRepository` e, por SQL, `InsightsRepository` |
 | [`rate_limit_window.py`](rate_limit_window.py) | `rate_limit_windows`: contador por balde e janela fixa | `RateLimitRepository` e `RetentionRepository` |
 | [`handoff.py`](handoff.py) | `Handoff`, o atendimento humano: status, motivo da oferta, quem assumiu, motivo do encerramento, os instantes da fila e o `last_seq` da retomada, com o índice único parcial de um ativo por conversa | `repositories/handoffs.py`, `repositories/retention.py`, a migração `0010` |
+| [`whatsapp.py`](whatsapp.py) | `WhatsAppContact`, `WhatsAppInboundEvent`, `WhatsAppOutboundMessage` e `WhatsAppHandoffRelay`: o contato pelo BSUID com o número de reserva, a caixa de entrada, a caixa de saída e o cursor do repasse | `repositories/whatsapp.py`, `repositories/retention.py`, a migração `0011` |
 | [`attendant_presence.py`](attendant_presence.py) | `AttendantPresence`, uma linha por pessoa da equipe com `available` ou `away` e o último sinal do console | `repositories/handoffs.py`, a migração `0010` |
 | [`attendant_acknowledgement.py`](attendant_acknowledgement.py) | `AttendantAcknowledgement`, o aceite de cada versão do compromisso de confidencialidade | `repositories/handoffs.py`, a migração `0010` |
 

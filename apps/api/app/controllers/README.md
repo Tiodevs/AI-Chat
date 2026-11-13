@@ -25,6 +25,7 @@ Os controladores HTTP: interpretam o pedido, chamam um método de serviço e con
 | [`handoff.py`](handoff.py) | Rotas do visitante: disponibilidade, pedido, leitura, mensagem, encerramento e o fluxo `GET /v1/conversations/{id}/handoff/events`. | `main.py`; a conversa do frontend |
 | [`attendance.py`](attendance.py) | `require_attendant` e as rotas do console em `/v1/attendance`: presença, aceite, fila, assumir, ler, responder, remover, devolver, encerrar e o fluxo do console. | `main.py`; o console da equipe |
 | [`admin_handoffs.py`](admin_handoffs.py) | `GET /v1/admin/handoffs` e `POST /v1/admin/handoffs/{id}/view`, com o motivo gravado em `handoff.view`. | `main.py`; a tela de atendimentos encerrados do admin |
+| [`whatsapp.py`](whatsapp.py) | `GET` e `POST /v1/whatsapp/webhook`: a verificação da Meta e o recebimento pelo corpo cru, montados só com `WHATSAPP_ENABLED`. | `main.py`; a Meta |
 | [`event_stream.py`](event_stream.py) | `event_stream_response`, que transmite um fluxo longo e observa a desconexão, e `refuse_cross_site`. | `handoff.py` e `attendance.py` |
 
 ## Rotas

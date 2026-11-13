@@ -18,6 +18,7 @@ Os caminhos de "Quem usa" são relativos a `apps/api/app`.
 | [`clock.py`](clock.py) | `Clock` | Quase todos os serviços, os controladores que precisam da hora, `core/container.py`, `adapters/circuit_breaker.py` e `adapters/gemini_chat.py` |
 | [`password_hasher.py`](password_hasher.py) | `PasswordHasher` | `services/auth.py`, `services/registration.py` |
 | [`text_extractor.py`](text_extractor.py) | `TextExtractor` | `services/ingestion.py` |
+| [`messaging.py`](messaging.py) | `MessagingChannel`, o envio pelo WhatsApp: texto, botões e a confirmação de leitura com digitação, mais `SendError` com o status e o código da Meta | `services/whatsapp.py`, `adapters/whatsapp_cloud.py` e `adapters/fake_messaging.py` |
 | [`realtime.py`](realtime.py) | `RealtimeBroker`, que distribui os avisos do atendimento aos fluxos do processo | `services/handoff.py`, `services/attendance.py`, `services/handoff_sweep.py`, `core/container.py` e `adapters/realtime.py` |
 
 ## Como ler

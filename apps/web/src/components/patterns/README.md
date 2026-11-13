@@ -66,8 +66,8 @@ Os componentes de produto do Atrium: compõem as peças de [`ui`](../ui/README.m
 | Arquivo | O que faz | Quem usa | História |
 |---|---|---|---|
 | [presence-toggle.tsx](presence-toggle.tsx) | Disponível ou Ausente, num `ToggleGroup` de escolha única | `/attendance` | [Patterns/PresenceToggle](presence-toggle.stories.tsx) |
-| [queue-list.tsx](queue-list.tsx) | A fila sem conteúdo: rótulo, espera, motivo da oferta, Devolvido, Visitante ausente e Assumir. Também `waitText` e `triggerText` | `/attendance` e `/admin/attendance` | [Patterns/QueueList](queue-list.stories.tsx) |
-| [handoff-thread.tsx](handoff-thread.tsx) | A conversa com o Atrium e as mensagens do atendimento, em texto puro, com Remover conteúdo | `/attendance` e o `Sheet` de `/admin/attendance` | [Patterns/HandoffThread](handoff-thread.stories.tsx) |
+| [queue-list.tsx](queue-list.tsx) | A fila sem conteúdo: rótulo, espera, selo WhatsApp, motivo da oferta, Devolvido, Visitante ausente e Assumir. Também `waitText` e `triggerText` | `/attendance` e `/admin/attendance` | [Patterns/QueueList](queue-list.stories.tsx) |
+| [handoff-thread.tsx](handoff-thread.tsx) | A conversa com o Atrium e as mensagens do atendimento, em texto puro, com Remover conteúdo e, no WhatsApp, o status de entrega da mensagem da equipe. Também `deliveryText` | `/attendance` e o `Sheet` de `/admin/attendance` | [Patterns/HandoffThread](handoff-thread.stories.tsx) |
 | [redact-dialog.tsx](redact-dialog.tsx) | A remoção de conteúdo com a categoria num `ToggleGroup` de escolha única | `/attendance` | [Patterns/RedactDialog](redact-dialog.stories.tsx) |
 
 ## Como ler
@@ -86,6 +86,7 @@ Conceitos que ajudam:
 ## Testes
 
 - **Histórias do Storybook.** Todo componente tem um `*.stories.tsx` ao lado, com os estados das seções [14.7](../../../../../docs/sdd/experiencia.md#147-estados-de-interação) e [15.5](../../../../../docs/sdd/experiencia.md#155-telas); o `SidebarBody` aparece nas do `AppSidebar`. Rode `pnpm storybook` em `apps/web` e use o painel Accessibility do addon configurado em [.storybook](../../../.storybook/README.md). A CI só faz o build do Storybook.
+- **[whatsapp-console.test.tsx](whatsapp-console.test.tsx).** O selo WhatsApp na fila, sem número, e o status de entrega com o motivo da falha (seções 30.5 e 30.11).
 - **[assistant-message.test.tsx](assistant-message.test.tsx).** Uma citação agrupada, como `[2, 3]`, vira um chip por fonte, e um grupo com fonte desconhecida fica como texto.
 - **Testes das telas que cobrem esta pasta:** [shell.test.tsx](../../app/shell.test.tsx) (cabeçalho do visitante, menu do celular, barra recolhida, perfil, Sair e preferência de movimento), [ask.test.tsx](../../features/ask/ask.test.tsx) (troca da resposta e a região ao vivo, que só recebe o texto no `done`), [registration.test.tsx](../../features/registration/registration.test.tsx) (resumo, foco na senha depois da M12, aceites e destaque), [insights.test.tsx](../../features/admin/insights.test.tsx) (indicadores com o valor no `aria-label` e tabelas dos gráficos), [privacy-queue.test.tsx](../../features/admin/privacy-queue.test.tsx) (`dueState` e o `data-due`) e [documents.test.tsx](../../features/admin/documents.test.tsx) (envio pelo `FileDropzone`).
 - **Movimento:** [presets.test.ts](../../motion/presets.test.ts) confere cada preset com e sem movimento reduzido, e o Playwright roda J1 e J3 com movimento em `e2e/motion.spec.ts`.

@@ -27,7 +27,10 @@ flowchart LR
   subgraph entrega["Qualidade e entrega"]
     p13["13 · Testes"] --> p14["14 · Entrega e operação"]
   end
-  base --> ia --> protecao --> dados --> web --> entrega
+  subgraph canais["Canais"]
+    p16["16 · Canal WhatsApp"]
+  end
+  base --> ia --> protecao --> dados --> web --> entrega --> canais
 ```
 
 Cada parte é uma sessão de estudo de 30 a 60 minutos e termina com **Para praticar**: comandos e experimentos curtos que mostram o código funcionando. A ordem acima é a sugerida. Quem já conhece FastAPI pode pular da parte 2 para a 4; quem quer começar pelo que se vê na tela pode ler a 11 logo depois da 2. Para ter o panorama antes da parte 1, a [visão de engenharia](../engenharia/README.md) resume o projeto em uma página.
@@ -48,6 +51,7 @@ Cada parte é uma sessão de estudo de 30 a 60 minutos e termina com **Para prat
 | [12. Design system e movimento](12-design-system-e-movimento.md) | Tokens, componentes `ui` e `patterns`, acessibilidade e GSAP com movimento reduzido | SDD 14 a 16 |
 | [13. Testes](13-testes.md) | A pirâmide de testes, os falsos que substituem o Gemini e o LangSmith, e como escrever um teste novo | SDD 21 |
 | [14. Entrega e operação](14-entrega-e-operacao.md) | A vida de um commit até a produção, os serviços na Railway e na Vercel, a fumaça e o rollback | SDD 19 e 22 |
+| [16. Canal WhatsApp](16-canal-whatsapp.md) | O webhook da Meta, a caixa de entrada e a de saída, o laço que processa, repassa e envia, e a identidade pelo BSUID | SDD 30, ADR-017 e ADR-018 |
 
 ## Antes de começar
 

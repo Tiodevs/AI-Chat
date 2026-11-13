@@ -4,7 +4,7 @@ Parte da [especificação do Atrium](../sdd.md). A numeração das seções é a
 
 ## 30. Canal WhatsApp
 
-**Status.** Proposta, em revisão na Etapa 18.0 do plano de ação. Nenhum comportamento existente muda até a aprovação. As decisões D-10 a D-14 da seção 26 estão abertas, e `WHATSAPP_ENABLED` vale `false` até a Etapa 18.6.
+**Status.** Aprovada na Etapa 18.0 do plano de ação, em 2026-11-12, com as decisões D-10, D-11, D-13 e D-14 da seção 26 fechadas como propostas e a D-12 alterada: o Atrium guarda o BSUID e o número, e a identidade é só o BSUID. Implementada nas Etapas 18.1 a 18.6. `WHATSAPP_ENABLED` vale `false` até a sua aprovação da Etapa 18.6 em production. O passo a passo do que criar na Meta está em [docs/whatsapp-configuracao-na-meta.md](../whatsapp-configuracao-na-meta.md).
 
 O visitante manda mensagem para o número do Harborlight no WhatsApp, e o Atrium responde com o mesmo pipeline da seção 7.1, com fontes, recusa médica e abstenção. Quando a IA não ajuda, o WhatsApp oferece o atendimento humano da seção 29, e a pessoa da equipe responde pelo mesmo console: a mensagem dela chega no WhatsApp do visitante. Esta seção diz só o que o canal acrescenta ou muda. As seções 7, 10, 11 e 29 continuam valendo.
 
@@ -65,7 +65,7 @@ A Meta recomenda a Cloud API, hospedada por ela. A On-Premises API foi descontin
 | Tolerar notificações repetidas, porque a nova tentativa pode duplicar | Índice único no id da mensagem da Meta (`wamid`). A segunda gravação é ignorada com `ON CONFLICT DO NOTHING` (NFR-22) |
 | Validar `X-Hub-Signature-256`, o HMAC-SHA256 do corpo cru com o segredo do app | A assinatura é conferida sobre os bytes recebidos, em tempo constante, antes de qualquer `json.loads` (30.8) |
 | Responder à verificação com `hub.mode=subscribe`, `hub.verify_token` e `hub.challenge` | `GET` da mesma rota, que compara o token em tempo constante e devolve o `challenge` como texto puro |
-| Identificar a pessoa pelo identificador do usuário no escopo da empresa (BSUID), porque o telefone pode faltar no webhook de quem adotou nome de usuário | O Atrium guarda só o BSUID, de `messages[].from_user_id`, e envia com `recipient`. O telefone nunca é gravado (D-12, ADR-018) |
+| Identificar a pessoa pelo identificador do usuário no escopo da empresa (BSUID), porque o telefone pode faltar no webhook de quem adotou nome de usuário | O BSUID, de `messages[].from_user_id`, é a identidade, e o envio usa `recipient`. O número, quando vem, fica guardado só como reserva de envio (D-12, ADR-018) |
 | Preferir mTLS a uma lista de IPs da Meta, que muda | Sem lista de IPs. Assinatura do corpo e segredo da borda. O mTLS fica para depois (30.16) |
 | Usar o token de um usuário do sistema do portfólio, e não o token temporário do painel | `WHATSAPP_ACCESS_TOKEN` de um usuário do sistema só com `whatsapp_business_messaging` e `whatsapp_business_management` |
 | Mensagem livre só dentro da janela de 24 horas desde a última mensagem da pessoa. Fora dela, só modelo aprovado | O Atrium só responde. Todos os prazos do atendimento cabem na janela, então nenhum modelo é necessário (30.5) |
@@ -81,8 +81,8 @@ As decisões abertas ficam na seção 26, como D-10 a D-14.
 |---|---|
 | 1. Cloud API direta, sem BSP (D-10). | Sem mensalidade nem acréscimo por mensagem, e é a API que a Meta documenta. Um BSP daria painel pronto, mas o Atrium já tem console e observabilidade. |
 | 2. O webhook passa pelo rewrite da Vercel, com o segredo da borda, e é autenticado pela assinatura da Meta (D-11). | A API continua aceitando `/v1` só pela Vercel (seção 10.3) e os limites continuam vendo o IP pelo mesmo caminho. A alternativa era expor a rota direto na Railway, isenta do segredo da borda. |
-| 3. A identidade é o BSUID. O número de telefone nunca é gravado (D-12, ADR-018). | Necessidade, art. 6º, III. O Atrium não precisa do telefone para responder, e a Meta já entrega o BSUID e aceita o envio por ele. |
-| 4. A conversa do WhatsApp é apagada 30 dias depois da última mensagem da pessoa, como a do convidado (D-13). | É uma conversa sem conta. A pessoa guarda a própria cópia no aparelho. |
+| 3. A identidade é o BSUID. O número, quando a Meta o envia, fica em `whatsapp_contacts.phone` como reserva de envio, e nunca aparece em log, rastro, métrica, console ou exportação (D-12, ADR-018). Sem BSUID, a identidade de reserva é `phone:<número>`. | O envio pelo BSUID é recente na Graph API: o número cobre a recusa do envio pelo BSUID. A identidade continua estável quando a pessoa esconde o número com nome de usuário. |
+| 4. A conversa do WhatsApp é apagada 30 dias depois da última mensagem da pessoa, como a do convidado (D-13). Cada contato tem uma chave de convidado interna, que nunca vira cookie e é a dona das conversas dele. | É uma conversa sem conta. A pessoa guarda a própria cópia no aparelho. A chave interna faz a fila, os limites, o bloqueio por abuso e a exclusão em cascata da seção 29 valerem sem regra nova. |
 | 5. O atendimento humano usa a mesma fila, o mesmo console e as mesmas normas da seção 29 (D-14). | Uma equipe, uma auditoria, uma regra de privacidade. O console mostra só o canal, sem identidade. |
 | 6. Uma conversa nova começa quando a última mensagem da pessoa tem mais de 24 horas. | É a janela de atendimento da Meta. O histórico do modelo (seção 7.1) não mistura assuntos de dias diferentes. |
 | 7. Só texto. Mídia não é baixada. | A foto de um exame é dado de saúde (art. 11). Sem download, ela não entra no Atrium. |
@@ -115,8 +115,8 @@ sequenceDiagram
   M->>P: resposta
 ```
 
-1. **Recebimento.** O `ApiGuardMiddleware` confere o segredo da borda como em todo `/v1`. A conferência de `Origin` (NFR-12) não vale para `POST /v1/whatsapp/webhook`, e só para ele: a Meta não manda `Origin`, e a rota é autenticada pela assinatura. A rota lê o corpo cru até 3 MB, o tamanho máximo que a Meta documenta, confere `X-Hub-Signature-256` e só então interpreta o JSON. Ela ignora `entry` de outro `phone_number_id`. Para cada item de `messages[]`, `statuses[]` e `system`, grava uma linha em `whatsapp_inbound_events`, com o `wamid` único, e faz `pg_notify('atrium_whatsapp', ...)` na mesma transação. Responde 200 com corpo vazio, inclusive para tipos que o Atrium não trata, para a Meta não repetir.
-2. **Processador.** Uma tarefa do `lifespan`, como a varredura da seção 29.5, acorda pelo `LISTEN atrium_whatsapp` ou a cada 5 segundos. Ela pega eventos `pending` com `FOR UPDATE SKIP LOCKED`, em ordem de `wa_timestamp`, e trava o contato com um advisory lock de transação, para as mensagens de uma pessoa saírem em ordem mesmo com duas réplicas. Um evento que falha três vezes vira `failed`, com log e métrica.
+1. **Recebimento.** O `ApiGuardMiddleware` confere o segredo da borda como em todo `/v1`. A conferência de `Origin` (NFR-12) não vale para `POST /v1/whatsapp/webhook`, e só para ele: a Meta não manda `Origin`, e a rota é autenticada pela assinatura. A rota lê o corpo cru até 3 MB, o tamanho máximo que a Meta documenta, confere `X-Hub-Signature-256` e só então interpreta o JSON. Ela ignora `entry` de outro `phone_number_id`. Para cada item de `messages[]`, `statuses[]` e `system`, grava uma linha em `whatsapp_inbound_events`, com a chave única `event_key` (o `wamid`, ou o `wamid` com o status), e acorda o processador do próprio processo. Responde 200 com corpo vazio, inclusive para tipos que o Atrium não trata, para a Meta não repetir.
+2. **Processador.** Uma tarefa do `lifespan`, como a varredura da seção 29.5, acorda pelo aviso do webhook do mesmo processo, por um aviso do atendimento no `RealtimeBroker` ou a cada 2 segundos. Ela pega um evento por vez com `UPDATE ... WHERE id = (SELECT ... FOR UPDATE SKIP LOCKED)`, em ordem de `wa_timestamp`, e só pega o evento de uma pessoa que não tem outro mais antigo pendente nem outro em processamento: as mensagens de uma pessoa saem em ordem mesmo com duas réplicas. Um processamento parado há 5 minutos volta a valer. Um evento que falha três vezes vira `failed`, com log e métrica. Nenhuma transação fica aberta durante a chamada ao modelo ou à Meta.
 3. **Contato e conversa.** O processador acha ou cria o contato pelo BSUID. Um evento `system` do tipo `user_changed_user_id` ou `user_changed_number` troca o BSUID do contato pelo novo, a partir de `previous_user_id`. A conversa ativa do contato é a última, se a mensagem anterior da pessoa tem menos de 24 horas. Senão, nasce uma conversa nova, com `channel = 'whatsapp'`.
 4. **Aviso.** Se o contato nunca recebeu o aviso da versão vigente (30.9.4), o aviso sai antes de qualquer resposta.
 5. **Confirmação de leitura.** O processador marca a mensagem como lida com o indicador de digitação. Os dois não são cobrados pela Meta.
@@ -127,8 +127,8 @@ sequenceDiagram
    - atendimento ativo na conversa: a mensagem vai para o atendimento, como o `POST` da seção 29.10, com a remoção de identificadores da seção 29.9.7
    - limite de taxa estourado: a resposta fixa de limite, uma vez por janela (30.8)
    - fora disso: a pergunta vai ao `QuestionService` da seção 7.1, com o mesmo orçamento, a mesma classificação e o mesmo histórico com janela
-7. **Resposta.** A resposta do assistente e a linha de `whatsapp_outbound_messages` nascem na mesma transação. Quando `handoff_offer` (seção 29.4) permite, a oferta com botões vai logo depois (30.5).
-8. **Envio.** O enviador, na mesma tarefa, pega as linhas `pending` com `next_attempt_at` vencido e chama a porta `MessagingChannel`. Um 429 ou 5xx da Graph API tenta de novo com espera crescente, até 5 tentativas em 1 hora. O erro 131047, de janela de 24 horas vencida, e os erros de destinatário inválido viram `failed` sem nova tentativa. O token inválido (código 190) também vira `failed` e dispara o alerta da seção 30.12.
+7. **Resposta.** A pergunta, a resposta do assistente, as linhas de `whatsapp_outbound_messages` e o fim do evento nascem na mesma transação: um evento processado nunca gera duas respostas. A pergunta grava com um `client_message_id` derivado do `wamid`. Quando `handoff_offer` (seção 29.4) permite, a oferta com botões vai logo depois (30.5).
+8. **Envio.** O enviador, na mesma tarefa, pega uma linha `pending` com `next_attempt_at` vencido, a reserva por 2 minutos e chama a porta `MessagingChannel`. Fora da janela de 24 horas, a linha vira `failed` com o código 131047 sem chamar a Meta (FR-33). Uma recusa do envio pelo BSUID com o código 100 tenta de novo pelo número guardado. Um 429 ou 5xx da Graph API tenta de novo com espera crescente, até 5 tentativas em 1 hora. O erro 131047, de janela de 24 horas vencida, e os erros de destinatário inválido viram `failed` sem nova tentativa. O token inválido (código 190) também vira `failed` e dispara o alerta da seção 30.12.
 9. **Status.** O webhook de `statuses[]` atualiza a linha pelo `wamid` devolvido no envio: `sent`, `delivered`, `read` ou `failed`, sem voltar de um estado posterior para um anterior.
 
 O envio é pelo menos uma vez: se o processo morre depois da Graph API aceitar e antes do commit do `wamid`, a mensagem pode sair duas vezes. O risco fica na seção 30.16.
@@ -151,13 +151,15 @@ A seção 29 vale inteira, com as diferenças abaixo. O texto do atendimento con
 
 Chamar a equipe faz o pedido da seção 29.5, com as mesmas conferências, e o sujeito é o contato do WhatsApp.
 
-**Status.** Cada mudança vira uma mensagem de saída gravada na mesma transação que muda o status: "Você está na fila. Posição N. Para sair, envie ENCERRAR.", "Uma pessoa da equipe do Harborlight vai responder por aqui." e os textos de encerramento da seção 29.5. A posição vai uma vez ao entrar na fila e de novo quando o atendimento é devolvido, não a cada mudança, para não lotar a conversa.
+**Repasse.** O console e a varredura não sabem do WhatsApp. O processador lê os atendimentos com `channel = 'whatsapp'` que têm mensagem da equipe ou mudança de status ainda não repassadas e, na mesma transação que avança o cursor `whatsapp_handoff_relay`, grava as mensagens de saída. Assim cada mensagem e cada aviso saem uma vez, e o código da seção 29 continua igual.
+
+**Status.** Cada mudança vira uma mensagem de saída, gravada pelo repasse: "Você está na fila. Posição N. Para sair, envie ENCERRAR.", "Uma pessoa da equipe do Harborlight vai responder por aqui." e os textos de encerramento da seção 29.5. A posição vai uma vez ao entrar na fila e de novo quando o atendimento é devolvido, não a cada mudança, para não lotar a conversa.
 
 **Rótulo de quem fala.** No WhatsApp não há componente visual próprio. Cada mensagem da equipe começa com "*Equipe do Harborlight:*" e cada resposta da IA com "*Atrium (IA):*". A pessoa sempre sabe se fala com a IA ou com uma pessoa, como pede a seção 29.9.5.
 
-**Mensagens da equipe.** O `POST /v1/attendance/handoffs/{id}/messages` de um atendimento do canal WhatsApp grava a mensagem e a linha de saída na mesma transação. O console mostra, em cada mensagem da equipe, Enviando, Entregue, Lida ou Não entregue. Uma mensagem não entregue mostra o motivo em texto, como "A janela de 24 horas do WhatsApp terminou.".
+**Mensagens da equipe.** O `POST /v1/attendance/handoffs/{id}/messages` grava a mensagem como na seção 29, e o repasse a transforma em linha de saída com o rótulo. O console mostra, em cada mensagem da equipe, Enviando, Entregue, Lida ou Não entregue. Uma mensagem não entregue mostra o motivo em texto, como "A janela de 24 horas do WhatsApp terminou.".
 
-**Presença do visitante.** Não há fluxo SSE do visitante. `handoffs.visitor_seen_at` é a hora da última mensagem dele, e a varredura não aplica `visitor_left` a este canal: a fila vence só por `queue_timeout`, em 15 minutos. O console mostra Visitante ausente quando a última mensagem tem mais de 5 minutos.
+**Presença do visitante.** Não há fluxo SSE do visitante. `handoffs.visitor_seen_at` é a hora do pedido ou da última mensagem dele, e a varredura não aplica `visitor_left` a este canal: a fila vence só por `queue_timeout`, em 15 minutos. O console mostra Visitante ausente quando a última mensagem tem mais de 5 minutos.
 
 **Janela de 24 horas.** O atendimento parado encerra em 30 minutos, e a fila em 15. Os dois cabem na janela, então a equipe nunca precisa de modelo de mensagem. A pessoa que volta depois de 24 horas abre uma conversa nova com a IA.
 
@@ -190,17 +192,21 @@ A função pura `to_whatsapp_text`, em `domain/whatsapp.py`, transforma a respos
 
 Segue a seção 8: UUIDs, `timestamptz` em UTC, regra de retenção para todo dado pessoal e migração em expand and contract.
 
-**whatsapp_contacts.** `bsuid` texto único, `notice_version` anulável (a versão do aviso já enviada), `first_seen_at`, `last_inbound_at`, `deletion_requested_at` anulável. Sem telefone, sem nome de perfil e sem nome de usuário.
+A migração é a `0011_whatsapp`.
 
-**whatsapp_inbound_events.** `wamid` texto único, `contact_id` anulável (chave estrangeira em cascata), `kind` (`message`, `status` ou `system`), `message_type` (`text`, `button`, `media` ou `other`), `body` anulável, `button_id` anulável, `wa_timestamp`, `received_at`, `status` (`pending`, `done`, `failed` ou `ignored`), `attempts` e `processed_at` anulável. O processador apaga `body` quando o evento termina: o texto passa a viver só em `messages`, com as regras da seção 8.
+**whatsapp_contacts.** `identity` texto único (o BSUID, ou `phone:<número>` sem BSUID), `phone` anulável (o número, quando a Meta o envia), `guest_key_id` único (chave estrangeira em cascata para `guest_keys`: apagar a chave apaga o contato), `notice_version` anulável (a versão do aviso já enviada), `first_seen_at` e `last_inbound_at`. Sem nome de perfil e sem nome de usuário.
 
-**whatsapp_outbound_messages.** `contact_id` (chave estrangeira em cascata), `conversation_id` anulável, `message_id` anulável e `handoff_id` anulável (chaves estrangeiras com `SET NULL`), `kind` (`text`, `buttons`, `notice` ou `status_update`), `payload` jsonb anulável, `status` (`pending`, `sent`, `delivered`, `read` ou `failed`), `wamid` único anulável, `attempts`, `next_attempt_at`, `error_code` anulável, `created_at` e `updated_at`. `payload` é apagado quando a linha chega a `delivered`, `read` ou `failed`.
+**whatsapp_inbound_events.** `event_key` texto único, `kind` (`message`, `status` ou `system`), `identity`, `phone` e `previous_identity` anuláveis, `message_type` (`text`, `button`, `media` ou `other`) anulável, `body` e `button_id` anuláveis, `wamid`, `delivery_status` e `error_code` anuláveis (do status), `wa_timestamp`, `received_at`, `status` (`pending`, `processing`, `done`, `failed` ou `ignored`), `attempts`, `claimed_at` e `processed_at` anuláveis. O processador apaga `body`, `identity`, `phone` e `previous_identity` quando o evento termina: o texto passa a viver só em `messages`, com as regras da seção 8.
 
-**conversations, colunas novas.** `channel` (`web` ou `whatsapp`, padrão `web`) e `whatsapp_contact_id` anulável (chave estrangeira em cascata). A restrição de dono passa a aceitar `user_id`, `guest_key_id` ou `whatsapp_contact_id`, exatamente um quando `channel = 'whatsapp'`.
+**whatsapp_outbound_messages.** `contact_id` (chave estrangeira em cascata), `conversation_id`, `message_id` e `handoff_id` anuláveis (chaves estrangeiras com `SET NULL`), `kind` (`text`, `buttons`, `notice` ou `status_update`), `payload` jsonb anulável, `status` (`pending`, `sent`, `delivered`, `read` ou `failed`), `wamid` único anulável, `attempts`, `used_phone`, `next_attempt_at`, `error_code` anulável, `created_at` e `updated_at`. `payload` é apagado quando a linha chega a `delivered`, `read` ou `failed`.
 
-**handoffs, coluna nova.** `channel`, copiado da conversa. O console e o evento `queue` levam o canal, um enum sem identidade.
+**whatsapp_handoff_relay.** `handoff_id` chave primária (chave estrangeira em cascata), `delivered_seq`, `announced_status` e `announced_assigned_at`: o cursor do repasse (30.5).
 
-**Índices.** Parcial em `whatsapp_inbound_events (wa_timestamp) WHERE status = 'pending'` e em `whatsapp_outbound_messages (next_attempt_at) WHERE status = 'pending'`.
+**conversations, coluna nova.** `channel` (`web` ou `whatsapp`, padrão `web`). O dono da conversa do WhatsApp é a chave de convidado interna do contato, então a restrição de dono não muda.
+
+**handoffs, coluna nova.** `channel`, copiado da conversa no pedido. O console e o evento `queue` levam o canal, um enum sem identidade.
+
+**Índices.** Parcial em `whatsapp_inbound_events (wa_timestamp) WHERE status IN ('pending', 'processing')`, parcial em `whatsapp_outbound_messages (next_attempt_at) WHERE status = 'pending'` e em `whatsapp_outbound_messages (message_id)`, para o status de entrega no console.
 
 ### 30.8 Segurança
 
@@ -213,7 +219,7 @@ Segue a seção 8: UUIDs, `timestamptz` em UTC, regra de retenção para todo da
 | Injeção de prompt pelo WhatsApp | O texto do WhatsApp é entrada de visitante, igual à da web, com as defesas da seção 10.2. O texto do atendimento nunca vai ao modelo (seção 29.8) |
 | Inundação e custo | Limites abaixo, orçamento diário de tokens (NFR-13) e a cota mensal de mensagens de serviço na métrica da seção 30.12 |
 | Arquivo malicioso | Mídia não é baixada. O id da mídia nem é gravado |
-| A equipe identifica a pessoa | Sem telefone no banco. O rótulo do console vem do HMAC do id do atendimento, como na seção 29.9.4 |
+| A equipe identifica a pessoa | O número fica só em `whatsapp_contacts.phone`, e nenhuma rota o devolve. O rótulo do console vem do HMAC do id do atendimento, como na seção 29.9.4 |
 | Dado pessoal em log, rastro ou métrica | Logs levam o HMAC do BSUID com `PSEUDONYM_KEY`, nunca o BSUID nem o texto. O LangSmith recebe `channel = whatsapp` nos metadados, nunca o BSUID |
 | Número banido por denúncia de spam | O Atrium nunca inicia conversa. O aviso diz como parar: basta não escrever mais |
 
@@ -240,6 +246,7 @@ O hospital continua controlador. A Meta entra como operadora: na Cloud API, a cr
 | Dado | Finalidade | Base legal | Retenção |
 |---|---|---|---|
 | BSUID e datas do contato | Responder a quem escreveu e manter a conversa | Procedimento a pedido do titular, art. 7º, V | 30 dias depois da última mensagem |
+| Número, quando a Meta o envia | Reserva de envio quando a Meta recusa o envio pelo BSUID (D-12) | Art. 7º, V | Com o contato |
 | Mensagens e respostas | Responder à pergunta | Art. 7º, V | Com a conversa |
 | Evento de entrada | Receber sem duplicar | Art. 7º, V | Texto apagado ao processar. Linha apagada em 7 dias |
 | Mensagem de saída e status de entrega | Entregar e provar a entrega | Art. 7º, V | Texto apagado no status final. Linha apagada em 7 dias |
@@ -250,7 +257,7 @@ O hospital continua controlador. A Meta entra como operadora: na Cloud API, a cr
 | Princípio, art. 6º | Como o canal cumpre |
 |---|---|
 | Finalidade e adequação | O canal só responde perguntas sobre o hospital e leva ao atendimento. Nenhuma mensagem ativa, nenhum marketing |
-| Necessidade | Sem telefone, sem nome de perfil, sem mídia. Texto da entrada e da saída apagado assim que cumpre a função |
+| Necessidade | Número só como reserva de envio, sem nome de perfil, sem mídia. Texto da entrada e da saída apagado assim que cumpre a função |
 | Transparência | Aviso antes da primeira resposta, rótulo em cada mensagem e seção nova no Aviso de Privacidade |
 | Segurança | Assinatura, segredo da borda, segredos só na API e a seção 30.8 |
 | Responsabilização | Inventário, RIPD e auditoria do atendimento como na seção 29 |
@@ -309,7 +316,7 @@ Os erros seguem o envelope da seção 12. Código novo: `whatsapp_bad_signature`
 | Método e caminho | Quem | Comportamento |
 |---|---|---|
 | `GET /v1/whatsapp/webhook` | A Meta, na configuração | Com `hub.mode=subscribe` e `hub.verify_token` igual a `WHATSAPP_VERIFY_TOKEN`, responde 200 com o `hub.challenge` em `text/plain`. Fora disso, 403 |
-| `POST /v1/whatsapp/webhook` | A Meta | Corpo de até 3 MB, `X-Hub-Signature-256` obrigatório. Responde 200 com corpo vazio depois de gravar. Assinatura inválida, 401. Corpo maior, 413 |
+| `POST /v1/whatsapp/webhook` | A Meta | Corpo de até 3 MB, `X-Hub-Signature-256` obrigatório. Responde 200 com corpo vazio depois de gravar. Assinatura inválida, 401, e 429 acima de 30 por minuto do mesmo IP. Corpo maior, 422 |
 | `GET /v1/attendance/queue` e o evento `queue` | Equipe | Muda: cada item traz `channel` |
 | `GET /v1/attendance/handoffs/{id}` e o evento `message` | Quem assumiu | Muda: as mensagens da equipe num atendimento do WhatsApp trazem `delivery`, com `pending`, `sent`, `delivered`, `read` ou `failed`, e `delivery_error` |
 
@@ -349,13 +356,14 @@ As duas rotas do webhook só existem com `WHATSAPP_ENABLED` ligado. Elas não le
 | `atrium_whatsapp_outbound` | counter | `kind`, `status` |
 | `atrium_whatsapp_send_errors` | counter | `error_code` |
 | `atrium_whatsapp_pending` | gauge | `direction` (`inbound` ou `outbound`), lida do banco a cada coleta |
+| `atrium_whatsapp_oldest_pending_seconds` | gauge | `direction`, a idade do pendente mais antigo, lida do banco |
 | `atrium_whatsapp_service_messages_month` | gauge | nenhum, mensagens de serviço entregues no mês, para comparar com a cota grátis |
 
 **Alertas,** com o contato da seção 18.3:
 
 | Alerta | Condição |
 |---|---|
-| WhatsApp parado | `atrium_whatsapp_pending` acima de 0 com o evento mais antigo há mais de 2 minutos |
+| WhatsApp parado | `atrium_whatsapp_oldest_pending_seconds` acima de 120 por 2 minutos |
 | Envio falhando | Mais de 10% das saídas em `failed` em 15 minutos, ou qualquer erro 190 |
 | Assinatura inválida | Mais de 20 falhas de assinatura em 10 minutos |
 | Cota de serviço | `atrium_whatsapp_service_messages_month` acima de 800 |
@@ -386,7 +394,7 @@ Os testes seguem a seção 21.1: sem Gemini, sem LangSmith e sem a Graph API da 
 | Um 429 da Graph API tenta de novo com espera crescente, e o erro 131047 vira `failed` sem nova tentativa | Seção 30.4 |
 | Um status antigo não sobrescreve um posterior | Seção 30.4 |
 | A troca de BSUID por evento `system` mantém a conversa do contato | Seção 30.4 |
-| Nenhuma coluna guarda telefone, e os logs não têm BSUID nem texto | NFR-23, NFR-7 |
+| O número fica só em `whatsapp_contacts.phone`, e os logs não têm BSUID, número nem texto | NFR-23, NFR-7 |
 | Nenhum caminho de código fora do `MetaCloudApiChannel` faz pedido HTTP à Meta | NFR-24 |
 | Nenhuma mensagem sai sem uma mensagem recebida do contato nas últimas 24 horas | FR-33 |
 | A retenção apaga o contato 30 dias depois da última mensagem e não toca no contato com atendimento ativo | Seção 30.9.7 |
@@ -400,13 +408,13 @@ Os testes seguem a seção 21.1: sem Gemini, sem LangSmith e sem a Graph API da 
 | `WHATSAPP_ENABLED` | `false` por padrão. Liga em development na Etapa 18.3 e em production só depois da Etapa 18.6 |
 | `WHATSAPP_PHONE_NUMBER_ID` | O id do número na Meta. Em development, o número de teste que a Meta dá no app |
 | `WHATSAPP_BUSINESS_ACCOUNT_ID` | O id da conta do WhatsApp Business |
-| `WHATSAPP_GRAPH_VERSION` | A versão da Graph API, fixada no código e trocada por PR |
+| `WHATSAPP_GRAPH_VERSION` | A versão da Graph API, `v23.0` no código, trocada por PR |
 | `WHATSAPP_APP_SECRET`, `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_VERIFY_TOKEN` | Segredos da seção 30.8 |
 
 | Constante | Valor |
 |---|---|
 | Corpo máximo do webhook | 3 MB |
-| Acordar o processador sem aviso | A cada 5 segundos |
+| Acordar o processador sem aviso | A cada 2 segundos |
 | Tentativas de processar um evento | 3 |
 | Tentativas de envio | 5 em 1 hora, com espera crescente |
 | Tempo limite da Graph API | 10 segundos |

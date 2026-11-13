@@ -32,7 +32,7 @@ E2E: `pnpm exec playwright test`. A CI (`.github/workflows/ci.yml`) roda tudo is
 ## Convenções
 
 - Texto visível ao usuário em português (`apps/web/src/i18n/pt.ts`, `apps/api/app/prompts`). Código, rotas e identificadores em inglês.
-- Testes automáticos nunca chamam Gemini nem LangSmith. Use `FakeChatProvider`, `DeterministicEmbeddingProvider` e `NoopFeedbackSink`.
+- Testes automáticos nunca chamam Gemini, LangSmith nem a Graph API da Meta. Use `FakeChatProvider`, `DeterministicEmbeddingProvider`, `NoopFeedbackSink` e `FakeMessagingChannel`.
 - Nunca commite `.env`, credenciais nem `.claude/settings.local.json`.
 
 ## Onde estão as regras
@@ -42,4 +42,5 @@ E2E: `pnpm exec playwright test`. A CI (`.github/workflows/ci.yml`) roda tudo is
 - `.claude/rules/design-system.md`: design system (SDD 14.8). Carrega ao tocar `.tsx` e `.css` de `apps/web`.
 - `.claude/rules/gsap.md`: movimento com GSAP (SDD 16.5). Carrega ao tocar `.ts` e `.tsx` de `apps/web`.
 - `.claude/rules/atendimento.md`: atendimento humano (SDD 29.8 e 29.9). Carrega ao tocar os arquivos do atendimento na API e no frontend.
+- `.claude/rules/whatsapp.md`: canal WhatsApp (SDD 30.4, 30.8 e 30.9). Carrega ao tocar os arquivos do canal na API.
 - `.claude/skills/definicao-de-pronto/`: DP-1 a DP-9. Use ao implementar, revisar ou encerrar uma etapa e ao abrir a PR dela.

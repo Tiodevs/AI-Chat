@@ -1572,7 +1572,7 @@ A Fase 17 implementa a seção 29 do SDD, aprovada na Etapa 17.0 em 2026-11-12: 
 
 ### Fase 18 — Canal WhatsApp (SDD 23, passo 13)
 
-A Fase 18 implementa a seção 30 do SDD, em proposta: o visitante escreve para o número do Harborlight no WhatsApp, o Atrium responde com o mesmo pipeline da web e, quando a IA não ajuda, a pessoa da equipe responde pelo mesmo console do atendimento humano. A Etapa 18.0 aprova a especificação antes de qualquer código. A arquitetura segue o que a Meta pede para webhooks: responder 200 rápido, tolerar repetição, conferir a assinatura e identificar pelo BSUID (seção 30.2, ADR-017 e ADR-018). `WHATSAPP_ENABLED` liga na máquina local para os testes de cada etapa, em development na 18.3, com o número de teste da Meta, e em production só depois da 18.6.
+A Fase 18 implementa a seção 30 do SDD, aprovada na Etapa 18.0 em 2026-11-12, com a D-12 alterada para guardar o BSUID e o número: o visitante escreve para o número do Harborlight no WhatsApp, o Atrium responde com o mesmo pipeline da web e, quando a IA não ajuda, a pessoa da equipe responde pelo mesmo console do atendimento humano. A Etapa 18.0 aprova a especificação antes de qualquer código. A arquitetura segue o que a Meta pede para webhooks: responder 200 rápido, tolerar repetição, conferir a assinatura e identificar pelo BSUID (seção 30.2, ADR-017 e ADR-018). `WHATSAPP_ENABLED` liga na máquina local para os testes de cada etapa, em development na 18.3, com o número de teste da Meta, e em production só depois da 18.6.
 
 #### Etapa 18.0 — Revisão da especificação do canal WhatsApp
 
@@ -1739,6 +1739,8 @@ A Fase 18 implementa a seção 30 do SDD, em proposta: o visitante escreve para 
 1. Troque o token de development por um inválido, mande uma pergunta e confira o alerta no Discord. Volte o token.
 2. Depois do deploy aprovado, faça J12, J13 e J14 em production pelo número próprio.
 
+**Situação em 2026-11-12.** O código, o painel, os alertas, o guia e a configuração na Meta descrita em `docs/whatsapp-configuracao-na-meta.md` estão prontos. Faltam a configuração da Meta e da Railway feita por você, o teste com o número de teste em development (CA-5 da 18.2, CA-6 da 18.3), o número próprio, a 17.8 e a aprovação para ligar em production. A medida de latência da NFR-25 e as jornadas J12 a J14 no Playwright também ficam para depois do primeiro teste em development.
+
 ## 4. Status das etapas
 
 A IA atualiza esta tabela em cada PR.
@@ -1805,13 +1807,13 @@ A IA atualiza esta tabela em cada PR.
 | 17.6 | Telas do visitante | Aprovada |
 | 17.7 | Console da equipe e encerrados do admin | Aprovada |
 | 17.8 | Privacidade, operação e publicação | Pendente |
-| 18.0 | Revisão da especificação do canal WhatsApp | Pendente |
-| 18.1 | Domínio e porta do WhatsApp | Pendente |
-| 18.2 | Dados e webhook | Pendente |
-| 18.3 | Processador, resposta da IA e envio | Pendente |
-| 18.4 | Atendimento humano pelo WhatsApp | Pendente |
-| 18.5 | Privacidade, retenção e APAGAR DADOS | Pendente |
-| 18.6 | Observabilidade, número próprio e publicação | Pendente |
+| 18.0 | Revisão da especificação do canal WhatsApp | Aprovada |
+| 18.1 | Domínio e porta do WhatsApp | Em revisão |
+| 18.2 | Dados e webhook | Em revisão |
+| 18.3 | Processador, resposta da IA e envio | Em revisão |
+| 18.4 | Atendimento humano pelo WhatsApp | Em revisão |
+| 18.5 | Privacidade, retenção e APAGAR DADOS | Em revisão |
+| 18.6 | Observabilidade, número próprio e publicação | Em andamento |
 
 Valores possíveis: Pendente, Em andamento, Em revisão, Ajustes pedidos, Aprovada, Débito técnico. Débito técnico é uma etapa adiada de propósito, com o risco escrito na seção 6.
 

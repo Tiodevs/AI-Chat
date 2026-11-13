@@ -10,7 +10,7 @@ O resumo está na seção 11.3 do SDD. Este documento é a versão completa. Uma
 |---|---|
 | Controlador | A pessoa que opera a implantação, em nome do Harborlight General Hospital, fictício |
 | Encarregado | A mesma pessoa, com contato publicado em `/privacy` por `PRIVACY_CONTACT_EMAIL` |
-| Operadores | Railway, Vercel, Google e LangChain, na tabela de compartilhamento abaixo |
+| Operadores | Railway, Vercel, Google, LangChain e Meta (WhatsApp), na tabela de compartilhamento abaixo |
 | Titulares | Visitantes convidados e membros cadastrados |
 
 ## Operações
@@ -32,6 +32,10 @@ O resumo está na seção 11.3 do SDD. Este documento é a versão completa. Uma
 | Auditoria de admin e de conta | Ambos | Responsabilização | Legítimo interesse, art. 7º, IX | `audit_events`, sem e-mail nem conteúdo | Operador | 2 anos |
 | Pedidos de titular | Qualquer pessoa | Atender os direitos do art. 18 | Cumprimento de obrigação, art. 18 | `data_subject_requests` | Admin | 2 anos depois de fechado |
 | Registro de incidentes | Afetados | Responsabilização e comunicação | Cumprimento de obrigação, art. 48 | Fora do sistema, conforme `incident-playbook.md` | Operador | 5 anos |
+| BSUID e datas do contato do WhatsApp | Quem escreve pelo WhatsApp | Responder e manter a conversa | Procedimento a pedido do titular, art. 7º, V | `whatsapp_contacts.identity` | Ninguém pela interface; logs só com o HMAC | 30 dias depois da última mensagem, ou na hora com APAGAR DADOS |
+| Número de telefone do WhatsApp, quando a Meta envia | Quem escreve pelo WhatsApp | Reserva de envio quando a Meta recusa o envio pelo BSUID (D-12) | Art. 7º, V | `whatsapp_contacts.phone` | Só o enviador; nunca a equipe, logs, rastros ou exportação | Com o contato |
+| Conversas do WhatsApp | Quem escreve pelo WhatsApp | Responder à pergunta e ao atendimento | Art. 7º, V | `conversations` com `channel = whatsapp`, `messages` | A equipe só no atendimento assumido, sem número | Com o contato |
+| Caixas de entrada e de saída do WhatsApp | Quem escreve pelo WhatsApp | Receber sem duplicar e entregar com nova tentativa | Art. 7º, V | `whatsapp_inbound_events`, `whatsapp_outbound_messages` | Ninguém pela interface | Texto apagado ao processar e no status final; linhas em 7 dias |
 
 A tarefa `retention-job` aplica os prazos todo dia às 06:00 UTC (`python -m app.scripts.retention`). Cada regra é uma função testada em `apps/api/tests/integration/test_retention.py`. Os prazos em meses viram dias corridos: 12 meses são 365 dias e 24 meses são 730. Uma conta de admin não é eliminada por inatividade, porque a remoção de admin segue a seção 10.5.
 
@@ -43,6 +47,7 @@ A tarefa `retention-job` aplica os prazos todo dia às 06:00 UTC (`python -m app
 | Vercel | Estados Unidos | Entrega do frontend e rewrite para a API | Tráfego em trânsito, sem armazenamento da resposta |
 | Google, API Gemini | Estados Unidos | Classificar, responder e entender o cadastro | Texto da pergunta e mensagens do cadastro, transitórios |
 | LangChain, LangSmith | Estados Unidos | Rastros de IA mascarados | O que a política de rastro permite, seção 18.4 |
+| Meta, WhatsApp Business Platform (Cloud API) | Estados Unidos | Entregar as mensagens do canal WhatsApp (seção 30) | Mensagens, BSUID e número de quem escreve, pelo prazo dos termos da Meta |
 
 A transferência se apoia no art. 33, com as cláusulas contratuais dos provedores, conforme a Resolução CD/ANPD nº 19/2024.
 

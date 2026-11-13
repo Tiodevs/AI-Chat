@@ -54,6 +54,10 @@ A expectativa da pessoa está no Aviso de Privacidade, quando ele for publicado:
 - O `lifespan` chama `wait_for_all_tracers()` no desligamento, para um deploy não deixar rastro pela metade sem também não vazar o que a política escondeu.
 - Retenção curta do plano do LangSmith, sem identificador direto, como na seção 11.6.
 
+## Canal WhatsApp
+
+O canal WhatsApp (seção 30) não acrescenta uso de legítimo interesse: o contato, as conversas e as caixas de entrada e de saída têm como base o procedimento a pedido do titular, art. 7º, V, porque quem escreve pede a resposta. O rastro da pergunta do WhatsApp segue as mesmas políticas deste teste, com `channel = whatsapp` nos metadados e o pseudônimo da chave interna do contato, nunca o BSUID nem o número.
+
 ## Conclusão
 
 O legítimo interesse sustenta os rastros mascarados de qualidade e diagnóstico, com as políticas acima. Não sustenta enviar a pergunta original quando ela pode ser dado de saúde, nem desligar o anonimizador por uma chave global. Se o uso deixar de ser fictício, este teste precisa ser refeito com revisão jurídica antes disso.
